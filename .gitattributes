@@ -1,0 +1,5 @@
+data/pop.all.grid_mat.SSP1.rda filter=lfs diff=lfs merge=lfs -text
+data/pop.all.grid_mat.SSP2.rda filter=lfs diff=lfs merge=lfs -text
+data/pop.all.grid_mat.SSP3.rda filter=lfs diff=lfs merge=lfs -text
+data/pop.all.grid_mat.SSP4.rda filter=lfs diff=lfs merge=lfs -text
+data/pop.all.grid_mat.SSP5.rda filter=lfs diff=lfs merge=lfs -text
