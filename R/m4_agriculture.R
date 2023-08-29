@@ -17,7 +17,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-calc_prod_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+calc_prod_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -127,7 +127,7 @@ calc_prod_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, quer
 #' @importFrom magrittr %>%
 #' @export
 
-calc_price_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+calc_price_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -226,7 +226,7 @@ calc_price_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, que
 #' @importFrom magrittr %>%
 #' @export
 
-calc_rev_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+calc_rev_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                         saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -327,7 +327,7 @@ calc_rev_gcam<-function(db_path, query_path, db_name, prj_name, scen_name, queri
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_aot40<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m4_get_ryl_aot40<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T){
 
 
@@ -446,7 +446,7 @@ m4_get_ryl_aot40<-function(db_path, query_path, db_name, prj_name, scen_name, qu
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_mi<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m4_get_ryl_mi<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                         saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -564,7 +564,7 @@ m4_get_ryl_mi<-function(db_path, query_path, db_name, prj_name, scen_name, queri
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_prod_loss<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m4_get_prod_loss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -778,7 +778,7 @@ m4_get_prod_loss<-function(db_path, query_path, db_name, prj_name, scen_name, qu
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_rev_loss<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m4_get_rev_loss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
