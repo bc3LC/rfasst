@@ -65,7 +65,7 @@ test_that("GCAM production function works", {
 
   gcam_prod<-calc_prod_gcam(db_path = db_path,
                             query_path="./inst/extdata",
-                            db_name = "database_basexdb_ref",
+                            db_name = "database_basexdb_gcam7",
                             prj_name = "scentest.dat",
                             scen_name = "Reference",
                             queries ="queries_rfasst.xml",
@@ -87,7 +87,7 @@ test_that("GCAM price function works", {
 
   gcam_price<-calc_price_gcam(db_path = db_path,
                             query_path="./inst/extdata",
-                            db_name = "database_basexdb_ref",
+                            db_name = "database_basexdb_gcam7",
                             prj_name = "scentest.dat",
                             scen_name = "Reference",
                             queries ="queries_rfasst.xml",
@@ -109,7 +109,7 @@ test_that("GCAM revenue function works", {
 
   gcam_rev<-calc_rev_gcam(db_path = db_path,
                               query_path="./inst/extdata",
-                              db_name = "database_basexdb_ref",
+                              db_name = "database_basexdb_gcam7",
                               prj_name = "scentest.dat",
                               scen_name = "Reference",
                               queries ="queries_rfasst.xml",
