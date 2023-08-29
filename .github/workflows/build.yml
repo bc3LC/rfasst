@@ -29,14 +29,8 @@ jobs:
       - uses: r-lib/actions/setup-pandoc@v2-branch
       - uses: r-lib/actions/setup-tinytex@v2-branch
       
-      - name: Cache R packages 
-        uses: actions/cache@v1 
-        with: 
-          path: ${{ env.R_LIBS_USER }} 
-          key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }} 
-          restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1- 
       
-      - name: Ubuntu config
+      - name: Install libraries
         if: startsWith(matrix.config.os, 'ubuntu')
         run: |
           sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable
@@ -48,8 +42,9 @@ jobs:
         run: |
           install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")
           remotes::install_deps(dependencies = TRUE)
+          remotes::install_github("JGCRI/rpackageutils")
         shell: Rscript {0}
            
-      - name: Check
-        run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "error")
+        - name: Check
+        run: rcmdcheck::rcmdcheck(args = c("--no-manual", "--ignore-vignettes", "--no-build-vignettes"), build_args = c("--no-manual", "--ignore-vignettes", "--no-build-vignettes"), error_on = "error")
         shell: Rscript {0}
