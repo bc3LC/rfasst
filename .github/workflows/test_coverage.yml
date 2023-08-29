@@ -37,11 +37,10 @@ jobs:
           sudo apt-get install -y libcurl4-openssl-dev libharfbuzz-dev libfribidi-dev libssl-dev libxml2-dev libudunits2-dev libgdal-dev libgeos-dev libproj-dev libmagick++-dev libavfilter-dev
 
       - name: Install dependencies
-        run: |
-          install.packages(c("remotes","rcmdcheck","covr"), repos = "https://cloud.r-project.org")
-          remotes::install_github("JGCRI/rpackageutils")
-          remotes::install_deps(dependencies = TRUE)
-        shell: Rscript {0}
+        env:
+          R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+          GITHUB_PAT: ${{ secrets.GH_PAT_RFASST }}
+        run: Rscript -e "install.packages(c('remotes', 'rcmdcheck', 'covr'))" -e "remotes::install_deps(dependencies = TRUE)"
         
       # - name: Test coverage
       #   run: |
