@@ -9,11 +9,11 @@ Schlander, M., Schaefer, R. and Schwarz, O., 2017. Empirical studies on the econ
 \usage{
 m3_get_yll_o3_ecoloss(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
-  queries,
+  queries = "queries_rfasst.xml",
   final_db_year = 2100,
   ssp = "SSP2",
   saveOutput = T,

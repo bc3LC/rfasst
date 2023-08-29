@@ -9,13 +9,15 @@ Narain, U. and Sall, C., 2016. Methodology for Valuing the Health Impacts of Air
 \usage{
 m3_get_mort_pm25_ecoloss(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
   ssp = "SSP2",
   final_db_year = 2100,
-  queries,
+  mort_param = "GBD2016_medium",
+  Damage_vsl_range = "Damage_vsl_med",
+  queries = "queries_rfasst.xml",
   saveOutput = T,
   map = F,
   anim = T
@@ -35,6 +37,10 @@ m3_get_mort_pm25_ecoloss(
 \item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
 
 \item{final_db_year}{Final year in the GCAM database (this allows to process databases with user-defined "stop periods")}
+
+\item{mort_param}{Select the health function (GBD 2016, Burnett et al, 2014 (IERs), or Burnett et al 2018 (GEMM)) and the Low/Med/High RR. By default = GBD2016_medium}
+
+\item{Damage_vsl_range}{Select the VSL to calculate the damages (Damage_vsl_med, Damage_vsl_low, or Damage_vsl_high)}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
 

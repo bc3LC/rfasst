@@ -9,11 +9,11 @@ Burnett, R.T., Pope III, C.A., Ezzati, M., Olives, C., Lim, S.S., Mehta, S., Shi
 \usage{
 m3_get_mort_pm25(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
-  queries,
+  queries = "queries_rfasst.xml",
   final_db_year = 2100,
   ssp = "SSP2",
   saveOutput = T,

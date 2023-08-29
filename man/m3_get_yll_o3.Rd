@@ -6,11 +6,11 @@
 \usage{
 m3_get_yll_o3(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
-  queries,
+  queries = "queries_rfasst.xml",
   final_db_year = 2100,
   mort_param = "mort_o3_gbd2016_med",
   ssp = "SSP2",

@@ -6,11 +6,11 @@
 \usage{
 m4_get_ryl_mi(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
-  queries,
+  queries = "queries_rfasst.xml",
   final_db_year = 2100,
   saveOutput = T,
   map = F,

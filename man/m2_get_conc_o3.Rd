@@ -6,11 +6,11 @@
 \usage{
 m2_get_conc_o3(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
-  queries,
+  queries = "queries_rfasst.xml",
   final_db_year = 2100,
   saveOutput = T,
   ch4_o3 = T,
