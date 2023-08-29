@@ -33,19 +33,11 @@ jobs:
           R --vanilla --quiet
           echo 'q()' | R --no-save
 
-      - name: Install dependencies 1
+      - name: Install dependencies
         run: |
-          install.packages(c("remotes", "rcmdcheck"), repos = "https://cloud.r-project.org")
-        shell: Rscript {0}
-
-      - name: Install dependencies 2
-        run: |
-          remotes::install_deps(dependencies = TRUE)
-        shell: Rscript {0}
-
-      - name: Install dependencies 3
-        run: |
-          install.packages("pkgdown")
+            install.packages(c("remotes", "rcmdcheck"), repos = "https://cloud.r-project.org")
+            remotes::install_deps(dependencies = TRUE)  
+            install.packages("pkgdown", type = "binary")
         shell: Rscript {0}
 
       - name: Install package
