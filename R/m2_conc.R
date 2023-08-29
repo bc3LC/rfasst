@@ -17,7 +17,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_pm25<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m2_get_conc_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -404,7 +404,7 @@ m2_get_conc_pm25<-function(db_path, query_path, db_name, prj_name, scen_name, qu
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_o3<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m2_get_conc_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, ch4_o3 = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -632,7 +632,7 @@ m2_get_conc_o3<-function(db_path, query_path, db_name, prj_name, scen_name, quer
 #' @export
 
 
-m2_get_conc_m6m<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m2_get_conc_m6m<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -891,7 +891,7 @@ m2_get_conc_m6m<-function(db_path, query_path, db_name, prj_name, scen_name, que
 #' @export
 
 
-m2_get_conc_aot40<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m2_get_conc_aot40<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                             saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -1316,7 +1316,7 @@ m2_get_conc_aot40<-function(db_path, query_path, db_name, prj_name, scen_name, q
 #' @export
 
 
-m2_get_conc_mi<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m2_get_conc_mi<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]

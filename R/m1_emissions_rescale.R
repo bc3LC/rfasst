@@ -18,7 +18,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m1_emissions_rescale<-function(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = 2100,
+m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                                saveOutput = T, map = F, mapIndivPol = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
