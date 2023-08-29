@@ -9,7 +9,7 @@ Jerrett, M., Burnett, R.T., Pope III, C.A., Ito, K., Thurston, G., Krewski, D., 
 \usage{
 m3_get_mort_o3_ecoloss(
   db_path,
-  query_path,
+  query_path = "./inst/extdata",
   db_name,
   prj_name,
   scen_name,
@@ -17,7 +17,7 @@ m3_get_mort_o3_ecoloss(
   mort_param = "mort_o3_gbd2016_med",
   Damage_vsl_range = "Damage_vsl_med",
   ssp = "SSP2",
-  queries,
+  queries = "queries_rfasst.xml",
   saveOutput = T,
   map = F,
   anim = T
