@@ -11,7 +11,7 @@ test_that("module 1 writes csv file", {
 
     a<-dplyr::bind_rows(m1_emissions_rescale(db_path = db_path,
                        query_path="./inst/extdata",
-                       db_name = "database_basexdb_ref",
+                       db_name = "database_basexdb_gcam7",
                        prj_name = "scentest.dat",
                        scen_name = "Reference",
                        queries ="queries_rfasst.xml",
@@ -40,7 +40,7 @@ test_that("module 2 writes csv file for PM2.5 concentration", {
 
   a<-dplyr::bind_rows(m2_get_conc_pm25(db_path = db_path,
                                            query_path="./inst/extdata",
-                                           db_name = "database_basexdb_ref",
+                                           db_name = "database_basexdb_gcam7",
                                            prj_name = "scentest.dat",
                                            scen_name = "Reference",
                                            queries ="queries_rfasst.xml",
@@ -66,7 +66,7 @@ test_that("module 2 writes csv file for O3 concentration", {
 
   a<-dplyr::bind_rows(m2_get_conc_o3(db_path = db_path,
                                        query_path="./inst/extdata",
-                                       db_name = "database_basexdb_ref",
+                                       db_name = "database_basexdb_gcam7",
                                        prj_name = "scentest.dat",
                                        scen_name = "Reference",
                                        queries ="queries_rfasst.xml",
@@ -92,7 +92,7 @@ test_that("module 2 writes csv file for O3-M6M concentration", {
 
   a<-dplyr::bind_rows(m2_get_conc_m6m(db_path = db_path,
                                      query_path="./inst/extdata",
-                                     db_name = "database_basexdb_ref",
+                                     db_name = "database_basexdb_gcam7",
                                      prj_name = "scentest.dat",
                                      scen_name = "Reference",
                                      queries ="queries_rfasst.xml",
@@ -118,7 +118,7 @@ test_that("module 2 writes csv file for O3-AOT40 concentration", {
 
   a<-dplyr::bind_rows(m2_get_conc_aot40(db_path = db_path,
                                       query_path="./inst/extdata",
-                                      db_name = "database_basexdb_ref",
+                                      db_name = "database_basexdb_gcam7",
                                       prj_name = "scentest.dat",
                                       scen_name = "Reference",
                                       queries ="queries_rfasst.xml",
@@ -144,7 +144,7 @@ test_that("module 2 writes csv file for O3-Mi concentration", {
 
   a<-dplyr::bind_rows(m2_get_conc_mi(db_path = db_path,
                                         query_path="./inst/extdata",
-                                        db_name = "database_basexdb_ref",
+                                        db_name = "database_basexdb_gcam7",
                                         prj_name = "scentest.dat",
                                         scen_name = "Reference",
                                         queries ="queries_rfasst.xml",
@@ -176,7 +176,7 @@ test_that("module 3 writes csv file for PM2.5 mort", {
 
   a<-dplyr::bind_rows(m3_get_mort_pm25(db_path = db_path,
                                      query_path="./inst/extdata",
-                                     db_name = "database_basexdb_ref",
+                                     db_name = "database_basexdb_gcam7",
                                      prj_name = "scentest.dat",
                                      scen_name = "Reference",
                                      queries ="queries_rfasst.xml",
@@ -202,7 +202,7 @@ test_that("module 3 writes csv file for O3 mort", {
 
   a<-dplyr::bind_rows(m3_get_mort_o3(db_path = db_path,
                                        query_path="./inst/extdata",
-                                       db_name = "database_basexdb_ref",
+                                       db_name = "database_basexdb_gcam7",
                                        prj_name = "scentest.dat",
                                        scen_name = "Reference",
                                        queries ="queries_rfasst.xml",
@@ -228,7 +228,7 @@ test_that("module 3 writes csv file for PM2.5-YLL", {
 
   a<-dplyr::bind_rows(m3_get_yll_pm25(db_path = db_path,
                                      query_path="./inst/extdata",
-                                     db_name = "database_basexdb_ref",
+                                     db_name = "database_basexdb_gcam7",
                                      prj_name = "scentest.dat",
                                      scen_name = "Reference",
                                      queries ="queries_rfasst.xml",
@@ -254,7 +254,7 @@ test_that("module 3 writes csv file for O3-YLL", {
 
   a<-dplyr::bind_rows(m3_get_yll_o3(db_path = db_path,
                                       query_path="./inst/extdata",
-                                      db_name = "database_basexdb_ref",
+                                      db_name = "database_basexdb_gcam7",
                                       prj_name = "scentest.dat",
                                       scen_name = "Reference",
                                       queries ="queries_rfasst.xml",
@@ -280,7 +280,7 @@ test_that("module 3 writes csv file for PM2.5-DALYs", {
 
   a<-dplyr::bind_rows(m3_get_daly_pm25(db_path = db_path,
                                     query_path="./inst/extdata",
-                                    db_name = "database_basexdb_ref",
+                                    db_name = "database_basexdb_gcam7",
                                     prj_name = "scentest.dat",
                                     scen_name = "Reference",
                                     queries ="queries_rfasst.xml",
@@ -306,7 +306,7 @@ test_that("module 3 writes csv file for O3-DALYs", {
 
   a<-dplyr::bind_rows(m3_get_daly_o3(db_path = db_path,
                                        query_path="./inst/extdata",
-                                       db_name = "database_basexdb_ref",
+                                       db_name = "database_basexdb_gcam7",
                                        prj_name = "scentest.dat",
                                        scen_name = "Reference",
                                        queries ="queries_rfasst.xml",
@@ -332,7 +332,7 @@ test_that("module 3 writes csv file for PM2.5-Mort-EcoLoss", {
 
   a<-dplyr::bind_rows(m3_get_mort_pm25_ecoloss(db_path = db_path,
                                      query_path="./inst/extdata",
-                                     db_name = "database_basexdb_ref",
+                                     db_name = "database_basexdb_gcam7",
                                      prj_name = "scentest.dat",
                                      scen_name = "Reference",
                                      queries ="queries_rfasst.xml",
@@ -358,7 +358,7 @@ test_that("module 3 writes csv file for PM2.5-O3-EcoLoss", {
 
   a<-dplyr::bind_rows(m3_get_mort_o3_ecoloss(db_path = db_path,
                                                query_path="./inst/extdata",
-                                               db_name = "database_basexdb_ref",
+                                               db_name = "database_basexdb_gcam7",
                                                prj_name = "scentest.dat",
                                                scen_name = "Reference",
                                                queries ="queries_rfasst.xml",
@@ -384,7 +384,7 @@ test_that("module 3 writes csv file for PM2.5-YLL-EcoLoss", {
 
   a<-dplyr::bind_rows(m3_get_yll_pm25_ecoloss(db_path = db_path,
                                                query_path="./inst/extdata",
-                                               db_name = "database_basexdb_ref",
+                                               db_name = "database_basexdb_gcam7",
                                                prj_name = "scentest.dat",
                                                scen_name = "Reference",
                                                queries ="queries_rfasst.xml",
@@ -410,7 +410,7 @@ test_that("module 3 writes csv file for O3-YLL-EcoLoss", {
 
   a<-dplyr::bind_rows(m3_get_yll_o3_ecoloss(db_path = db_path,
                                               query_path="./inst/extdata",
-                                              db_name = "database_basexdb_ref",
+                                              db_name = "database_basexdb_gcam7",
                                               prj_name = "scentest.dat",
                                               scen_name = "Reference",
                                               queries ="queries_rfasst.xml",
@@ -439,7 +439,7 @@ test_that("module 4 writes csv file for RYL-AOT40", {
 
   a<-dplyr::bind_rows(m4_get_ryl_aot40(db_path = db_path,
                                             query_path="./inst/extdata",
-                                            db_name = "database_basexdb_ref",
+                                            db_name = "database_basexdb_gcam7",
                                             prj_name = "scentest.dat",
                                             scen_name = "Reference",
                                             queries ="queries_rfasst.xml",
@@ -465,7 +465,7 @@ test_that("module 4 writes csv file for RYL-Mi", {
 
   a<-dplyr::bind_rows(m4_get_ryl_mi(db_path = db_path,
                                        query_path="./inst/extdata",
-                                       db_name = "database_basexdb_ref",
+                                       db_name = "database_basexdb_gcam7",
                                        prj_name = "scentest.dat",
                                        scen_name = "Reference",
                                        queries ="queries_rfasst.xml",
@@ -491,7 +491,7 @@ test_that("module 4 writes csv file for ProdLoss", {
 
   a<-dplyr::bind_rows(m4_get_prod_loss(db_path = db_path,
                                     query_path="./inst/extdata",
-                                    db_name = "database_basexdb_ref",
+                                    db_name = "database_basexdb_gcam7",
                                     prj_name = "scentest.dat",
                                     scen_name = "Reference",
                                     queries ="queries_rfasst.xml",
@@ -517,7 +517,7 @@ test_that("module 4 writes csv file for RevLoss", {
 
   a<-dplyr::bind_rows(m4_get_rev_loss(db_path = db_path,
                                        query_path="./inst/extdata",
-                                       db_name = "database_basexdb_ref",
+                                       db_name = "database_basexdb_gcam7",
                                        prj_name = "scentest.dat",
                                        scen_name = "Reference",
                                        queries ="queries_rfasst.xml",
