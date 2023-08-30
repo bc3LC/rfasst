@@ -1,3 +1,84 @@
+#' data_query
+#'
+#' Add nonCO2 large queries
+#' @param db_path: path of the database
+#' @param db_name: name of the database
+#' @param prj_name: name of the project
+#' @param scenarios: name of the scenarios to be considered
+#' @param type: either 'nonCO2 emissions by region' or 'nonCO2 emissions by sector'
+#' @return dataframe with the data from the query
+#' @export
+data_query = function(type, db_path, db_name, prj_name, scenarios) {
+  dt = data.frame()
+  xml <- xml2::read_xml('inst/extdata/queries_rfasst_nonCO2.xml')
+  qq <- xml2::xml_find_first(xml, paste0("//*[@title='", type, "']"))
+
+  emiss_list = unique(my_pol$Pollutant)
+  for (sc in scenarios) {
+    while (length(emiss_list) > 0) {
+      current_emis = emiss_list[1:min(21,length(emiss_list))]
+      qq_sec = gsub("current_emis", paste0("(@name = '", paste(current_emis, collapse = "' or @name = '"), "')"), qq)
+
+      prj_tmp = rgcam::addSingleQuery(
+        conn = rgcam::localDBConn(db_path,
+                                  db_name,migabble = FALSE),
+        proj = prj_name,
+        qn = type,
+        query = qq_sec,
+        scenario = sc,
+        regions = NULL,
+        clobber = TRUE,
+        transformations = NULL,
+        saveProj = FALSE,
+        warn.empty = FALSE
+      )
+
+      tmp = data.frame(prj_tmp[[sc]][type])
+      if (nrow(tmp) > 0) {
+        dt = dplyr::bind_rows(dt,tmp)
+      }
+      rm(prj_tmp)
+
+      if (length(emiss_list) > 21) {
+        emiss_list <- emiss_list[(21 + 1):length(emiss_list)]
+      } else {
+        emiss_list = c()
+      }
+    }
+  }
+  # Rename columns
+  new_colnames <- sub(".*\\.(.*)", "\\1", names(dt))
+  names(dt) <- new_colnames
+
+  return(dt)
+}
+
+
+#' fill_queries
+#'
+#' Create a folder to save the datasets and file, in case it does not exist
+#' @param prj: current project
+#' @param db_path: path of the database
+#' @param db_name: name of the database
+#' @param prj_name: name of the project
+#' @param scenarios: name of the scenarios to be considered
+#' @return prj containing the nonCO2 emissions by sector
+#' @export
+fill_queries = function(prj, db_path, db_name, prj_name, scenarios) {
+
+  # add nonCO2 query manually (it is too big to use the usual method)
+  if (!'nonCO2 emissions by sector (excluding resource production)' %in% rgcam::listQueries(prj)) {
+    dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)', db_path, db_name, prj_name, scenarios)
+    prj_tmp <- rgcam::addQueryTable(project = prj_name, qdata = dt_sec,
+                                    queryname = 'nonCO2 emissions by sector (excluding resource production)', clobber = FALSE)
+    prj <- rgcam::mergeProjects(prj_name, list(prj,prj_tmp), clobber = TRUE, saveProj = FALSE)
+  }
+
+  return(prj)
+}
+
+
+
 #' calc_pop
 #'
 #' Get population data and shares of population under 5 Years and above 30 Years from the SSP database (SSP_database_v9).To be consistent we make use of the IIASA-WIC Model/scenarios. Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
