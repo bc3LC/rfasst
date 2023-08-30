@@ -29,15 +29,17 @@ jobs:
           path: ${{ env.R_LIBS_USER }} 
           key: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1-${{ hashFiles('.github/depends.Rds') }} 
           restore-keys: ${{ runner.os }}-${{ hashFiles('.github/R-version') }}-1- 
-      - name: Install dependencies
+      - name: Install dependencies 1
         env:
           R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
           GITHUB_PAT: ${{ secrets.GH_PAT_RFASST }}
-      - name: Install dependencies 1
         run: |
           install.packages(c("remotes", "rcmdcheck","covr", "rprojroot"), repos = "https://cloud.r-project.org")
         shell: Rscript {0}
       - name: Install dependencies 2
+        env:
+          R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+          GITHUB_PAT: ${{ secrets.GH_PAT_RFASST }}
         run: |
           remotes::install_deps(dependencies = TRUE)
         shell: Rscript {0}
