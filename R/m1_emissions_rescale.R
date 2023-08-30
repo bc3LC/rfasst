@@ -160,7 +160,7 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
                   NH3=rep(0)) %>%
     dplyr::select(Year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
-  final_df_wide<-gcamdata::left_join_error_no_match(Percen %>%
+  final_df_wide<-dplyr::left_join(Percen %>%
                                     dplyr::filter(year %in% all_years) %>%
                                     dplyr::mutate(`GCAM Region`=as.factor(`GCAM Region`)),
                                   scen,
@@ -173,7 +173,8 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
     dplyr::rename(Region=`FASST Region`,
                   Year=year,
                   value=NewValue) %>%
-    tidyr::spread(Pollutant,value)
+    tidyr::spread(Pollutant,value) %>%
+    dplyr::mutate(CO2 = 0)
 
 
   if(length(levels(as.factor(FASST_reg$`FASST Region`))) != length(levels(as.factor(final_df_wide$Region)))){
@@ -184,7 +185,7 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
   #Write the data
   #Create the function to write the csv files
 
-  write_data<- function(year,save=saveOutput){
+  write_data<- function(year,save = saveOutput){
 
     a <- final_df_wide %>%
       dplyr::filter(Year == year) %>%
@@ -265,10 +266,10 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
     a<-a[c(59,55,56,1:45,57,58,46:54),]
 
     if(save == T){
-    write.csv(a,file = paste0("output/", "m1/", scen_name, '_', year, '.csv'),row.names = FALSE, quote = FALSE)
+    write.csv(a, file = paste0("output/", "m1/", scen_name, '_', year, '.csv'),row.names = FALSE, quote = FALSE)
     }
 
-    em<- a %>%
+    em <- a %>%
       dplyr::mutate(year = year)%>%
       tidyr::gather(pollutant, value, -COUNTRY, -year) %>%
       dplyr::rename(region = COUNTRY) %>%
