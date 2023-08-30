@@ -10,8 +10,8 @@ Authors@R: c(person("Jon", "Sampedro", email = "jon.sampedro@bc3research.org", r
 		   person("Clàudia", "Rodés-Bachs", email = "claudia.rodes@bc3research.org", role = c("aut"),
 		   comment = c(ORCID ="0000-0001-6696-7685")))
 Description: A screening Rtool to estimate adverse health and agricultural impacts within an integrated multi-sector model.
-URL: https://github.com/JGCRI/rfasst
-BugReports: https://github.com/JGCRI/rfasst/issues
+URL: https://github.com/bc3LC/rfasst
+BugReports: https://github.com/bc3LC/rfasst/issues
 Depends: R (>= 2.10)
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -34,16 +34,20 @@ Imports:
     writexl,
     readxl,
     rrapply (>= 1.2.6),
-    tibble
+    tibble,
+    rgcam,
+    rmap,
+    rpackageutils,
+    gcamdata
 Suggests: 
     rmarkdown,
     rprojroot,
     testthat (>= 3.0.0)	
 Remotes: 
     github::JGCRI/rgcam,
-    github::JGCRI/gcamdata,
     github::JGCRI/rmap,
-    github::JGCRI/rpackageutils
+    github::JGCRI/rpackageutils,
+    github::JGCRI/gcamdata
 VignetteBuilder: 
     knitr
 Config/testthat/edition: 3
