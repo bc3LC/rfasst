@@ -13,7 +13,7 @@ jobs:
       R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
       GITHUB_PAT: ${{ secrets.GH_PAT_RFASST}}
       RSPM: ${{ matrix.config.rspm }}
-      
+
     steps:
       - uses: actions/checkout@v2
 
@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libharfbuzz-dev libfribidi-dev libssl-dev libxml2-dev libudunits2-dev libgdal-dev libgeos-dev libproj-dev libmagick++-dev libavfilter-dev
-      
+
       - name: Restart R
         run: |
           R --vanilla --quiet
@@ -36,7 +36,8 @@ jobs:
       - name: Install dependencies
         run: |
             install.packages(c("remotes", "rcmdcheck","pkgdown"), repos = "https://cloud.r-project.org")
-            remotes::install_deps(dependencies = TRUE)  
+            remotes::install_deps(dependencies = TRUE)
+	          remotes::install_github("JGCRI/gcamdata")
         shell: Rscript {0}
 
       - name: Install package
