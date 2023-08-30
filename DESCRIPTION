@@ -35,19 +35,15 @@ Imports:
     readxl,
     rrapply (>= 1.2.6),
     tibble
-
 Suggests: 
     rmarkdown,
     rprojroot,
-    testthat (>= 3.0.0),
-	
+    testthat (>= 3.0.0)	
 Remotes: 
     github::JGCRI/rgcam,
     github::JGCRI/gcamdata,
     github::JGCRI/rmap,
     github::JGCRI/rpackageutils
-
 VignetteBuilder: 
     knitr
-
 Config/testthat/edition: 3
