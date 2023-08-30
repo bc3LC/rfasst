@@ -13,9 +13,11 @@ data_query = function(type, db_path, db_name, prj_name, scenarios) {
   xml <- xml2::read_xml('inst/extdata/queries_rfasst_nonCO2.xml')
   qq <- xml2::xml_find_first(xml, paste0("//*[@title='", type, "']"))
 
+  emiss_list = unique(my_pol$Pollutant)
   for (sc in scenarios) {
-    for (emis in unique((my_pol$Pollutant))) {
-      qq_sec = gsub("current_emis", paste0("@name = '",emis,"'"), qq)
+    while (length(emiss_list) > 0) {
+      current_emis = emiss_list[1:min(21,length(emiss_list))]
+      qq_sec = gsub("current_emis", paste0("(@name = '", paste(current_emis, collapse = "' or @name = '"), "')"), qq)
 
       prj_tmp = rgcam::addSingleQuery(
         conn = rgcam::localDBConn(db_path,
@@ -36,6 +38,12 @@ data_query = function(type, db_path, db_name, prj_name, scenarios) {
         dt = dplyr::bind_rows(dt,tmp)
       }
       rm(prj_tmp)
+
+      if (length(emiss_list) > 21) {
+        emiss_list <- emiss_list[(21 + 1):length(emiss_list)]
+      } else {
+        emiss_list = c()
+      }
     }
   }
   # Rename columns
@@ -60,59 +68,10 @@ fill_queries = function(prj, db_path, db_name, prj_name, scenarios) {
 
   # add nonCO2 query manually (it is too big to use the usual method)
   if (!'nonCO2 emissions by sector (excluding resource production)' %in% rgcam::listQueries(prj)) {
-    dt_sec <- tryCatch(
-      {
-        type = 'nonCO2 emissions by sector (excluding resource production)'
-        dt_sec = data.frame()
-        xml <- xml2::read_xml('inst/extdata/queries_rfasst_nonCO2.xml')
-        qq <- xml2::xml_find_first(xml, paste0("//*[@title='", type, "']"))
-
-        qq_sec = gsub("current_emis", "@name != 'CO2' and @name != 'CO2_FUG'", qq)
-
-        prj_tmp = rgcam::addSingleQuery(
-          conn = rgcam::localDBConn(db_path,
-                                    db_name,migabble = FALSE),
-          proj = prj_name,
-          qn = type,
-          query = qq_sec,
-          scenario = scenarios,
-          regions = NULL,
-          clobber = TRUE,
-          transformations = NULL,
-          saveProj = FALSE,
-          warn.empty = FALSE
-        )
-
-        for (sc in scenarios) {
-          tmp = data.frame(prj_tmp[[sc]][type])
-          if (nrow(tmp) > 0) {
-            dt_sec = dplyr::bind_rows(dt_sec,tmp)
-          }
-        }
-        rm(prj_tmp)
-
-        # Rename columns
-        new_colnames <- sub(".*\\.(.*)", "\\1", names(dt_sec))
-        names(dt_sec) <- new_colnames
-      },
-      error=function(cond) {
-        dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)', db_path, db_name, prj_name, scenarios)
-        return(dt_sec)
-      },
-      warning=function(cond) {
-        dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)', db_path, db_name, prj_name, scenarios)
-        return(dt_sec)
-      }
-    )
-
-    if (length(dt_sec) == 0) {
-      dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)', db_path, db_name, prj_name, scenarios)
-    }
-
+    dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)', db_path, db_name, prj_name, scenarios)
     prj_tmp <- rgcam::addQueryTable(project = prj_name, qdata = dt_sec,
                                     queryname = 'nonCO2 emissions by sector (excluding resource production)', clobber = FALSE)
     prj <- rgcam::mergeProjects(prj_name, list(prj,prj_tmp), clobber = TRUE, saveProj = FALSE)
-
   }
 
   return(prj)
