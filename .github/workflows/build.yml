@@ -37,11 +37,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libudunits2-dev libgdal-dev libgeos-dev libproj-dev libmagick++-dev libavfilter-dev
 
-      - name: Install dependencies
+      - name: Install dependencies 1
         run: |
-          install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")
+          install.packages(c("remotes", "rcmdcheck"), repos = "https://cloud.r-project.org")
+        shell: Rscript {0}
+
+      - name: Install dependencies 2
+        run: |
           remotes::install_deps(dependencies = TRUE)
-	  remotes::install_github("JGCRI/gcamdata")
         shell: Rscript {0}
 
       - name: Check

@@ -33,11 +33,12 @@ jobs:
         env:
           R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
           GITHUB_PAT: ${{ secrets.GH_PAT_RFASST }}
-      - name: Install dependencies
+      - name: Install dependencies 1
         run: |
-          install.packages(c("remotes","rcmdcheck","covr", "rprojroot"), repos = "https://cloud.r-project.org")
-          remotes::install_github("JGCRI/gcamdata")
-          remotes::install_github("JGCRI/rpackageutils")
+          install.packages(c("remotes", "rcmdcheck","covr", "rprojroot"), repos = "https://cloud.r-project.org")
+        shell: Rscript {0}
+      - name: Install dependencies 2
+        run: |
           remotes::install_deps(dependencies = TRUE)
         shell: Rscript {0}
       - name: Test coverage
