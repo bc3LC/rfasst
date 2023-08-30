@@ -41,7 +41,7 @@ jobs:
         run: |
           install.packages(c("remotes","rcmdcheck"), repos = "https://cloud.r-project.org")
           remotes::install_deps(dependencies = TRUE)
-	        remotes::install_github("JGCRI/gcamdata")
+	  remotes::install_github("JGCRI/gcamdata")
         shell: Rscript {0}
 
       - name: Check
