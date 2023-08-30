@@ -55,6 +55,7 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
                             prj_name,
                             scen_name,
                             paste0(query_path,"/",queries))
+  prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
 
   rgcam::listScenarios(prj)
   QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
@@ -62,7 +63,7 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
 
   # Generate the adjusted emission database +air and ship emissions
   # Emission data (scen)
-  scen_sct<-rgcam::getQuery(prj,"nonCO2 emissions by sector") %>%
+  scen_sct<-rgcam::getQuery(prj,"nonCO2 emissions by sector (excluding resource production)") %>%
     dplyr::arrange(ghg) %>%
     dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
     dplyr::filter(ghg %in% unique(levels(as.factor(my_pol$My_Pollutant)))) %>%
