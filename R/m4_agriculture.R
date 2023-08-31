@@ -17,7 +17,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-calc_prod_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -40,8 +40,17 @@ calc_prod_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_na
     dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
   # Load the rgcam project:
-  conn <- rgcam::localDBConn(db_path, db_name, migabble = FALSE)
-  prj <- rgcam::addScenario(conn, prj_name, scen_name, paste0(query_path,"/",queries),clobber = F)
+  if (!is.null(db_path) & !is.null(db_name)) {
+    conn <- rgcam::localDBConn(db_path,
+                               db_name,migabble = FALSE)
+    prj <- rgcam::addScenario(conn,
+                              prj_name,
+                              scen_name,
+                              paste0(query_path,"/",queries),clobber = F)
+    prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+  } else {
+    prj <- rgcam::loadProject(prj_name)
+  }
 
   prod <- rgcam::getQuery(prj,"ag production by subsector (land use region)") %>%
     dplyr::rename(unit = Units) %>%
@@ -127,7 +136,7 @@ calc_prod_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_na
 #' @importFrom magrittr %>%
 #' @export
 
-calc_price_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -150,8 +159,17 @@ calc_price_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_n
     dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
   # Load the rgcam project:
-  conn <- rgcam::localDBConn(db_path, db_name,migabble = FALSE)
-  prj <- rgcam::addScenario(conn,prj_name, scen_name, paste0(query_path,"/",queries),clobber = F)
+  if (!is.null(db_path) & !is.null(db_name)) {
+    conn <- rgcam::localDBConn(db_path,
+                               db_name,migabble = FALSE)
+    prj <- rgcam::addScenario(conn,
+                              prj_name,
+                              scen_name,
+                              paste0(query_path,"/",queries),clobber = F)
+    prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+  } else {
+    prj <- rgcam::loadProject(prj_name)
+  }
 
   price<-rgcam::getQuery(prj,"Ag Commodity Prices") %>%
     dplyr::rename(unit = Units) %>%
@@ -226,7 +244,7 @@ calc_price_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_n
 #' @importFrom magrittr %>%
 #' @export
 
-calc_rev_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                         saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -327,7 +345,7 @@ calc_rev_gcam<-function(db_path, query_path = "./inst/extdata", db_name, prj_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_aot40<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T){
 
 
@@ -446,7 +464,7 @@ m4_get_ryl_aot40<-function(db_path, query_path = "./inst/extdata", db_name, prj_
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_mi<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                         saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -564,7 +582,7 @@ m4_get_ryl_mi<-function(db_path, query_path = "./inst/extdata", db_name, prj_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_prod_loss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -778,7 +796,7 @@ m4_get_prod_loss<-function(db_path, query_path = "./inst/extdata", db_name, prj_
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_rev_loss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]

@@ -8,9 +8,9 @@ Narain, U. and Sall, C., 2016. Methodology for Valuing the Health Impacts of Air
 }
 \usage{
 m3_get_mort_pm25_ecoloss(
-  db_path,
+  db_path = NULL,
   query_path = "./inst/extdata",
-  db_name,
+  db_name = NULL,
   prj_name,
   scen_name,
   ssp = "SSP2",

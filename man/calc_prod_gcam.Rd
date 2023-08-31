@@ -8,9 +8,9 @@ GCAM
 }
 \usage{
 calc_prod_gcam(
-  db_path,
+  db_path = NULL,
   query_path = "./inst/extdata",
-  db_name,
+  db_name = NULL,
   prj_name,
   scen_name,
   queries = "queries_rfasst.xml",
