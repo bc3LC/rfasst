@@ -18,7 +18,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                                saveOutput = T, map = F, mapIndivPol = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -49,13 +49,19 @@ m1_emissions_rescale<-function(db_path, query_path = "./inst/extdata", db_name, 
                   `FASST Region`=fasst_region)
 
   # Load the rgcam project:
-  conn <- rgcam::localDBConn(db_path,
-                             db_name,migabble = FALSE)
-  prj <- rgcam::addScenario(conn,
-                            prj_name,
-                            scen_name,
-                            paste0(query_path,"/",queries))
-  prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+  # if db specified, create rgcam project
+  if (!is.null(db_path) & !is.null(db_name)) {
+    conn <- rgcam::localDBConn(db_path,
+                               db_name,migabble = FALSE)
+    prj <- rgcam::addScenario(conn,
+                              prj_name,
+                              scen_name,
+                              paste0(query_path,"/",queries))
+    prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+  # load it otherwise
+  } else {
+    prj <- rgcam::loadProject(prj_name)
+  }
 
   rgcam::listScenarios(prj)
   QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))

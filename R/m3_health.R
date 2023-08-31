@@ -191,7 +191,7 @@ calc_daly_pm25<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -405,7 +405,7 @@ m3_get_mort_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, ssp = "SSP2", final_db_year = 2100,
+m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_param = "GBD2016_medium",  Damage_vsl_range = "Damage_vsl_med",
                                    queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T){
 
@@ -540,7 +540,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path, query_path = "./inst/extdata", db_na
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
                           ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -666,7 +666,7 @@ m3_get_yll_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_n
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
                                   ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -794,7 +794,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
                            ssp="SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -934,7 +934,7 @@ m3_get_daly_pm25<-function(db_path, query_path = "./inst/extdata", db_name, prj_
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -1083,7 +1083,7 @@ m3_get_mort_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_na
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, final_db_year = 2100,
+m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, final_db_year = 2100,
                                  mort_param = "mort_o3_gbd2016_med", Damage_vsl_range = "Damage_vsl_med",
                                  ssp = "SSP2", queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T){
 
@@ -1215,7 +1215,7 @@ m3_get_mort_o3_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
                         ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -1329,7 +1329,7 @@ m3_get_yll_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                                 ssp = "SSP2", saveOutput = T, map = F, anim = T, mort_param = "mort_o3_gbd2016_med"){
 
   all_years<-all_years[all_years <= final_db_year]
@@ -1455,7 +1455,7 @@ m3_get_yll_o3_ecoloss<-function(db_path, query_path = "./inst/extdata", db_name,
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_o3<-function(db_path, query_path = "./inst/extdata", db_name, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T){
 
   all_years<-all_years[all_years <= final_db_year]

@@ -8,9 +8,9 @@ Institute for Health Metrics and Evaluation (http://www.healthdata.org/)
 }
 \usage{
 m3_get_daly_pm25(
-  db_path,
+  db_path = NULL,
   query_path = "./inst/extdata",
-  db_name,
+  db_name = NULL,
   prj_name,
   scen_name,
   queries = "queries_rfasst.xml",
