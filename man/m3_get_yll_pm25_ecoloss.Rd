@@ -8,9 +8,9 @@ Schlander, M., Schaefer, R. and Schwarz, O., 2017. Empirical studies on the econ
 }
 \usage{
 m3_get_yll_pm25_ecoloss(
-  db_path,
+  db_path = NULL,
   query_path = "./inst/extdata",
-  db_name,
+  db_name = NULL,
   prj_name,
   scen_name,
   queries = "queries_rfasst.xml",

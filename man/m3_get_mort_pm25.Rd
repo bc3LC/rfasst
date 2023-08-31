@@ -8,9 +8,9 @@ Burnett, R.T., Pope III, C.A., Ezzati, M., Olives, C., Lim, S.S., Mehta, S., Shi
 }
 \usage{
 m3_get_mort_pm25(
-  db_path,
+  db_path = NULL,
   query_path = "./inst/extdata",
-  db_name,
+  db_name = NULL,
   prj_name,
   scen_name,
   queries = "queries_rfasst.xml",
