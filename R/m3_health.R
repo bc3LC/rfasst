@@ -344,7 +344,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     pm.mort.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name, "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -487,7 +487,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 
     pm.mort.EcoLoss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
 
@@ -622,7 +622,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     pm.yll.write<-function(df){
       df<-as.data.frame(df) %>%
         tidyr::spread(disease, yll)
-      write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name, "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -753,7 +753,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 
     pm.yll.EcoLoss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/","m3/","PM25_YLL_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_ECOLOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
 

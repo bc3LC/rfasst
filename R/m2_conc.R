@@ -330,7 +330,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm25.write<-function(df){
       df<-as.data.frame(df)
       colnames(df)<-c("region","year","units","NAT","PRIM","SEC")
-      write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
     if(saveOutput==T){
@@ -351,7 +351,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm25.agg.write<-function(df){
       df<-as.data.frame(df)
       colnames(df)<-c("region","year","units","value")
-      write.csv(df,paste0("output/","m2/","PM2.5_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","PM2.5_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
     if(saveOutput==T){
@@ -587,7 +587,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     o3.write<-function(df){
       df<-as.data.frame(df) %>% dplyr::select(-pollutant)
       colnames(df)<-c("region","year","units","value")
-      write.csv(df,paste0("output/","m2/","O3_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","O3_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
 
@@ -854,7 +854,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     m6m.write<-function(df){
       df<-as.data.frame(df) %>% dplyr::select(-pollutant)
       colnames(df)<-c("region","year","units","value")
-      write.csv(df,paste0("output/","m2/","M6M_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","M6M_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
 
@@ -1274,7 +1274,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
     aot_write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant, value)
-      write.csv(df,paste0("output/","m2/","AOT40_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","AOT40_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
       if(saveOutput == T){
@@ -1704,7 +1704,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     mi_write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant, value)
-      write.csv(df,paste0("output/","m2/","Mi_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m2/","Mi_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
 

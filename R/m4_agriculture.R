@@ -442,7 +442,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     ryl.aot.write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant, value)
-      write.csv(df, paste0("output/m4/","RYL_AOT40_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","RYL_AOT40_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -572,7 +572,7 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     ryl.mi.write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant,value)
-      write.csv(df, paste0("output/m4/","RYL_Mi_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","RYL_Mi_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -792,7 +792,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     prod.loss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/m4/","PROD_LOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/m4/","PROD_LOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
     if(saveOutput == T){
@@ -1014,7 +1014,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     rev.loss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df, paste0("output/m4/","REV_LOSS_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","REV_LOSS_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
     }
 
 

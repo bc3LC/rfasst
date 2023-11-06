@@ -74,11 +74,12 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     } else {
       print('loading RData')
-      prj_rd = get(load(rdata_name))
-
-      QUERY_LIST <- names(prj_rd)
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
+      }
     }
-
+    print('computing...')
 
 
     # Generate the adjusted emission database +air and ship emissions
@@ -298,7 +299,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       a<-a[c(59,55,56,1:45,57,58,46:54),]
 
       if(save == T){
-      write.csv(a, file = paste0("output/", "m1/", scen_name, '_', year, '.csv'),row.names = FALSE, quote = FALSE)
+      write.csv(a, file = paste0("output/", "m1/", scen_name[1], '_', year, '.csv'),row.names = FALSE, quote = FALSE)
       }
 
       em <- a %>%
