@@ -1,3 +1,22 @@
+#' if_complex
+#'
+#' Do an if_else to assign data1 or data2 to a dataset
+#' @param condition: condifiton to be satisfied to assing data1
+#' @param data1: dataset1
+#' @param data2: dataset2
+#' @return dataset accroding to the given conditon
+#' @export
+if_complex = function(condition, data1, data2) {
+  if (condition) {
+    return(invisible(data1))
+  } else {
+    return(invisible(data2))
+  }
+}
+
+
+
+
 #' data_query
 #'
 #' Add nonCO2 large queries
@@ -258,7 +277,7 @@ calc_gdp_pc<-function(ssp="SSP2"){
   `%!in%` = Negate(`%in%`)
 
   # Get pop data
-  pop.all<-calc_pop(ssp = ssp)
+  pop.all<-get(paste0('pop.all.',ssp))
 
   # First, we read in the population data.
   ssp.data<-raw.ssp.data %>%

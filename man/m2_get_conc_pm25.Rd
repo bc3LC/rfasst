@@ -9,12 +9,14 @@ m2_get_conc_pm25(
   query_path = "./inst/extdata",
   db_name = NULL,
   prj_name,
+  rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
   saveOutput = T,
   map = F,
-  anim = T
+  anim = T,
+  recompute = F
 )
 }
 \arguments{
@@ -25,6 +27,8 @@ m2_get_conc_pm25(
 \item{db_name}{Name of the GCAM database}
 
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
+
+\item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
 \item{scen_name}{Name of the GCAM scenario to be processed}
 
@@ -37,6 +41,8 @@ m2_get_conc_pm25(
 \item{map}{Produce the maps. By default=F}
 
 \item{anim}{If set to T, produces multi-year animations. By default=T}
+
+\item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
 }
 \value{
 Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
