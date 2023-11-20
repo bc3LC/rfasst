@@ -48,6 +48,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     # Load the rgcam project:
     if (!is.null(db_path) & !is.null(db_name)) {
+      print('creating prj')
       conn <- rgcam::localDBConn(db_path,
                                  db_name,migabble = FALSE)
       prj <- rgcam::addScenario(conn,
@@ -55,9 +56,17 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                                 scen_name,
                                 paste0(query_path,"/",queries),clobber = F)
       prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
-    } else {
+    } else if (is.null(rdata_name)){
+      print('loading prj')
       prj <- rgcam::loadProject(prj_name)
+    } else {
+      print('loading RData')
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
+      }
     }
+    print('computing...')
 
     prod <- if_complex(is.null(rdata_name),
                        rgcam::getQuery(prj,"ag production by subsector (land use region)"),
@@ -178,6 +187,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     # Load the rgcam project:
     if (!is.null(db_path) & !is.null(db_name)) {
+      print('creating prj')
       conn <- rgcam::localDBConn(db_path,
                                  db_name,migabble = FALSE)
       prj <- rgcam::addScenario(conn,
@@ -185,9 +195,17 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                                 scen_name,
                                 paste0(query_path,"/",queries),clobber = F)
       prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
-    } else {
+    } else if (is.null(rdata_name)){
+      print('loading prj')
       prj <- rgcam::loadProject(prj_name)
+    } else {
+      print('loading RData')
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
+      }
     }
+    print('computing...')
 
     price <- if_complex(is.null(rdata_name),
                         rgcam::getQuery(prj,"Ag Commodity Prices"),
