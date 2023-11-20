@@ -181,6 +181,7 @@ calc_daly_pm25<-function(){
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -191,195 +192,200 @@ calc_daly_pm25<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_mort_pm25.output')) {
+    return(m3_get_mort_pm25.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_pm25_mort")) dir.create("output/maps/m3/maps_pm25_mort")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_pm25_mort")) dir.create("output/maps/m3/maps_pm25_mort")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get PM2.5
-  pm<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-  # Get population
-  pop.all<-calc_pop(ssp = ssp)
-  # Get baseline mortality rates
-  mort.rates<-calc_mort_rates()
+    # Get PM2.5
+    pm<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-  # Get relative risk parameters
-  B2014 = raw.rr.param.bur2014
-  G = raw.rr.param.gbd2016
-  BW = raw.rr.param.bur2018.with
-  BWO = raw.rr.param.bur2018.without
+    # Get population
+    pop.all<-get(paste0('pop.all.',ssp))
+    # Get baseline mortality rates
+    mort.rates<-calc_mort_rates()
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  pm<- tibble::as_tibble(pm) %>%
-    gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','copd','stroke','lc')))
+    # Get relative risk parameters
+    B2014 = raw.rr.param.bur2014
+    G = raw.rr.param.gbd2016
+    BW = raw.rr.param.bur2018.with
+    BWO = raw.rr.param.bur2018.without
 
-  pm.list.dis<-split(pm, pm$disease)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    pm<- tibble::as_tibble(pm) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','copd','stroke','lc')))
 
-  calc_rr<-function(df){
+    pm.list.dis<-split(pm, pm$disease)
 
-    colnames(df)<-c("region", "year", "units", "value", "disease")
+    calc_rr<-function(df){
 
-    df_fin<-df %>%
+      colnames(df)<-c("region", "year", "units", "value", "disease")
+
+      df_fin<-df %>%
+        dplyr::rowwise() %>%
+        # IER: rr = 1 - alpha * (1 - exp(-beta * z ^ delta)), z = max(0, pm - pm_cf)
+        dplyr::mutate('GBD2016_low' = 1 + G[G$disease == unique(df$disease) & G$ci == 'low',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'low',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'low',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'low',]$delta))) %>%
+        dplyr::mutate('GBD2016_medium' = 1 + G[G$disease == unique(df$disease) & G$ci == 'medium',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'medium',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'medium',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'medium',]$delta))) %>%
+        dplyr::mutate('GBD2016_high' = 1 + G[G$disease == unique(df$disease) & G$ci == 'high',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'high',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'high',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'high',]$delta))) %>%
+        dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$delta))) %>%
+        # GEMM: rr = exp( theta * log ( 1 + (z / alpha)) * 1 / (1 + exp(-(z - mu)/ nu))), z = pm - pm_cf. If z < 0, rr = 1
+        dplyr::mutate('BURNETT2018WITH_low' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm < 0, 1,
+                                                     exp(BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$alpha))) /
+                                                           (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$nu))))) %>%
+        dplyr::mutate('BURNETT2018WITH_medium' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm < 0, 1,
+                                                        exp(BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$alpha))) /
+                                                              (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$nu))))) %>%
+        dplyr::mutate('BURNETT2018WITH_high' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm < 0, 1,
+                                                      exp(BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$alpha))) /
+                                                            (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$nu))))) %>%
+        dplyr::mutate('BURNETT2018WITHOUT_low' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm < 0, 1,
+                                                        exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$alpha))) /
+                                                              (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$nu))))) %>%
+        dplyr::mutate('BURNETT2018WITHOUT_medium' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm < 0, 1,
+                                                           exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$alpha))) /
+                                                                 (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$nu))))) %>%
+        dplyr::mutate('BURNETT2018WITHOUT_high' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm < 0, 1,
+                                                         exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$alpha))) /
+                                                               (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$nu))))) %>%
+        dplyr::rename(pm_conc = value)
+
+      return(invisible(df_fin))
+
+    }
+
+    pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
+
+    # Calculate alri values to be included in burnett et al 2014
+    adj_pm_alri<-pm %>%
+      dplyr::select(-disease) %>%
+      dplyr::distinct() %>%
+      dplyr::mutate(disease = "alri") %>%
       dplyr::rowwise() %>%
-      # IER: rr = 1 - alpha * (1 - exp(-beta * z ^ delta)), z = max(0, pm - pm_cf)
-      dplyr::mutate('GBD2016_low' = 1 + G[G$disease == unique(df$disease) & G$ci == 'low',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'low',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'low',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'low',]$delta))) %>%
-      dplyr::mutate('GBD2016_medium' = 1 + G[G$disease == unique(df$disease) & G$ci == 'medium',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'medium',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'medium',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'medium',]$delta))) %>%
-      dplyr::mutate('GBD2016_high' = 1 + G[G$disease == unique(df$disease) & G$ci == 'high',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'high',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'high',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'high',]$delta))) %>%
-      dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$delta))) %>%
-      # GEMM: rr = exp( theta * log ( 1 + (z / alpha)) * 1 / (1 + exp(-(z - mu)/ nu))), z = pm - pm_cf. If z < 0, rr = 1
-      dplyr::mutate('BURNETT2018WITH_low' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm < 0, 1,
-                                                   exp(BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$alpha))) /
-                                                         (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$nu))))) %>%
-      dplyr::mutate('BURNETT2018WITH_medium' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm < 0, 1,
-                                                      exp(BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$alpha))) /
-                                                            (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$nu))))) %>%
-      dplyr::mutate('BURNETT2018WITH_high' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm < 0, 1,
-                                                    exp(BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$alpha))) /
-                                                          (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$nu))))) %>%
-      dplyr::mutate('BURNETT2018WITHOUT_low' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm < 0, 1,
-                                                      exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$alpha))) /
-                                                            (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$nu))))) %>%
-      dplyr::mutate('BURNETT2018WITHOUT_medium' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm < 0, 1,
-                                                         exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$alpha))) /
-                                                               (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$nu))))) %>%
-      dplyr::mutate('BURNETT2018WITHOUT_high' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm < 0, 1,
-                                                       exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$alpha))) /
-                                                             (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$nu))))) %>%
+      dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$delta))) %>%
       dplyr::rename(pm_conc = value)
 
-    return(invisible(df_fin))
+    pm.rr<- dplyr::bind_rows(pm.rr.pre, adj_pm_alri) %>%
+      dplyr::select(region, year, pm_conc, disease, BURNETT2014_medium,
+                    GBD2016_medium, GBD2016_low, GBD2016_high,
+                    BURNETT2018WITH_medium, BURNETT2018WITH_low, BURNETT2018WITH_high,
+                    BURNETT2018WITHOUT_medium, BURNETT2018WITHOUT_low, BURNETT2018WITHOUT_high) %>%
+      dplyr::mutate(year = as.character(year))
 
+
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Calculate premature mortalities
+    pm.mort<-tibble::as_tibble(pm.rr) %>%
+      dplyr::filter(year >= 2010) %>%
+      dplyr::select(-pm_conc) %>%
+      tidyr::gather(rr, value, -region, -year, -disease) %>%
+      dplyr::arrange(disease) %>%
+      tidyr::replace_na(list(value = 0)) %>%
+      tidyr::spread(disease, value) %>%
+      dplyr::left_join(pop.all, by = c("region", "year")) %>%
+      dplyr::mutate(pop_tot = pop_tot * 1E6) %>%
+      dplyr::select(-unit, -scenario) %>%
+      dplyr::left_join(mort.rates %>%
+                         dplyr::filter(year >= 2010) %>%
+                         dplyr::mutate(disease = tolower(disease),
+                                       disease = paste0("mr_", disease)) %>%
+                         tidyr::spread(disease, value) %>%
+                         dplyr::filter(year %in% all_years) %>%
+                         dplyr::select(-mr_cp, -mr_resp),
+                       by = c("region", "year")) %>%
+      dplyr::rename(mort_param = rr) %>%
+      dplyr::mutate(mort_alri = pop_tot * perc_pop_5 * mr_alri * (1 - 1/alri),
+                    mort_copd = pop_tot * perc_pop_30 * mr_copd * (1 - 1/copd),
+                    mort_ihd = pop_tot * perc_pop_30 * mr_ihd * (1 - 1/ihd),
+                    mort_stroke = pop_tot * perc_pop_30 * mr_stroke * (1 - 1/stroke),
+                    mort_lc = pop_tot * perc_pop_30 * mr_lc * (1 - 1/lc)) %>%
+      dplyr::select(region, year, mort_param, mort_alri, mort_copd, mort_ihd, mort_stroke, mort_lc) %>%
+      tidyr::gather(disease, value, -region, -year, -mort_param) %>%
+      dplyr::filter(is.finite(value)) %>%
+      dplyr::mutate(value = round(value, 0)) %>%
+      tidyr::spread(disease, value) %>%
+      tidyr::replace_na(list(mort_alri = 0)) %>%
+      dplyr::mutate(mort_tot = mort_alri + mort_copd + mort_ihd + mort_stroke + mort_lc) %>%
+      tidyr::gather(disease, value, -region, -year, -mort_param) %>%
+      tidyr::spread(mort_param, value) %>%
+      dplyr::mutate(disease = gsub("mort_", "", disease))
+
+    #------------------------------------------------------------------------------------
+
+    # Write the output
+    pm.mort.list<-split(pm.mort, pm.mort$year)
+
+
+    pm.mort.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+    }
+
+    if(saveOutput == T){
+
+      lapply(pm.mort.list,pm.mort.write)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map==T){
+      pm.mort.map<-pm.mort %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(-LB, -UB) %>%
+        dplyr::rename(value = med,
+                      class = disease) %>%
+        dplyr::mutate(units = "Mortalities",
+                      year = as.numeric(as.character(year)))
+
+
+        rmap::map(data = pm.mort.map,
+                  shape = fasstSubset,
+                  folder ="output/maps/m3/maps_pm25_mort",
+                  ncol = 3,
+                  legendType = "pretty",
+                  background  = T,
+                  animate = anim)
+
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    pm.mort<-dplyr::bind_rows(pm.mort.list)
+    m3_get_mort_pm25.output <<- pm.mort
+    return(invisible(pm.mort))
   }
-
-  pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
-
-  # Calculate alri values to be included in burnett et al 2014
-  adj_pm_alri<-pm %>%
-    dplyr::select(-disease) %>%
-    dplyr::distinct() %>%
-    dplyr::mutate(disease = "alri") %>%
-    dplyr::rowwise() %>%
-    dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$delta))) %>%
-    dplyr::rename(pm_conc = value)
-
-  pm.rr<- dplyr::bind_rows(pm.rr.pre, adj_pm_alri) %>%
-    dplyr::select(region, year, pm_conc, disease, BURNETT2014_medium,
-                  GBD2016_medium, GBD2016_low, GBD2016_high,
-                  BURNETT2018WITH_medium, BURNETT2018WITH_low, BURNETT2018WITH_high,
-                  BURNETT2018WITHOUT_medium, BURNETT2018WITHOUT_low, BURNETT2018WITHOUT_high) %>%
-    dplyr::mutate(year = as.character(year))
-
-
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Calculate premature mortalities
-  pm.mort<-tibble::as_tibble(pm.rr) %>%
-    dplyr::filter(year >= 2010) %>%
-    dplyr::select(-pm_conc) %>%
-    tidyr::gather(rr, value, -region, -year, -disease) %>%
-    dplyr::arrange(disease) %>%
-    tidyr::replace_na(list(value = 0)) %>%
-    tidyr::spread(disease, value) %>%
-    dplyr::left_join(pop.all, by = c("region", "year")) %>%
-    dplyr::mutate(pop_tot = pop_tot * 1E6) %>%
-    dplyr::select(-unit, -scenario) %>%
-    dplyr::left_join(mort.rates %>%
-                       dplyr::filter(year >= 2010) %>%
-                       dplyr::mutate(disease = tolower(disease),
-                                     disease = paste0("mr_", disease)) %>%
-                       tidyr::spread(disease, value) %>%
-                       dplyr::filter(year %in% all_years) %>%
-                       dplyr::select(-mr_cp, -mr_resp),
-                     by = c("region", "year")) %>%
-    dplyr::rename(mort_param = rr) %>%
-    dplyr::mutate(mort_alri = pop_tot * perc_pop_5 * mr_alri * (1 - 1/alri),
-                  mort_copd = pop_tot * perc_pop_30 * mr_copd * (1 - 1/copd),
-                  mort_ihd = pop_tot * perc_pop_30 * mr_ihd * (1 - 1/ihd),
-                  mort_stroke = pop_tot * perc_pop_30 * mr_stroke * (1 - 1/stroke),
-                  mort_lc = pop_tot * perc_pop_30 * mr_lc * (1 - 1/lc)) %>%
-    dplyr::select(region, year, mort_param, mort_alri, mort_copd, mort_ihd, mort_stroke, mort_lc) %>%
-    tidyr::gather(disease, value, -region, -year, -mort_param) %>%
-    dplyr::filter(is.finite(value)) %>%
-    dplyr::mutate(value = round(value, 0)) %>%
-    tidyr::spread(disease, value) %>%
-    tidyr::replace_na(list(mort_alri = 0)) %>%
-    dplyr::mutate(mort_tot = mort_alri + mort_copd + mort_ihd + mort_stroke + mort_lc) %>%
-    tidyr::gather(disease, value, -region, -year, -mort_param) %>%
-    tidyr::spread(mort_param, value) %>%
-    dplyr::mutate(disease = gsub("mort_", "", disease))
-
-  #------------------------------------------------------------------------------------
-
-  # Write the output
-  pm.mort.list<-split(pm.mort, pm.mort$year)
-
-
-  pm.mort.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name, "_", unique(df$year),".csv"), row.names = F)
-  }
-
-  if(saveOutput == T){
-
-    lapply(pm.mort.list,pm.mort.write)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map==T){
-    pm.mort.map<-pm.mort %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(-LB, -UB) %>%
-      dplyr::rename(value = med,
-                    class = disease) %>%
-      dplyr::mutate(units = "Mortalities",
-                    year = as.numeric(as.character(year)))
-
-
-      rmap::map(data = pm.mort.map,
-                shape = fasstSubset,
-                folder ="output/maps/m3/maps_pm25_mort",
-                ncol = 3,
-                legendType = "pretty",
-                background  = T,
-                animate = anim)
-
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  pm.mort<-dplyr::bind_rows(pm.mort.list)
-
-  return(invisible(pm.mort))
-
 }
 
 #' m3_get_mort_pm25_ecoloss
@@ -393,6 +399,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -402,119 +409,126 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, ssp = "SSP2", final_db_year = 2100,
+m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                                   rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_param = "GBD2016_medium",  Damage_vsl_range = "Damage_vsl_med",
-                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T){
+                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_mort_pm25_ecoloss.output')) {
+    return(m3_get_mort_pm25_ecoloss.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_pm25_mort_ecoloss")) dir.create("output/maps/m3/maps_pm25_mort_ecoloss")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_pm25_mort_ecoloss")) dir.create("output/maps/m3/maps_pm25_mort_ecoloss")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get Mortalities
-  pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_pm25 = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-  # Get gdp_pc
-  gdp_pc<-calc_gdp_pc(ssp = ssp)
+    # Get Mortalities
+    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_pm25 = mort_param)
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Economic valuation of premature mortality: Value of Statistical Life (VSL)
-  vsl<-gdp_pc %>%
-    # calculate the adjustment factor
-    dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
-    # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
-    dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
-                  vsl_ub = adj * vsl_eu_2005_ub,
-                  vsl_med = (vsl_lb + vsl_ub) / 2) %>%
-    dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
-    dplyr::mutate(vsl_med = vsl_med * 1E-6,
-                  vsl_lb = vsl_lb * 1E-6,
-                  vsl_ub = vsl_ub * 1E-6) %>%
-    dplyr::mutate(unit = "Million$2005")
+    # Get gdp_pc
+    gdp_pc<-get(paste0('gdp_pc.',ssp))
 
-  #------------------------------------------------------------------------------------
-  pm.mort.EcoLoss<-pm.mort %>%
-    gcamdata::left_join_error_no_match(vsl, by=c("region", "year")) %>%
-    dplyr::select(-scenario) %>%
-    # Calculate the median damages
-    dplyr::mutate(Damage_vsl_med = round(mort_pm25 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  Damage_vsl_low = round(mort_pm25 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  Damage_vsl_high = round(mort_pm25 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  unit = "Million$2015") %>%
-    dplyr::select(region, year, disease, Damage_vsl_range, unit)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Economic valuation of premature mortality: Value of Statistical Life (VSL)
+    vsl<-gdp_pc %>%
+      # calculate the adjustment factor
+      dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
+      # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
+      dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
+                    vsl_ub = adj * vsl_eu_2005_ub,
+                    vsl_med = (vsl_lb + vsl_ub) / 2) %>%
+      dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
+      dplyr::mutate(vsl_med = vsl_med * 1E-6,
+                    vsl_lb = vsl_lb * 1E-6,
+                    vsl_ub = vsl_ub * 1E-6) %>%
+      dplyr::mutate(unit = "Million$2005")
 
-
-  #------------------------------------------------------------------------------------
-  # Write the output
-  pm.mort.EcoLoss.list<-split(pm.mort.EcoLoss,pm.mort.EcoLoss$year)
+    #------------------------------------------------------------------------------------
+    pm.mort.EcoLoss<-pm.mort %>%
+      gcamdata::left_join_error_no_match(vsl, by=c("region", "year")) %>%
+      dplyr::select(-scenario) %>%
+      # Calculate the median damages
+      dplyr::mutate(Damage_vsl_med = round(mort_pm25 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    Damage_vsl_low = round(mort_pm25 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    Damage_vsl_high = round(mort_pm25 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    unit = "Million$2015") %>%
+      dplyr::select(region, year, disease, Damage_vsl_range, unit)
 
 
-  pm.mort.EcoLoss.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    #------------------------------------------------------------------------------------
+    # Write the output
+    pm.mort.EcoLoss.list<-split(pm.mort.EcoLoss,pm.mort.EcoLoss$year)
+
+
+    pm.mort.EcoLoss.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(pm.mort.EcoLoss.list, pm.mort.EcoLoss.write)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      pm.mort.EcoLoss.map<-pm.mort.EcoLoss %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, disease, Damage_vsl_range, unit) %>%
+        dplyr::rename(value = Damage_vsl_range,
+                      class = disease,
+                      units = unit) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      value = value * 1E-6,
+                      units = "Trillion$2015")
+
+      rmap::map(data = pm.mort.EcoLoss.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_pm25_mort_ecoloss",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    pm.mort.EcoLoss<-dplyr::bind_rows(pm.mort.EcoLoss.list)
+    m3_get_mort_pm25_ecoloss.output <<- pm.mort.EcoLoss
+    return(invisible(pm.mort.EcoLoss))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(pm.mort.EcoLoss.list, pm.mort.EcoLoss.write)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    pm.mort.EcoLoss.map<-pm.mort.EcoLoss %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, disease, Damage_vsl_range, unit) %>%
-      dplyr::rename(value = Damage_vsl_range,
-                    class = disease,
-                    units = unit) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    value = value * 1E-6,
-                    units = "Trillion$2015")
-
-    rmap::map(data = pm.mort.EcoLoss.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_pm25_mort_ecoloss",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  pm.mort.EcoLoss<-dplyr::bind_rows(pm.mort.EcoLoss.list)
-
-  return(invisible(pm.mort.EcoLoss))
 
 }
 
@@ -529,6 +543,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -537,109 +552,116 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
-                          ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_yll_pm25.output')) {
+    return(m3_get_yll_pm25.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_pm25_yll")) dir.create("output/maps/m3/maps_pm25_yll")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_pm25_yll")) dir.create("output/maps/m3/maps_pm25_yll")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get pm.mort
-  pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_pm25 = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-  # Get years of life lost
-  yll.pm.mort<-raw.yll.pm25 %>%
-    tidyr::gather(disease, value, -region) %>%
-    dplyr::mutate(disease = tolower(disease))
+    # Get pm.mort
+    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_pm25 = mort_param)
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  pm.yll<- tibble::as_tibble(pm.mort) %>%
-    dplyr::filter(disease != "tot") %>%
-    gcamdata::left_join_error_no_match(yll.pm.mort, by = c("region", "disease")) %>%
-    dplyr::rename(yll = value) %>%
-    dplyr::mutate(yll = mort_pm25 * yll) %>%
-    dplyr::select(region, year, disease, yll)
+    # Get years of life lost
+    yll.pm.mort<-raw.yll.pm25 %>%
+      tidyr::gather(disease, value, -region) %>%
+      dplyr::mutate(disease = tolower(disease))
 
-  pm.yll.tot<-pm.yll %>%
-    dplyr::group_by(region, year) %>%
-    dplyr::summarise(yll = sum(yll)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(disease = "tot")
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    pm.yll<- tibble::as_tibble(pm.mort) %>%
+      dplyr::filter(disease != "tot") %>%
+      gcamdata::left_join_error_no_match(yll.pm.mort, by = c("region", "disease")) %>%
+      dplyr::rename(yll = value) %>%
+      dplyr::mutate(yll = mort_pm25 * yll) %>%
+      dplyr::select(region, year, disease, yll)
 
-  pm.yll.fin<-dplyr::bind_rows(pm.yll, pm.yll.tot) %>%
-    dplyr::mutate(yll = round(yll))
+    pm.yll.tot<-pm.yll %>%
+      dplyr::group_by(region, year) %>%
+      dplyr::summarise(yll = sum(yll)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(disease = "tot")
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  pm.yll.list<-split(pm.yll.fin,pm.yll.fin$year)
+    pm.yll.fin<-dplyr::bind_rows(pm.yll, pm.yll.tot) %>%
+      dplyr::mutate(yll = round(yll))
+
+    #------------------------------------------------------------------------------------
+    # Write the output
+    pm.yll.list<-split(pm.yll.fin,pm.yll.fin$year)
 
 
-  pm.yll.write<-function(df){
-    df<-as.data.frame(df) %>%
-      tidyr::spread(disease, yll)
-    write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name, "_", unique(df$year),".csv"), row.names = F)
+    pm.yll.write<-function(df){
+      df<-as.data.frame(df) %>%
+        tidyr::spread(disease, yll)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+    }
+
+    if(saveOutput == T){
+
+      lapply(pm.yll.list, pm.yll.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      pm.yll.fin.map<-pm.yll.fin %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::rename(value = yll,
+                      class = disease) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "YLLs")
+
+      rmap::map(data = pm.yll.fin.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_pm25_yll",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    pm.yll.fin<-dplyr::bind_rows(pm.yll.list)
+    m3_get_yll_pm25.output <<- pm.yll.fin
+    return(invisible(pm.yll.fin))
   }
-
-  if(saveOutput == T){
-
-    lapply(pm.yll.list, pm.yll.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    pm.yll.fin.map<-pm.yll.fin %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::rename(value = yll,
-                    class = disease) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "YLLs")
-
-    rmap::map(data = pm.yll.fin.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_pm25_yll",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  pm.yll.fin<-dplyr::bind_rows(pm.yll.list)
-
-  return(invisible(pm.yll.fin))
 
 }
 
@@ -655,6 +677,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -663,111 +686,118 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
-                                  ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                                  rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                                  ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_yll_pm25_ecoloss.output')) {
+    return(m3_get_yll_pm25_ecoloss.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_pm25_yll_ecoloss")) dir.create("output/maps/m3/maps_pm25_yll_ecoloss")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_pm25_yll_ecoloss")) dir.create("output/maps/m3/maps_pm25_yll_ecoloss")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get Mortalities
-  pm.yll.fin<-m3_get_yll_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
-                              final_db_year = final_db_year, mort_param = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-  # Get gdp_pc
-  gdp_pc<-calc_gdp_pc(ssp = ssp)
+    # Get Mortalities
+    pm.yll.fin<-m3_get_yll_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
+                                final_db_year = final_db_year, mort_param = mort_param, recompute = recompute)
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Economic valuation years of life lost
-  vsly<-gdp_pc %>%
-    # calculate the adjustment factor
-    dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
-    # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
-    dplyr::mutate(vsly = adj * vsly_eu_2005) %>%
-    dplyr::select(scenario, region, year, vsly) %>%
-    dplyr::mutate(vsly = vsly * 1E-3) %>%
-    dplyr::mutate(unit = "Thous$2005")
-  #------------------------------------------------------------------------------------
+    # Get gdp_pc
+    gdp_pc<-get(paste0('gdp_pc.',ssp))
 
-  pm.yll.EcoLoss<-pm.yll.fin %>%
-    gcamdata::left_join_error_no_match(vsly, by = c("region","year")) %>%
-    dplyr::select(-scenario) %>%
-    dplyr::mutate(Damage_med = round(yll * vsly * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-           unit="Thous$2015")
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Economic valuation years of life lost
+    vsly<-gdp_pc %>%
+      # calculate the adjustment factor
+      dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
+      # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
+      dplyr::mutate(vsly = adj * vsly_eu_2005) %>%
+      dplyr::select(scenario, region, year, vsly) %>%
+      dplyr::mutate(vsly = vsly * 1E-3) %>%
+      dplyr::mutate(unit = "Thous$2005")
+    #------------------------------------------------------------------------------------
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  pm.yll.EcoLoss.list<-split(pm.yll.EcoLoss,pm.yll.EcoLoss$year)
+    pm.yll.EcoLoss<-pm.yll.fin %>%
+      gcamdata::left_join_error_no_match(vsly, by = c("region","year")) %>%
+      dplyr::select(-scenario) %>%
+      dplyr::mutate(Damage_med = round(yll * vsly * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+             unit="Thous$2015")
+
+    #------------------------------------------------------------------------------------
+    # Write the output
+    pm.yll.EcoLoss.list<-split(pm.yll.EcoLoss,pm.yll.EcoLoss$year)
 
 
-  pm.yll.EcoLoss.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","PM25_YLL_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    pm.yll.EcoLoss.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_ECOLOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput==T){
+
+      lapply(pm.yll.EcoLoss.list, pm.yll.EcoLoss.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      pm.yll.EcoLoss.map<-pm.yll.EcoLoss %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, disease, Damage_med, unit) %>%
+        dplyr::rename(value = Damage_med,
+                      class = disease,
+                      units = unit) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      value = value * 1E-9,
+                      units = "Trillion$2015")
+
+      rmap::map(data = pm.yll.EcoLoss.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_pm25_yll_ecoloss",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    pm.yll.EcoLoss<-dplyr::bind_rows(pm.yll.EcoLoss.list)
+    m3_get_yll_pm25_ecoloss.output <<- pm.yll.EcoLoss
+    return(invisible(pm.yll.EcoLoss))
   }
-
-
-  if(saveOutput==T){
-
-    lapply(pm.yll.EcoLoss.list, pm.yll.EcoLoss.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    pm.yll.EcoLoss.map<-pm.yll.EcoLoss %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, disease, Damage_med, unit) %>%
-      dplyr::rename(value = Damage_med,
-                    class = disease,
-                    units = unit) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    value = value * 1E-9,
-                    units = "Trillion$2015")
-
-    rmap::map(data = pm.yll.EcoLoss.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_pm25_yll_ecoloss",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  pm.yll.EcoLoss<-dplyr::bind_rows(pm.yll.EcoLoss.list)
-
-  return(invisible(pm.yll.EcoLoss))
 
 }
 
@@ -783,6 +813,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -791,123 +822,131 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
-                           ssp="SSP2", saveOutput = T, map = F, anim = T){
-
-  all_years<-all_years[all_years <= final_db_year]
-
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_pm25_daly")) dir.create("output/maps/m3/maps_pm25_daly")
-
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
-
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
-
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
-
-  # Get DALYs
-  daly_calc_pm<-calc_daly_pm25()
-
-  # Get pm.mort
-  pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_pm25 = mort_param)
-
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  daly.calc.pm.adj<-tibble::as_tibble(daly_calc_pm) %>%
-    dplyr::filter(year == max(year),
-                  disease != "diab") %>%
-    dplyr::select(-year) %>%
-    gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))) %>%
-    dplyr::bind_rows(tibble::as_tibble(daly_calc_pm) %>%
-                       dplyr::filter(year == max(year),
-                                     disease != "diab",
-                                     region == "RUS") %>%
-                       dplyr::select(-year) %>%
-                       dplyr::mutate(region = "RUE") %>%
-                gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))))
+m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                           ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
 
-  pm.daly<- tibble::as_tibble(pm.mort) %>%
-    dplyr::filter(disease != "tot") %>%
-    gcamdata::left_join_error_no_match(daly.calc.pm.adj, by = c("region","disease","year")) %>%
-    dplyr::rename(daly = DALY_ratio) %>%
-    dplyr::mutate(daly = mort_pm25 * daly) %>%
-    dplyr::select(region, year, disease, daly)
+  if (!recompute & exists('m3_get_daly_pm25.output')) {
+    return(m3_get_daly_pm25.output)
+  } else {
+
+    all_years<-all_years[all_years <= final_db_year]
+
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_pm25_daly")) dir.create("output/maps/m3/maps_pm25_daly")
+
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
+
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
+
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+
+    # Get DALYs
+    daly_calc_pm<-calc_daly_pm25()
+
+    # Get pm.mort
+    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_pm25 = mort_param)
+
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    daly.calc.pm.adj<-tibble::as_tibble(daly_calc_pm) %>%
+      dplyr::filter(year == max(year),
+                    disease != "diab") %>%
+      dplyr::select(-year) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))) %>%
+      dplyr::bind_rows(tibble::as_tibble(daly_calc_pm) %>%
+                         dplyr::filter(year == max(year),
+                                       disease != "diab",
+                                       region == "RUS") %>%
+                         dplyr::select(-year) %>%
+                         dplyr::mutate(region = "RUE") %>%
+                  gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))))
 
 
-  pm.daly.tot<-pm.daly %>%
-    dplyr::group_by(region, year) %>%
-    dplyr::summarise(daly = sum(daly)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(disease = "tot")
+    pm.daly<- tibble::as_tibble(pm.mort) %>%
+      dplyr::filter(disease != "tot") %>%
+      gcamdata::left_join_error_no_match(daly.calc.pm.adj, by = c("region","disease","year")) %>%
+      dplyr::rename(daly = DALY_ratio) %>%
+      dplyr::mutate(daly = mort_pm25 * daly) %>%
+      dplyr::select(region, year, disease, daly)
 
 
-  pm.daly.tot.fin<-dplyr::bind_rows(pm.daly, pm.daly.tot) %>%
-    dplyr::mutate(daly = round(daly, 0))
+    pm.daly.tot<-pm.daly %>%
+      dplyr::group_by(region, year) %>%
+      dplyr::summarise(daly = sum(daly)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(disease = "tot")
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  pm.daly.tot.fin.list<-split(pm.daly.tot.fin,pm.daly.tot.fin$year)
 
-  pm.daly.tot.fin.write<-function(df){
-    df<-as.data.frame(df) %>%
-      tidyr::spread(disease, daly)
-    write.csv(df,paste0("output/","m3/","PM25_DALY_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    pm.daly.tot.fin<-dplyr::bind_rows(pm.daly, pm.daly.tot) %>%
+      dplyr::mutate(daly = round(daly, 0))
+
+    #------------------------------------------------------------------------------------
+    # Write the output
+    pm.daly.tot.fin.list<-split(pm.daly.tot.fin,pm.daly.tot.fin$year)
+
+    pm.daly.tot.fin.write<-function(df){
+      df<-as.data.frame(df) %>%
+        tidyr::spread(disease, daly)
+      write.csv(df,paste0("output/","m3/","PM25_DALY_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+    if(saveOutput==T){
+
+      lapply(pm.daly.tot.fin.list, pm.daly.tot.fin.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      pm.daly.tot.fin.map<-pm.daly.tot.fin %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, disease, daly) %>%
+        dplyr::rename(value = daly,
+                      class = disease) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "DALYs")
+
+      rmap::map(data = pm.daly.tot.fin.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_pm25_daly",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    pm.daly.tot.fin<-dplyr::bind_rows(pm.daly.tot.fin.list)
+    m3_get_daly_pm25.output <<- pm.daly.tot.fin
+    return(invisible(pm.daly.tot.fin))
   }
-
-  if(saveOutput==T){
-
-    lapply(pm.daly.tot.fin.list, pm.daly.tot.fin.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    pm.daly.tot.fin.map<-pm.daly.tot.fin %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, disease, daly) %>%
-      dplyr::rename(value = daly,
-                    class = disease) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "DALYs")
-
-    rmap::map(data = pm.daly.tot.fin.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_pm25_daly",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  pm.daly.tot.fin<-dplyr::bind_rows(pm.daly.tot.fin.list)
-
-  return(invisible(pm.daly.tot.fin))
 
 }
 
@@ -924,6 +963,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -931,131 +971,138 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_mort_o3.output')) {
+    return(m3_get_mort_o3.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_o3_mort")) dir.create("output/maps/m3/maps_o3_mort")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_o3_mort")) dir.create("output/maps/m3/maps_o3_mort")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion=fasst_region) %>%
-    dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get PM2.5
-  m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion=fasst_region) %>%
+      dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-  # Get population
-  pop.all<-calc_pop(ssp = ssp)
-  # Get baseline mortality rates
-  mort.rates<-calc_mort_rates()
+    # Get PM2.5
+    m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Premature mortality
-  o3.mort<-tibble::as_tibble(m6m) %>%
-    dplyr::mutate(year = as.numeric(as.character(year))) %>%
-    dplyr::filter(year >= 2010) %>%
-    gcamdata::repeat_add_columns(tibble::tibble(disease = "RESP")) %>%
-    dplyr::select(-units) %>%
-    dplyr::rename(m6m = value) %>%
-    dplyr::mutate(year = as.character(year)) %>%
-    gcamdata::left_join_error_no_match(pop.all, by = c("region","year")) %>%
-    dplyr::mutate(pop_af = pop_tot * 1E6 * perc_pop_30) %>%
-    gcamdata::left_join_error_no_match(mort.rates %>%
-                                         dplyr::filter(year >= 2010) %>%
-                                         dplyr::rename(mr_resp = value),
-                                       by=c("region", "year", "disease")) %>%
-    dplyr::mutate(adj_jer_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_med),
-                  adj_jer_med = dplyr::if_else(adj_jer_med < 0, 0, adj_jer_med),
-                  mort_o3_jer_med = round(pop_af * mr_resp * adj_jer_med, 0),
-
-                  adj_jer_low = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_low),
-                  adj_jer_low = dplyr::if_else(adj_jer_low < 0, 0, adj_jer_low),
-                  mort_o3_jer_low = round(pop_af * mr_resp * adj_jer_low, 0),
-
-                  adj_jer_high = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_high),
-                  adj_jer_high = dplyr::if_else(adj_jer_high < 0, 0, adj_jer_high),
-                  mort_o3_jer_high = round(pop_af * mr_resp * adj_jer_high, 0),
+    # Get population
+    pop.all<-get(paste0('pop.all.',ssp))
+    # Get baseline mortality rates
+    mort.rates<-calc_mort_rates()
 
 
-                  adj_gdb2016_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_med),
-                  adj_gdb2016_med = dplyr::if_else(adj_gdb2016_med < 0, 0, adj_gdb2016_med),
-                  mort_o3_gbd2016_med = round(pop_af * mr_resp * adj_gdb2016_med, 0),
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Premature mortality
+    o3.mort<-tibble::as_tibble(m6m) %>%
+      dplyr::mutate(year = as.numeric(as.character(year))) %>%
+      dplyr::filter(year >= 2010) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(disease = "RESP")) %>%
+      dplyr::select(-units) %>%
+      dplyr::rename(m6m = value) %>%
+      dplyr::mutate(year = as.character(year)) %>%
+      gcamdata::left_join_error_no_match(pop.all, by = c("region","year")) %>%
+      dplyr::mutate(pop_af = pop_tot * 1E6 * perc_pop_30) %>%
+      gcamdata::left_join_error_no_match(mort.rates %>%
+                                           dplyr::filter(year >= 2010) %>%
+                                           dplyr::rename(mr_resp = value),
+                                         by=c("region", "year", "disease")) %>%
+      dplyr::mutate(adj_jer_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_med),
+                    adj_jer_med = dplyr::if_else(adj_jer_med < 0, 0, adj_jer_med),
+                    mort_o3_jer_med = round(pop_af * mr_resp * adj_jer_med, 0),
 
-                  adj_gdb2016_low = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_low),
-                  adj_gdb2016_low = dplyr::if_else(adj_gdb2016_low < 0, 0, adj_gdb2016_low),
-                  mort_o3_gbd2016_low = round(pop_af * mr_resp * adj_gdb2016_low, 0),
+                    adj_jer_low = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_low),
+                    adj_jer_low = dplyr::if_else(adj_jer_low < 0, 0, adj_jer_low),
+                    mort_o3_jer_low = round(pop_af * mr_resp * adj_jer_low, 0),
 
-                  adj_gdb2016_high = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_high),
-                  adj_gdb2016_high = dplyr::if_else(adj_gdb2016_high < 0, 0, adj_gdb2016_high),
-                  mort_o3_gbd2016_high = round(pop_af * mr_resp * adj_gdb2016_high, 0)) %>%
-    dplyr::select(region, year, disease, mort_o3_jer_med, mort_o3_jer_low, mort_o3_jer_high, mort_o3_gbd2016_med, mort_o3_gbd2016_low, mort_o3_gbd2016_high)
+                    adj_jer_high = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_high),
+                    adj_jer_high = dplyr::if_else(adj_jer_high < 0, 0, adj_jer_high),
+                    mort_o3_jer_high = round(pop_af * mr_resp * adj_jer_high, 0),
 
-  #------------------------------------------------------------------------------------
 
-  # Write the output
-  o3.mort.list<-split(o3.mort,o3.mort$year)
+                    adj_gdb2016_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_med),
+                    adj_gdb2016_med = dplyr::if_else(adj_gdb2016_med < 0, 0, adj_gdb2016_med),
+                    mort_o3_gbd2016_med = round(pop_af * mr_resp * adj_gdb2016_med, 0),
 
-  o3.mort.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","O3_MORT_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+                    adj_gdb2016_low = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_low),
+                    adj_gdb2016_low = dplyr::if_else(adj_gdb2016_low < 0, 0, adj_gdb2016_low),
+                    mort_o3_gbd2016_low = round(pop_af * mr_resp * adj_gdb2016_low, 0),
+
+                    adj_gdb2016_high = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_high),
+                    adj_gdb2016_high = dplyr::if_else(adj_gdb2016_high < 0, 0, adj_gdb2016_high),
+                    mort_o3_gbd2016_high = round(pop_af * mr_resp * adj_gdb2016_high, 0)) %>%
+      dplyr::select(region, year, disease, mort_o3_jer_med, mort_o3_jer_low, mort_o3_jer_high, mort_o3_gbd2016_med, mort_o3_gbd2016_low, mort_o3_gbd2016_high)
+
+    #------------------------------------------------------------------------------------
+
+    # Write the output
+    o3.mort.list<-split(o3.mort,o3.mort$year)
+
+    o3.mort.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","O3_MORT_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(o3.mort.list,o3.mort.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      o3.mort.map<-o3.mort %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, mort_o3) %>%
+        dplyr::rename(value = mort_o3) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "Mortalities")
+
+      rmap::map(data = o3.mort.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_o3_mort",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    o3.mort<-dplyr::bind_rows(o3.mort.list)
+    m3_get_mort_o3.output <<- o3.mort
+    return(invisible(o3.mort))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(o3.mort.list,o3.mort.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    o3.mort.map<-o3.mort %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, mort_o3) %>%
-      dplyr::rename(value = mort_o3) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "Mortalities")
-
-    rmap::map(data = o3.mort.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_o3_mort",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  o3.mort<-dplyr::bind_rows(o3.mort.list)
-
-  return(invisible(o3.mort))
 
 }
 
@@ -1071,6 +1118,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1080,116 +1128,123 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, final_db_year = 2100,
+m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                                 rdata_name = NULL, scen_name, final_db_year = 2100,
                                  mort_param = "mort_o3_gbd2016_med", Damage_vsl_range = "Damage_vsl_med",
-                                 ssp = "SSP2", queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T){
+                                 ssp = "SSP2", queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_mort_o3_ecoloss.output')) {
+    return(m3_get_mort_o3_ecoloss.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_o3_mort_ecoloss")) dir.create("output/maps/m3/maps_o3_mort_ecoloss")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_o3_mort_ecoloss")) dir.create("output/maps/m3/maps_o3_mort_ecoloss")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion=fasst_region) %>%
-    dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get Mortalities
-  o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_o3 = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion=fasst_region) %>%
+      dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-  # Get gdp_pc
-  gdp_pc<-calc_gdp_pc(ssp = ssp)
+    # Get Mortalities
+    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_o3 = mort_param)
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Economic valuation of premature mortality: Value of Statistical Life (VSL)
-  vsl<-gdp_pc %>%
-    # calculate the adjustment factor
-    dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
-    # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
-    dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
-                  vsl_ub = adj * vsl_eu_2005_ub,
-                  vsl_med = (vsl_lb + vsl_ub) / 2) %>%
-    dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
-    dplyr::mutate(vsl_med = vsl_med * 1E-6,
-                  vsl_lb = vsl_lb * 1E-6,
-                  vsl_ub = vsl_ub * 1E-6) %>%
-    dplyr::mutate(unit = "Million$2005")
+    # Get gdp_pc
+    gdp_pc<-get(paste0('gdp_pc.',ssp))
 
-  #------------------------------------------------------------------------------------
-  o3.mort.EcoLoss<-o3.mort %>%
-    gcamdata::left_join_error_no_match(vsl, by = c("region","year")) %>%
-    dplyr::select(-scenario) %>%
-    # Calculate the median damages
-    dplyr::mutate(Damage_vsl_med = round(mort_o3 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  Damage_vsl_low = round(mort_o3 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  Damage_vsl_high = round(mort_o3 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  unit = "Million$2015") %>%
-    dplyr::select(region, year, disease, Damage_vsl_range, unit)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Economic valuation of premature mortality: Value of Statistical Life (VSL)
+    vsl<-gdp_pc %>%
+      # calculate the adjustment factor
+      dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
+      # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
+      dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
+                    vsl_ub = adj * vsl_eu_2005_ub,
+                    vsl_med = (vsl_lb + vsl_ub) / 2) %>%
+      dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
+      dplyr::mutate(vsl_med = vsl_med * 1E-6,
+                    vsl_lb = vsl_lb * 1E-6,
+                    vsl_ub = vsl_ub * 1E-6) %>%
+      dplyr::mutate(unit = "Million$2005")
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  o3.mort.EcoLoss.list<-split(o3.mort.EcoLoss, o3.mort.EcoLoss$year)
+    #------------------------------------------------------------------------------------
+    o3.mort.EcoLoss<-o3.mort %>%
+      gcamdata::left_join_error_no_match(vsl, by = c("region","year")) %>%
+      dplyr::select(-scenario) %>%
+      # Calculate the median damages
+      dplyr::mutate(Damage_vsl_med = round(mort_o3 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    Damage_vsl_low = round(mort_o3 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    Damage_vsl_high = round(mort_o3 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    unit = "Million$2015") %>%
+      dplyr::select(region, year, disease, Damage_vsl_range, unit)
 
-  o3.mort.EcoLoss.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","O3_MORT_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    #------------------------------------------------------------------------------------
+    # Write the output
+    o3.mort.EcoLoss.list<-split(o3.mort.EcoLoss, o3.mort.EcoLoss$year)
+
+    o3.mort.EcoLoss.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","O3_MORT_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(o3.mort.EcoLoss.list, o3.mort.EcoLoss.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      o3.mort.EcoLoss.map<-o3.mort.EcoLoss %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, Damage_vsl_range) %>%
+        dplyr::rename(value = Damage_vsl_range) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "Trillion$2015",
+                      value = value * 1E-6)
+
+      rmap::map(data = o3.mort.EcoLoss.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_o3_mort_ecoloss",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    o3.mort.EcoLoss<-dplyr::bind_rows(o3.mort.EcoLoss.list)
+    m3_get_mort_o3_ecoloss.output <<- o3.mort.EcoLoss
+    return(invisible(o3.mort.EcoLoss))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(o3.mort.EcoLoss.list, o3.mort.EcoLoss.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    o3.mort.EcoLoss.map<-o3.mort.EcoLoss %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, Damage_vsl_range) %>%
-      dplyr::rename(value = Damage_vsl_range) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "Trillion$2015",
-                    value = value * 1E-6)
-
-    rmap::map(data = o3.mort.EcoLoss.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_o3_mort_ecoloss",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  o3.mort.EcoLoss<-dplyr::bind_rows(o3.mort.EcoLoss.list)
-
-  return(invisible(o3.mort.EcoLoss))
 
 }
 
@@ -1204,6 +1259,7 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1212,96 +1268,103 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
-                        ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+                        ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_yll_o3.output')) {
+    return(m3_get_yll_o3.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_o3_yll")) dir.create("output/maps/m3/maps_o3_yll")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_o3_yll")) dir.create("output/maps/m3/maps_o3_yll")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion = fasst_region) %>%
-    dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get pm.mort
-  o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_o3 = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  o3.yll<-tibble::as_tibble(raw.yll.o3) %>%
-    tidyr::gather(disease, value, -region) %>%
-    gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-    dplyr::filter(year >= 2010) %>%
-    dplyr::mutate(year = as.character(year)) %>%
-    gcamdata::left_join_error_no_match(o3.mort, by = c("region","year")) %>%
-    dplyr::mutate(yll_o3 = round(value * mort_o3, 0),
-                  disease = "resp") %>%
-    dplyr::select(region, year, disease, yll_o3)
+    # Get pm.mort
+    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_o3 = mort_param)
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  o3.yll.list<-split(o3.yll,o3.yll$year)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    o3.yll<-tibble::as_tibble(raw.yll.o3) %>%
+      tidyr::gather(disease, value, -region) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
+      dplyr::filter(year >= 2010) %>%
+      dplyr::mutate(year = as.character(year)) %>%
+      gcamdata::left_join_error_no_match(o3.mort, by = c("region","year")) %>%
+      dplyr::mutate(yll_o3 = round(value * mort_o3, 0),
+                    disease = "resp") %>%
+      dplyr::select(region, year, disease, yll_o3)
 
-  o3.yll.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","O3_YLL_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    #------------------------------------------------------------------------------------
+    # Write the output
+    o3.yll.list<-split(o3.yll,o3.yll$year)
+
+    o3.yll.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","O3_YLL_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(o3.yll.list,o3.yll.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      o3.yll.map<-o3.yll %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, yll_o3) %>%
+        dplyr::rename(value = yll_o3) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "YLLs")
+
+      rmap::map(data = o3.yll.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_o3_yll",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    o3.yll<-dplyr::bind_rows(o3.yll.list)
+    m3_get_yll_o3.output <<- o3.yll
+    return(invisible(o3.yll))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(o3.yll.list,o3.yll.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    o3.yll.map<-o3.yll %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, yll_o3) %>%
-      dplyr::rename(value = yll_o3) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "YLLs")
-
-    rmap::map(data = o3.yll.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_o3_yll",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  o3.yll<-dplyr::bind_rows(o3.yll.list)
-
-  return(invisible(o3.yll))
 
 
 }
@@ -1318,6 +1381,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1326,110 +1390,116 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                                ssp = "SSP2", saveOutput = T, map = F, anim = T, mort_param = "mort_o3_gbd2016_med"){
+m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                                rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                                ssp = "SSP2", saveOutput = T, map = F, anim = T, mort_param = "mort_o3_gbd2016_med", recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_yll_o3_ecoloss.output')) {
+    return(m3_get_yll_o3_ecoloss.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_o3_yll_ecoloss")) dir.create("output/maps/m3/maps_o3_yll_ecoloss")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_o3_yll_ecoloss")) dir.create("output/maps/m3/maps_o3_yll_ecoloss")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion=fasst_region) %>%
-    dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get Mortalities
-  o3.yll<-m3_get_yll_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
-                        final_db_year = final_db_year, mort_param = mort_param)
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion=fasst_region) %>%
+      dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-  # Get gdp_pc
-  gdp_pc<-calc_gdp_pc(ssp = ssp)
+    # Get Mortalities
+    o3.yll<-m3_get_yll_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
+                          final_db_year = final_db_year, mort_param = mort_param, recompute = recompute)
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  # Economic valuation years of life lost
-  vsly<-gdp_pc %>%
-    # calculate the adjustment factor
-    dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
-    # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
-    dplyr::mutate(vsly = adj * vsly_eu_2005) %>%
-    dplyr::select(scenario, region, year, vsly) %>%
-    dplyr::mutate(vsly = vsly * 1E-3) %>%
-    dplyr::mutate(unit = "Thous$2005")
-  #------------------------------------------------------------------------------------
+    # Get gdp_pc
+    gdp_pc<-get(paste0('gdp_pc.',ssp))
 
-  o3.yll.EcoLoss<-o3.yll %>%
-    gcamdata::left_join_error_no_match(vsly, by = c("region","year")) %>%
-    dplyr::select(-scenario) %>%
-    dplyr::mutate(Damage_med = round(yll_o3 * vsly * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                  unit = "Thous$2015") %>%
-    dplyr::select(region, year, disease, Damage_med, unit)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    # Economic valuation years of life lost
+    vsly<-gdp_pc %>%
+      # calculate the adjustment factor
+      dplyr::mutate(adj = (gdp_pc / gdp_eu_2005) ^ inc_elas_vsl) %>%
+      # multiply the LB and the UB of the European VSL (in 2005$), and take the median value
+      dplyr::mutate(vsly = adj * vsly_eu_2005) %>%
+      dplyr::select(scenario, region, year, vsly) %>%
+      dplyr::mutate(vsly = vsly * 1E-3) %>%
+      dplyr::mutate(unit = "Thous$2005")
+    #------------------------------------------------------------------------------------
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  o3.yll.EcoLoss.list<-split(o3.yll.EcoLoss,o3.yll.EcoLoss$year)
+    o3.yll.EcoLoss<-o3.yll %>%
+      gcamdata::left_join_error_no_match(vsly, by = c("region","year")) %>%
+      dplyr::select(-scenario) %>%
+      dplyr::mutate(Damage_med = round(yll_o3 * vsly * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                    unit = "Thous$2015") %>%
+      dplyr::select(region, year, disease, Damage_med, unit)
+
+    #------------------------------------------------------------------------------------
+    # Write the output
+    o3.yll.EcoLoss.list<-split(o3.yll.EcoLoss,o3.yll.EcoLoss$year)
 
 
-  o3.yll.EcoLoss.write<-function(df){
-    df<-as.data.frame(df)
-    write.csv(df,paste0("output/","m3/","O3_YLL_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    o3.yll.EcoLoss.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","O3_YLL_ECOLOSS_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(o3.yll.EcoLoss.list,o3.yll.EcoLoss.write)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map==T){
+      o3.yll.EcoLoss.map<-o3.yll.EcoLoss %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE") %>%
+        dplyr::select(subRegion, year, Damage_med) %>%
+        dplyr::rename(value = Damage_med) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      value = value * 1E-6,
+                      units = "Billion$2015")
+
+      rmap::map(data = o3.yll.EcoLoss.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_o3_yll_ecoloss",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    o3.yll.EcoLoss<-dplyr::bind_rows(o3.yll.EcoLoss.list)
+    m3_get_yll_o3_ecoloss.output <<- o3.yll.EcoLoss
+    return(invisible(o3.yll.EcoLoss))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(o3.yll.EcoLoss.list,o3.yll.EcoLoss.write)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map==T){
-    o3.yll.EcoLoss.map<-o3.yll.EcoLoss %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, year, Damage_med) %>%
-      dplyr::rename(value = Damage_med) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    value = value * 1E-6,
-                    units = "Billion$2015")
-
-    rmap::map(data = o3.yll.EcoLoss.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_o3_yll_ecoloss",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  o3.yll.EcoLoss<-dplyr::bind_rows(o3.yll.EcoLoss.list)
-
-  return(invisible(o3.yll.EcoLoss))
-
 }
 
 
@@ -1444,6 +1514,7 @@ m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1452,123 +1523,130 @@ m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
-                         ssp = "SSP2", saveOutput = T, map = F, anim = T){
+m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
-  all_years<-all_years[all_years <= final_db_year]
+  if (!recompute & exists('m3_get_daly_o3.output')) {
+    return(m3_get_daly_o3.output)
+  } else {
 
-  # Create the directories if they do not exist:
-  if (!dir.exists("output")) dir.create("output")
-  if (!dir.exists("output/m3")) dir.create("output/m3")
-  if (!dir.exists("output/maps")) dir.create("output/maps")
-  if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
-  if (!dir.exists("output/maps/m3/maps_o3_daly")) dir.create("output/maps/m3/maps_o3_daly")
+    all_years<-all_years[all_years <= final_db_year]
 
-  # Ancillary Functions
-  `%!in%` = Negate(`%in%`)
+    # Create the directories if they do not exist:
+    if (!dir.exists("output")) dir.create("output")
+    if (!dir.exists("output/m3")) dir.create("output/m3")
+    if (!dir.exists("output/maps")) dir.create("output/maps")
+    if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
+    if (!dir.exists("output/maps/m3/maps_o3_daly")) dir.create("output/maps/m3/maps_o3_daly")
 
-  # Shape subset for maps
-  fasstSubset <- rmap::mapCountries
+    # Ancillary Functions
+    `%!in%` = Negate(`%in%`)
 
-  fasstSubset<-fasstSubset %>%
-    dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-    dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
-    dplyr::select(-subRegion) %>%
-    dplyr::rename(subRegion=fasst_region) %>%
-    dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
+    # Shape subset for maps
+    fasstSubset <- rmap::mapCountries
 
-  # Get DALYs
-  daly_calc_o3<-calc_daly_o3()
+    fasstSubset<-fasstSubset %>%
+      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::select(-subRegion) %>%
+      dplyr::rename(subRegion=fasst_region) %>%
+      dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-  # Get pm.mort
-  o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year) %>%
-    dplyr::select(region, year, disease, mort_param) %>%
-    dplyr::rename(mort_o3 = mort_param)
+    # Get DALYs
+    daly_calc_o3<-calc_daly_o3()
 
-  #------------------------------------------------------------------------------------
-  #------------------------------------------------------------------------------------
-  daly.calc.o3.adj<-tibble::as_tibble(daly_calc_o3) %>%
-    dplyr::filter(year == max(year)) %>%
-    dplyr::select(-year) %>%
-    gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(o3.mort$year))))) %>%
-    dplyr::bind_rows(tibble::as_tibble(daly_calc_o3) %>%
-                       dplyr::filter(year == max(year),
-                                     region == "RUS") %>%
-                       dplyr::select(-year) %>%
-                       dplyr::mutate(region = "RUE") %>%
-                gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(o3.mort$year)))))) %>%
-    dplyr::mutate(disease = "RESP")
+    # Get pm.mort
+    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_o3 = mort_param)
 
-
-  o3.daly<- tibble::as_tibble(o3.mort) %>%
-    dplyr::filter(disease != "tot") %>%
-    gcamdata::left_join_error_no_match(daly.calc.o3.adj, by = c("region","disease","year")) %>%
-    dplyr::rename(daly = DALY_ratio) %>%
-    dplyr::mutate(daly_med = round(mort_o3 * daly, 0)) %>%
-    dplyr::select(region, year, disease, daly_med)
+    #------------------------------------------------------------------------------------
+    #------------------------------------------------------------------------------------
+    daly.calc.o3.adj<-tibble::as_tibble(daly_calc_o3) %>%
+      dplyr::filter(year == max(year)) %>%
+      dplyr::select(-year) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(o3.mort$year))))) %>%
+      dplyr::bind_rows(tibble::as_tibble(daly_calc_o3) %>%
+                         dplyr::filter(year == max(year),
+                                       region == "RUS") %>%
+                         dplyr::select(-year) %>%
+                         dplyr::mutate(region = "RUE") %>%
+                  gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(o3.mort$year)))))) %>%
+      dplyr::mutate(disease = "RESP")
 
 
-  o3.daly.tot<-o3.daly %>%
-    dplyr::group_by(region, year) %>%
-    dplyr::summarise(daly_med = sum(daly_med)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(disease = "tot")
+    o3.daly<- tibble::as_tibble(o3.mort) %>%
+      dplyr::filter(disease != "tot") %>%
+      gcamdata::left_join_error_no_match(daly.calc.o3.adj, by = c("region","disease","year")) %>%
+      dplyr::rename(daly = DALY_ratio) %>%
+      dplyr::mutate(daly_med = round(mort_o3 * daly, 0)) %>%
+      dplyr::select(region, year, disease, daly_med)
 
 
-  o3.daly.tot.fin<-dplyr::bind_rows(o3.daly, o3.daly.tot) %>%
-    dplyr::mutate(daly_med = round(daly_med, 0))
+    o3.daly.tot<-o3.daly %>%
+      dplyr::group_by(region, year) %>%
+      dplyr::summarise(daly_med = sum(daly_med)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(disease = "tot")
 
 
-  #------------------------------------------------------------------------------------
-  # Write the output
-  o3.daly.tot.fin.list<-split(o3.daly.tot.fin,o3.daly.tot.fin$year)
+    o3.daly.tot.fin<-dplyr::bind_rows(o3.daly, o3.daly.tot) %>%
+      dplyr::mutate(daly_med = round(daly_med, 0))
 
-  o3.daly.tot.fin.write<-function(df){
-    df<-as.data.frame(df) %>%
-      tidyr::spread(disease, daly_med)
-    write.csv(df,paste0("output/","m3/","O3_DALY_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+
+    #------------------------------------------------------------------------------------
+    # Write the output
+    o3.daly.tot.fin.list<-split(o3.daly.tot.fin,o3.daly.tot.fin$year)
+
+    o3.daly.tot.fin.write<-function(df){
+      df<-as.data.frame(df) %>%
+        tidyr::spread(disease, daly_med)
+      write.csv(df,paste0("output/","m3/","O3_DALY_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+    }
+
+
+    if(saveOutput == T){
+
+      lapply(o3.daly.tot.fin.list, o3.daly.tot.fin.write)
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    # If map=T, it produces a map with the calculated outcomes
+
+    if(map == T){
+      o3.daly.tot.fin.map<-o3.daly.tot.fin %>%
+        dplyr::rename(subRegion = region)%>%
+        dplyr::filter(subRegion != "RUE",
+                      disease == "RESP") %>%
+        dplyr::select(subRegion, year, daly_med) %>%
+        dplyr::rename(value = daly_med) %>%
+        dplyr::mutate(year = as.numeric(as.character(year)),
+                      units = "DALYs")
+
+      rmap::map(data = o3.daly.tot.fin.map,
+                shape = fasstSubset,
+                folder ="output/maps/m3/maps_o3_daly",
+                ncol = 3,
+                legendType = "pretty",
+                background  = T,
+                animate = anim)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
+    o3.daly.tot.fin<-dplyr::bind_rows(o3.daly.tot.fin.list)
+    m3_get_daly_o3.output <<- o3.daly.tot.fin
+    return(invisible(o3.daly.tot.fin))
   }
-
-
-  if(saveOutput == T){
-
-    lapply(o3.daly.tot.fin.list, o3.daly.tot.fin.write)
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  # If map=T, it produces a map with the calculated outcomes
-
-  if(map == T){
-    o3.daly.tot.fin.map<-o3.daly.tot.fin %>%
-      dplyr::rename(subRegion = region)%>%
-      dplyr::filter(subRegion != "RUE",
-                    disease == "RESP") %>%
-      dplyr::select(subRegion, year, daly_med) %>%
-      dplyr::rename(value = daly_med) %>%
-      dplyr::mutate(year = as.numeric(as.character(year)),
-                    units = "DALYs")
-
-    rmap::map(data = o3.daly.tot.fin.map,
-              shape = fasstSubset,
-              folder ="output/maps/m3/maps_o3_daly",
-              ncol = 3,
-              legendType = "pretty",
-              background  = T,
-              animate = anim)
-
-  }
-
-  #----------------------------------------------------------------------
-  #----------------------------------------------------------------------
-
-  o3.daly.tot.fin<-dplyr::bind_rows(o3.daly.tot.fin.list)
-
-  return(invisible(o3.daly.tot.fin))
 
 }
 

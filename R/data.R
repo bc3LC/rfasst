@@ -40,6 +40,126 @@
 #' }
 "raw.gdp"
 
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.SSP1
+#' }
+"gdp_pc.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP2 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.SSP2
+#' }
+"gdp_pc.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP3 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.SSP3
+#' }
+"gdp_pc.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.SSP4
+#' }
+"gdp_pc.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP5 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.SSP5
+#' }
+"gdp_pc.SSP5"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP1
+#' }
+"pop.all.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP2 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP2
+#' }
+"pop.all.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP3 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP3
+#' }
+"pop.all.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP4 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP4
+#' }
+"pop.all.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP5
+#' }
+"pop.all.SSP5"
+
 #=========================================================
 # Module 2
 #=========================================================

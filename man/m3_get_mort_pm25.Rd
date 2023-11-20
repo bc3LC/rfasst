@@ -12,13 +12,15 @@ m3_get_mort_pm25(
   query_path = "./inst/extdata",
   db_name = NULL,
   prj_name,
+  rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
   ssp = "SSP2",
   saveOutput = T,
   map = F,
-  anim = T
+  anim = T,
+  recompute = F
 )
 }
 \arguments{
@@ -29,6 +31,8 @@ m3_get_mort_pm25(
 \item{db_name}{Name of the GCAM database}
 
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
+
+\item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
 \item{scen_name}{Name of the GCAM scenario to be processed}
 
