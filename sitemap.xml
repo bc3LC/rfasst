@@ -133,6 +133,9 @@
     <loc>/reference/ch4_htap_pert.html</loc>
   </url>
   <url>
+    <loc>/reference/clean_pkg_outputs.html</loc>
+  </url>
+  <url>
     <loc>/reference/coef.AOT_MAIZE.html</loc>
   </url>
   <url>
@@ -185,6 +188,24 @@
   </url>
   <url>
     <loc>/reference/gdp_eu_2005.html</loc>
+  </url>
+  <url>
+    <loc>/reference/gdp_pc.SSP1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/gdp_pc.SSP2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/gdp_pc.SSP3.html</loc>
+  </url>
+  <url>
+    <loc>/reference/gdp_pc.SSP4.html</loc>
+  </url>
+  <url>
+    <loc>/reference/gdp_pc.SSP5.html</loc>
+  </url>
+  <url>
+    <loc>/reference/if_complex.html</loc>
   </url>
   <url>
     <loc>/reference/inc_elas_vsl.html</loc>
@@ -266,6 +287,21 @@
   </url>
   <url>
     <loc>/reference/perc_pop_rus.html</loc>
+  </url>
+  <url>
+    <loc>/reference/pop.all.SSP1.html</loc>
+  </url>
+  <url>
+    <loc>/reference/pop.all.SSP2.html</loc>
+  </url>
+  <url>
+    <loc>/reference/pop.all.SSP3.html</loc>
+  </url>
+  <url>
+    <loc>/reference/pop.all.SSP4.html</loc>
+  </url>
+  <url>
+    <loc>/reference/pop.all.SSP5.html</loc>
   </url>
   <url>
     <loc>/reference/raw.base_aot.html</loc>
