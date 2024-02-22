@@ -1,6 +1,8 @@
 # Converting raw data into package data
 library(usethis)
 library(magrittr)
+library(terra)
+library(sf)
 
 #=========================================================
 # Constants
@@ -653,13 +655,26 @@ raw.yll.o3 = read.csv(paste0(rawDataFolder_m3,"yll_o3.csv"))
 usethis::use_data(raw.yll.o3, overwrite = T)
 
 
+#=========================================================
+# Downscalling
+#=========================================================
+nuts3 <- vect("NUTS_RG_20M_2021_4326.shp")
+terra::saveRDS(wrap(nuts3), "nuts3.rds")
+# To read:
+# nuts3 <- vect(readRDS("nuts3.rds"))
+# change to sf as needed
 
 
+rast_country <- terra::rast("rast_country.tif")
+terra::saveRDS(wrap(rast_country), "rast_country.rds")
+# To read:
+# rast_country <- rast(readRDS("rast_country.rds"))
 
 
-
-
-
+pm25_weights <- terra::rast("pm25_weights_rast.tif")
+terra::saveRDS(wrap(pm25_weights), "pm25_weights.rds")
+# To read:
+# pm25_weights <- rast(readRDS("pm25_weights.rds"))
 
 
 
