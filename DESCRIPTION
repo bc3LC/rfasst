@@ -38,7 +38,9 @@ Imports:
     rgcam,
     rmap,
     rpackageutils,
-    gcamdata
+    gcamdata,
+    terra,
+    sf
 Suggests: 
     rmarkdown,
     rprojroot,
