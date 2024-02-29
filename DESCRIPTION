@@ -40,7 +40,9 @@ Imports:
     rpackageutils,
     gcamdata,
     terra,
-    sf
+    sf,
+    raster,
+    rworldmap
 Suggests: 
     rmarkdown,
     rprojroot,

@@ -16,12 +16,18 @@
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
+#' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
                            rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F){
+                           saveOutput = T, map = F, anim = T, recompute = F,
+                           downscale = NULL, saveRaster_grid = NULL,
+                           agg_grid = NULL, save_AggGrid = NULL){
 
   if (!recompute & exists('m2_get_conc_pm25.output')) {
     return(m2_get_conc_pm25.output)
@@ -378,6 +384,134 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If downscale = T, the function gives gridded outputs
+    if(downscale == T){
+
+      # Expand data to all countries
+      pm25_agg_fin_grid <- pm25_agg_fin %>%
+      dplyr::filter(region != "RUE") %>%
+        dplyr::rename(n = 'region',
+                      rfasst_pm25 = 'value') %>%
+        dplyr::left_join(countries, by = "n") %>%
+        dplyr::select(-n) %>%
+        dplyr::arrange(ISO3V10)
+
+      # create a list with the outputs by year
+      pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
+
+
+    # Create a function
+      generate_gridded_output <- function(df){
+
+        # Add iso and rasterize the output
+        ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10")
+        out <- raster::raster(nrow = 12500, ncols = 36000, ext = raster::extent(c(-180, 180, -55, 70)) )
+
+        # Rasterize the output
+        out <- raster::rasterize(ssPDF_pm25_agg_fin_grid, out, field = 'rfasst_pm25')
+
+        # Load pm2.5 grid to country weights
+        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+
+        # Compute calculations
+        out_rast <- as(out, "SpatRaster")
+        pm25_weighted <- out_rast * pm25_weights_rast
+
+        return(invisible(pm25_weighted))
+
+        png(filename = paste0(here::here(),"output/m2/pm25_gridded/" , df$year,"_pm25_fin_weighted.png"))
+        plot(pm25_weighted)
+        dev.off()
+
+        if(saveRaster_grid == T){
+
+        terra::writeRaster(pm25_weighted, file = paste0(here::here(),"output/m2/pm25_gridded" , df$year,"_pm25_fin_weighted.tif"))
+
+        }
+
+      }
+
+      lapply(pm25_agg_fin_grid.list, generate_gridded_output)
+
+    }
+
+    if(agg_grid == "NUTS3"){
+
+      # Expand data to all countries
+      pm25_agg_fin_grid <- pm25_agg_fin %>%
+        dplyr::filter(region != "RUE") %>%
+        dplyr::rename(n = 'region',
+                      rfasst_pm25 = 'value') %>%
+        dplyr::left_join(countries, by = "n") %>%
+        dplyr::select(-n) %>%
+        dplyr::arrange(ISO3V10)
+
+      # create a list with the outputs by year
+      pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
+
+
+      # Create a function
+      generate_gridded_output_aggNUTS3 <- function(df){
+
+        # Add iso and rasterize the output
+        ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10")
+        out <- raster::raster(nrow = 12500, ncols = 36000, ext = raster::extent(c(-180, 180, -55, 70)) )
+
+        # Rasterize the output
+        out <- raster::rasterize(ssPDF_pm25_agg_fin_grid, out, field = 'rfasst_pm25')
+
+        # Load pm2.5 grid to country weights
+        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+
+        # Compute calculations
+        out_rast <- as(out, "SpatRaster")
+        pm25_weighted <- out_rast * pm25_weights_rast
+
+        # Load NUTS-3 map
+        nuts3_sf<- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+          filter(LEVL_CODE == 3) %>%
+          filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
+                                 "PT2", "PT20", "PT3", "PT30", "PT300"))
+
+        nuts3_ext <- terra::ext(nuts3_sf)
+
+        # Crop and mask PM25 to NUTS-3 extent
+        pm25_weighted_nuts3 <- terra::crop(pm25_weighted, nuts3_ext)
+        pm25_weighted_nuts3 <- terra::mask(pm25_weighted_nuts3, vect(nuts3_sf))
+
+        nuts3 <- vect("inst/extdata/NUTS_RG_20M_2021_4326.shp")  %>%
+          filter(LEVL_CODE == 3) %>%
+          filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
+                                 "PT2", "PT20", "PT3", "PT30", "PT300"))
+
+        # Average raster values by polygon
+        nuts3$pm25_avg <- terra::extract(pm25_weighted_nuts3, nuts3, mean, na.rm = TRUE)$layer
+
+        # Plot average raster values within polygons
+        plot_nuts3 <- ggplot(data = nuts3) +
+          geom_spatvector(aes(fill = pm25_avg)) +
+          scale_fill_distiller(palette = "YlOrBr", direction = 1) +
+          theme_bw() +
+          theme(legend.title = element_blank())
+
+        ggsave(paste0(here::here(),"output/m2/pm25_gridded_AggNUTS3/" , df$year,"_pm25_avg.png"), plot_nuts3, device = "png")
+
+        if(save_AggGrid == T){
+
+          # Write df with NUTS3-averagre values
+          nuts3_df <- as.data.frame(nuts3)
+          write.csv(nuts3_df, "./figures/NUTS-3/NUTS3_avg_PM25.csv", row.names =  F)
+        }
+
+
+      }
+
+      lapply(pm25_agg_fin_grid.list, generate_gridded_output_aggNUTS3)
 
     }
 
