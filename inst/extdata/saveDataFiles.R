@@ -658,6 +658,12 @@ usethis::use_data(raw.yll.o3, overwrite = T)
 #=========================================================
 # Downscalling
 #=========================================================
+countries <- readRDS('inst/extdata//countries.rds') %>%
+  dplyr::mutate(region = as.factor(region),
+                iso = as.character(iso))
+names(countries) <- c('n', 'ISO3V10')
+usethis::use_data(countries, overwrite = T)
+
 nuts3 <- vect("NUTS_RG_20M_2021_4326.shp")
 terra::saveRDS(wrap(nuts3), "nuts3.rds")
 # To read:
