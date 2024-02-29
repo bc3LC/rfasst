@@ -505,7 +505,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           # Write df with NUTS3-averagre values
           nuts3_df <- as.data.frame(nuts3)
-          write.csv(nuts3_df, "./figures/NUTS-3/NUTS3_avg_PM25.csv", row.names =  F)
+          write.csv(nuts3_df, "output/m2/pm25_gridded_AggNUTS3/NUTS3_avg_PM25.csv", row.names =  F)
         }
 
 
