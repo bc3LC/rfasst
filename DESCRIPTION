@@ -42,7 +42,9 @@ Imports:
     terra,
     sf,
     raster,
-    rworldmap
+    rworldmap,
+    assertthat,
+    tidyterra
 Suggests: 
     rmarkdown,
     rprojroot,
