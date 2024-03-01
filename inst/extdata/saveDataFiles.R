@@ -658,9 +658,27 @@ usethis::use_data(raw.yll.o3, overwrite = T)
 #=========================================================
 # Downscalling
 #=========================================================
-countries <- readRDS('inst/extdata//countries.rds') %>%
-  dplyr::mutate(region = as.factor(region),
-                iso = as.character(iso))
+countries <- rworldmap::countryExData %>%
+  dplyr::select(subRegionAlt = ISO3V10) %>%
+  dplyr::bind_rows(
+    as.data.frame(rmap::mapCountries) %>%
+      select(subRegionAlt)) %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
+  dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
+  dplyr::rename(subRegion=fasst_region) %>%
+  dplyr::mutate(subRegionAlt=as.factor(subRegionAlt)) %>%
+  dplyr::select(region = subRegion, iso = subRegionAlt) %>%
+  dplyr::filter(region != "RUE") %>%
+  # add manually missing iso codes
+  dplyr::bind_rows(
+    data.frame(
+      region = c("EAF"),
+      iso = c("SSD")
+    )
+  ) %>%
+  dplyr::arrange(region)
+
 names(countries) <- c('n', 'ISO3V10')
 usethis::use_data(countries, overwrite = T)
 
