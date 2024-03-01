@@ -478,7 +478,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
             theme_bw() +
             theme(legend.title = element_blank())
 
-          ggsave(paste0(here::here(),"output/m2/pm25_gridded_AggNUTS3/" , df$year,"_pm25_avg.png"), plot_nuts3, device = "png")
+          ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.png"), plot_nuts3, device = "png")
 
           if(save_AggGrid == T){
 
@@ -487,7 +487,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             # Write df with NUTS3-averagre values
             nuts3_df <- as.data.frame(nuts3)
-            write.csv(nuts3_df, "output/m2/pm25_gridded_AggNUTS3/NUTS3_avg_PM25.csv", row.names =  F)
+            write.csv(nuts3_df, paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.csv"), row.names =  F)
           }
 
         }
