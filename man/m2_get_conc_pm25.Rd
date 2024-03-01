@@ -16,7 +16,11 @@ m2_get_conc_pm25(
   saveOutput = T,
   map = F,
   anim = T,
-  recompute = F
+  recompute = F,
+  downscale = F,
+  saveRaster_grid = F,
+  agg_grid = F,
+  save_AggGrid = F
 )
 }
 \arguments{
@@ -43,6 +47,14 @@ m2_get_conc_pm25(
 \item{anim}{If set to T, produces multi-year animations. By default=T}
 
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
+
+\item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
+
+\item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
+
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available}
+
+\item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }
 \value{
 Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
