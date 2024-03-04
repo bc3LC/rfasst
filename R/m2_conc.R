@@ -409,7 +409,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       generate_gridded_output <- function(df){
 
         # Add iso and rasterize the output
-        ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10")
+        ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10", verbose = F)
         out <- raster::raster(nrow = 12500, ncols = 36000, ext = raster::extent(c(-180, 180, -55, 70)) )
 
         # Rasterize the output

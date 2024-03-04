@@ -302,6 +302,108 @@ calc_pop<-function(ssp = "SSP2"){
 
 }
 
+#' calc_pop_str
+#'
+#' Get population data and shares of population for all population segments. To be consistent we make use of the IIASA-WIC Model/scenarios. Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
+#' @source  https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @keywords socioeconomics, population
+#' @return Population and population shares (<5Y; >30Y) for TM5-FASST regions for all years
+#' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
+#' @importFrom magrittr %>%
+#' @export
+
+calc_pop_str<-function(ssp = "SSP2"){
+
+  # Ancillary Functions
+  `%!in%` = Negate(`%in%`)
+
+  # First, we read in the population data.
+  ssp.data<-raw.ssp.data %>%
+    tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
+    dplyr::mutate(year = gsub("X", "", year)) %>%
+    dplyr::filter(year >= 2010, year <= 2100,
+                  grepl(ssp, SCENARIO)) %>%
+    dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT)
+
+  pop<-tibble::as_tibble(ssp.data) %>%
+    dplyr::filter(grepl("Population", variable)) %>%
+    dplyr::mutate(variable = gsub("-", "and", variable)) %>%
+    dplyr::left_join(age_str_mapping, by = join_by(variable)) %>%
+    dplyr::filter(complete.cases(age)) %>%
+    dplyr::filter(!grepl("Edu", variable)) %>%
+    dplyr::mutate(age = dplyr::if_else(age == "95-99" | age == "100", "95+", age)) %>%
+    dplyr::select(-variable) %>%
+    dplyr::group_by(model, scenario, region, age, unit, year) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup() %>%
+    #add FASST regions and aggregate the values to those categories:
+    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+                                       by = "region") %>%
+    dplyr::select(-region) %>%
+    dplyr::rename(region = fasst_region) %>%
+    dplyr::group_by(model, scenario, region, age, year, unit) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup()
+
+  # Taiwan is not included in the database, so we use population projections from OECD Env-Growth.
+  # We use China's percentages
+
+  perc.china.str<-pop %>%
+    dplyr::filter(region == "CHN") %>%
+    dplyr::group_by(model, scenario, region, year) %>%
+    dplyr::mutate(pop_tot = sum(value)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(share = value / pop_tot) %>%
+    dplyr::select(model, scenario, age, year, share)
+
+  twn.pop<-tibble::as_tibble(raw.twn.pop) %>%
+    tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
+    dplyr::mutate(year = gsub("X", "", year)) %>%
+    dplyr::filter(year >= 2010, year <= 2100,
+                  grepl(ssp, SCENARIO)) %>%
+    dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT) %>%
+    dplyr::filter(variable == "Population") %>%
+    dplyr::rename(pop_tot = value) %>%
+    #add FASST regions and add the values to those categories:
+    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+                                       by = "region") %>%
+    dplyr::select(-region) %>%
+    dplyr::rename(region = fasst_region) %>%
+    dplyr::group_by(model, scenario, region, year, unit) %>%
+    dplyr::summarise(pop_tot = sum(pop_tot)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-model) %>%
+    dplyr::mutate(scenario = ssp) %>%
+    gcamdata::repeat_add_columns(tibble(age = unique(perc.china.str$age))) %>%
+    gcamdata::left_join_error_no_match(perc.china.str %>% dplyr::select(-scenario), by = c("year", "age")) %>%
+    dplyr::mutate(value = pop_tot * share,
+                  model = "IIASA-WiC POP",
+                  scenario = "SSP2_v9_130115") %>%
+    dplyr::select(model, scenario, region, age, year, unit, value)
+
+  # We add twn to the database
+  pop <-dplyr::bind_rows(pop, twn.pop)
+
+  # In addition we don't have population values for RUE, so we divide the population between these regions using percentages
+  # Following TM5-FASST, we assume that 76.7% of population is assigned to RUS, while the remaining 23.3% to RUE.
+  # These percentages are loaded in the configuration file and can be adapted
+  pop_rus.str<- pop %>% dplyr::filter(region == "RUS") %>% dplyr::mutate(value = value * perc_pop_rus)
+
+  pop_rue.str<-pop %>% dplyr::filter(region == "RUS") %>% dplyr::mutate(region = "RUE") %>% dplyr::mutate(value = value * perc_pop_rue)
+
+  # We add rus and rue to the database
+  pop <- pop %>%
+    dplyr::filter(region != "RUS") %>%
+    dplyr::bind_rows(pop_rus.str) %>%
+    dplyr::bind_rows(pop_rue.str) %>%
+    dplyr::mutate(scenario = ssp) %>%
+    dplyr::select(scenario, region, year, age, unit, value)
+
+  invisible(pop)
+
+}
+
+
 
 #' calc_gdp_pc
 #'
