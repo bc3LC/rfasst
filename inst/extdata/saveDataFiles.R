@@ -643,6 +643,43 @@ usethis::use_data(raw.rr.param.gbd2016, overwrite = T)
 raw.rr.param.bur2014 = read.csv(paste0("B2014.csv"))
 usethis::use_data(raw.rr.param.bur2014, overwrite = T)
 
+# raw.rr.fusion.allAges
+raw.rr.fusion.allAges <- read.csv("inst/extdata/rr_fusion_allAges.csv") %>%
+  tidyr::pivot_longer(cols = c("COPD", "LC", "LRI", "DM"),
+                      names_to = "disease",
+                      values_to = "rr") %>%
+  gcamdata::repeat_add_columns(tibble(age.str = unique(age_str_mapping$age))) %>%
+  dplyr::filter(age.str %!in% c("0-4", "5-9", "10-14", "15-19", "20-24", "100")) %>%
+  dplyr::filter(complete.cases(age.str)) %>%
+  dplyr::mutate(age.str = gsub("95-99", "95+", age.str))
+usethis::use_data(raw.rr.fusion.allAges, overwrite = T)
+
+# raw.rr.fusion.ihd
+raw.rr.fusion.ihd <- read.csv("inst/extdata/rr_fusion_ihd.csv") %>%
+  tidyr::pivot_longer(cols = starts_with("X"),
+                      names_to = "age.str",
+                      values_to = "rr") %>%
+  dplyr::mutate(age.str = gsub("X", "", age.str),
+                age.str = gsub("95.", "95+", age.str),
+                age.str = gsub("and", "-", age.str))
+usethis::use_data(raw.rr.fusion.ihd, overwrite = T)
+
+# raw.rr.fusion.stroke
+raw.rr.fusion.stroke <- read.csv("inst/extdata/rr_fusion_stroke.csv") %>%
+  tidyr::pivot_longer(cols = starts_with("X"),
+                      names_to = "age.str",
+                      values_to = "rr") %>%
+  dplyr::mutate(age.str = gsub("X", "", age.str),
+                age.str = gsub("95.", "95+", age.str),
+                age.str = gsub("and", "-", age.str))
+usethis::use_data(raw.rr.fusion.stroke, overwrite = T)
+
+# raw.rr.fusion
+raw.rr.fusion <- dplyr::bind_rows(raw.rr.fusion.allAges,
+                                  raw.rr.fusion.ihd,
+                                  raw.rr.fusion.stroke)
+usethis::use_data(raw.rr.fusion, overwrite = T)
+
 # raw.daly
 raw.daly = read.csv(paste0(rawDataFolder_m3,"IHME-GBD_2019_DATA_DALYs.csv"))
 usethis::use_data(raw.daly, overwrite = T)

@@ -227,6 +227,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
+    # Get population with age groups
+    pop.all.str<-get(paste0('pop.all.str.',ssp))
     # Get baseline mortality rates
     mort.rates<-calc_mort_rates()
 
@@ -297,6 +299,20 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                     BURNETT2018WITHOUT_medium, BURNETT2018WITHOUT_low, BURNETT2018WITHOUT_high) %>%
       dplyr::mutate(year = as.character(year))
 
+    # The FUSION model needs age-groups, so the calculation is slightly different
+
+    pm.rr.fusion <- pm.rr.pre %>%
+      dplyr::select(region, year, units, pm_conc, disease) %>%# Diabetes Mellitus to be added
+      gcamdata::repeat_add_columns(tibble(age.str = unique(age_str_mapping$age))) %>%
+      dplyr::filter(age.str %!in% c("0-4", "5-9", "10-14", "15-19", "20-24", "100")) %>%
+      dplyr::filter(complete.cases(age.str)) %>%
+      dplyr::mutate(age.str = gsub("95-99", "95+", age.str)) %>%
+      dplyr::mutate(z = round(pm_conc, 1),
+                    disease = toupper(disease)) %>%
+      gcamdata::left_join_error_no_match(raw.rr.fusion, by = join_by(disease, age.str, z)) %>%
+      dplyr::mutate(disease = tolower(disease)) %>%
+      dplyr::select(region, year, units, pm_conc, disease, age.str, FUSION2022_med = rr)
+
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
@@ -336,10 +352,67 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       tidyr::spread(mort_param, value) %>%
       dplyr::mutate(disease = gsub("mort_", "", disease))
 
+    # Calculate premature mortalities using age-groups and the FUSION model
+    pm.mort.fusion <- tibble::as_tibble(pm.rr.fusion) %>%
+      dplyr::filter(as.numeric(as.character(year)) >= 2010) %>%
+      dplyr::select(-pm_conc) %>%
+      tidyr::pivot_longer(cols = "FUSION2022_med",
+                          names_to = "rr",
+                          values_to = "value") %>%
+      dplyr::arrange(disease) %>%
+      tidyr::replace_na(list(value = 0)) %>%
+      dplyr::mutate(disease = as.factor(disease)) %>%
+      tidyr::pivot_wider(names_from = disease,
+                         values_from = value) %>%
+      dplyr::rename(age = age.str) %>%
+      dplyr::left_join(pop.all.str, by = join_by(region, year, age)) %>%
+      dplyr::mutate(pop = value * 1E6) %>%
+      dplyr::select(-unit, -scenario, -value) %>%
+      dplyr::left_join(mort.rates %>%
+                         dplyr::filter(year >= 2010) %>%
+                         dplyr::mutate(disease = tolower(disease),
+                                       disease = paste0("mr_", disease)) %>%
+                         tidyr::spread(disease, value) %>%
+                         dplyr::filter(year %in% all_years) %>%
+                         dplyr::select(-mr_cp, -mr_resp),
+                       by = c("region", "year")) %>%
+      dplyr::rename(mort_param = rr) %>%
+      dplyr::mutate(mort_copd = pop * mr_copd * (1 - 1/copd),
+                    mort_ihd = pop * mr_ihd * (1 - 1/ihd),
+                    mort_stroke = pop * mr_stroke * (1 - 1/stroke),
+                    mort_lc = pop * mr_lc * (1 - 1/lc)) %>%
+      dplyr::select(region, year, age, mort_param, mort_copd, mort_ihd, mort_stroke, mort_lc) %>%
+      dplyr::rename(rr = mort_param) %>%
+      tidyr::pivot_longer(cols = starts_with("mort"),
+                          names_to = "disease",
+                          values_to = "value") %>%
+      dplyr::filter(is.finite(value)) %>%
+      dplyr::mutate(value = round(value, 0)) %>%
+      tidyr::pivot_wider(names_from = "disease",
+                         values_from = "value") %>%
+      dplyr::mutate(mort_tot = mort_copd + mort_ihd + mort_stroke + mort_lc) %>%
+      tidyr::pivot_longer(cols = starts_with("mort"),
+                          names_to = "disease",
+                          values_to = "value") %>%
+      tidyr::pivot_wider(names_from = rr,
+                         values_from = value) %>%
+      dplyr::mutate(disease = gsub("mort_", "", disease))
+
+    # Create an aggegated data from fusion to add to the full result
+    pm.mort.fusion.agg <- pm.mort.fusion %>%
+      dplyr::group_by(region, year, disease) %>%
+      dplyr::summarise(FUSION2022_med = sum(FUSION2022_med)) %>%
+      dplyr::ungroup()
+
+    pm.mort <- pm.mort %>%
+      dplyr::left_join(pm.mort.fusion.agg, by = join_by(region, year, disease)) %>%
+      tidyr::replace_na(list(FUSION2022_med = 0))
+
     #------------------------------------------------------------------------------------
 
     # Write the output
     pm.mort.list<-split(pm.mort, pm.mort$year)
+    pm.mort.fusion.list<-split(pm.mort.fusion, pm.mort.fusion$year)
 
 
     pm.mort.write<-function(df){
@@ -347,9 +420,15 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
+    pm.mort.fusion.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_FUSIONAGED", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+    }
+
     if(saveOutput == T){
 
       lapply(pm.mort.list,pm.mort.write)
+      lapply(pm.mort.fusion.list,pm.mort.fusion.write)
 
     }
     #----------------------------------------------------------------------
