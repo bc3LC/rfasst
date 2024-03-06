@@ -8,13 +8,28 @@
 #' @export
 
 calc_mort_rates<-function(){
-  mort.rates<-raw.mort.rates %>%
-    tidyr::gather(year, value, -region, -disease) %>%
-    dplyr::mutate(year = gsub("X", "", year)) %>%
+  mort.rates <- raw.mort.rates %>%
     dplyr::mutate(value = dplyr::if_else(value <= 0, 0, value))
 
   invisible(mort.rates)
 }
+
+#' calc_mort_rates_str
+#'
+#' Get cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and Diabetes Mellitus type II (DM).
+#' @source GBD
+#' @keywords Baseline mortality rates
+#' @return Baseline mortality rates for TM5-FASST regions for all years, causes (ALRI, COPD, LC, IHD, STROKE), and age-groups. The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
+#' @importFrom magrittr %>%
+#' @export
+
+calc_mort_rates_str<-function(){
+  mort.rates <- raw.mort.rates.str %>%
+    dplyr::mutate(value = dplyr::if_else(value <= 0, 0, value))
+
+  invisible(mort.rates)
+}
+
 
 
 #' calc_daly_tot
@@ -231,6 +246,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pop.all.str<-get(paste0('pop.all.str.',ssp))
     # Get baseline mortality rates
     mort.rates<-calc_mort_rates()
+    # Get baseline mortality rates for different age groups
+    mort.rates.str<-calc_mort_rates_str()
 
     # Get relative risk parameters
     B2014 = raw.rr.param.bur2014
@@ -300,16 +317,22 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(year = as.character(year))
 
     # The FUSION model needs age-groups, so the calculation is slightly different
-
     pm.rr.fusion <- pm.rr.pre %>%
-      dplyr::select(region, year, units, pm_conc, disease) %>%# Diabetes Mellitus to be added
-      gcamdata::repeat_add_columns(tibble(age.str = unique(age_str_mapping$age))) %>%
+      dplyr::select(region, year, units, pm_conc, disease) %>%
+      # Add Diabetes Mellitus type II
+      dplyr::bind_rows(
+        pm.rr.pre %>%
+          dplyr::select(region, year, units, pm_conc, disease) %>%
+          dplyr::filter(disease == "ihd") %>%
+          dplyr::mutate(disease = "dm")
+      ) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(age.str = unique(age_str_mapping$age))) %>%
       dplyr::filter(age.str %!in% c("0-4", "5-9", "10-14", "15-19", "20-24", "100")) %>%
       dplyr::filter(complete.cases(age.str)) %>%
       dplyr::mutate(age.str = gsub("95-99", "95+", age.str)) %>%
       dplyr::mutate(z = round(pm_conc, 1),
                     disease = toupper(disease)) %>%
-      gcamdata::left_join_error_no_match(raw.rr.fusion, by = join_by(disease, age.str, z)) %>%
+      gcamdata::left_join_error_no_match(raw.rr.fusion, by = dplyr::join_by(disease, age.str, z)) %>%
       dplyr::mutate(disease = tolower(disease)) %>%
       dplyr::select(region, year, units, pm_conc, disease, age.str, FUSION2022_med = rr)
 
@@ -325,15 +348,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       tidyr::replace_na(list(value = 0)) %>%
       tidyr::spread(disease, value) %>%
       dplyr::left_join(pop.all, by = c("region", "year")) %>%
-      dplyr::mutate(pop_tot = pop_tot * 1E6) %>%
+      dplyr::mutate(pop_tot = pop_tot * 1E6,
+                    year = as.numeric(year)) %>%
       dplyr::select(-unit, -scenario) %>%
       dplyr::left_join(mort.rates %>%
-                         dplyr::filter(year >= 2010) %>%
                          dplyr::mutate(disease = tolower(disease),
                                        disease = paste0("mr_", disease)) %>%
                          tidyr::spread(disease, value) %>%
-                         dplyr::filter(year %in% all_years) %>%
-                         dplyr::select(-mr_cp, -mr_resp),
+                         dplyr::filter(year %in% all_years),
                        by = c("region", "year")) %>%
       dplyr::rename(mort_param = rr) %>%
       dplyr::mutate(mort_alri = pop_tot * perc_pop_5 * mr_alri * (1 - 1/alri),
@@ -365,23 +387,23 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       tidyr::pivot_wider(names_from = disease,
                          values_from = value) %>%
       dplyr::rename(age = age.str) %>%
-      dplyr::left_join(pop.all.str, by = join_by(region, year, age)) %>%
-      dplyr::mutate(pop = value * 1E6) %>%
+      dplyr::left_join(pop.all.str, by = dplyr::join_by(region, year, age)) %>%
+      dplyr::mutate(pop = value * 1E6,
+                    year = as.numeric(year)) %>%
       dplyr::select(-unit, -scenario, -value) %>%
-      dplyr::left_join(mort.rates %>%
-                         dplyr::filter(year >= 2010) %>%
+      dplyr::left_join(mort.rates.str %>%
                          dplyr::mutate(disease = tolower(disease),
                                        disease = paste0("mr_", disease)) %>%
                          tidyr::spread(disease, value) %>%
-                         dplyr::filter(year %in% all_years) %>%
-                         dplyr::select(-mr_cp, -mr_resp),
-                       by = c("region", "year")) %>%
+                         dplyr::filter(year %in% all_years),
+                       by = c("region", "year", "age")) %>%
       dplyr::rename(mort_param = rr) %>%
       dplyr::mutate(mort_copd = pop * mr_copd * (1 - 1/copd),
                     mort_ihd = pop * mr_ihd * (1 - 1/ihd),
                     mort_stroke = pop * mr_stroke * (1 - 1/stroke),
-                    mort_lc = pop * mr_lc * (1 - 1/lc)) %>%
-      dplyr::select(region, year, age, mort_param, mort_copd, mort_ihd, mort_stroke, mort_lc) %>%
+                    mort_lc = pop * mr_lc * (1 - 1/lc),
+                    mort_dm = pop * mr_dm * (1 - 1/dm)) %>%
+      dplyr::select(region, year, age, mort_param, mort_copd, mort_ihd, mort_stroke, mort_lc, mort_dm) %>%
       dplyr::rename(rr = mort_param) %>%
       tidyr::pivot_longer(cols = starts_with("mort"),
                           names_to = "disease",
@@ -405,7 +427,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::ungroup()
 
     pm.mort <- pm.mort %>%
-      dplyr::left_join(pm.mort.fusion.agg, by = join_by(region, year, disease)) %>%
+      dplyr::left_join(pm.mort.fusion.agg, by = dplyr::join_by(region, year, disease)) %>%
       tidyr::replace_na(list(FUSION2022_med = 0))
 
     #------------------------------------------------------------------------------------
@@ -422,7 +444,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     pm.mort.fusion.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_FUSIONAGED", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_FUSION_AGED_withDM_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){

@@ -44,7 +44,8 @@ Imports:
     raster,
     rworldmap,
     assertthat,
-    tidyterra
+    tidyterra,
+    countrycode
 Suggests: 
     rmarkdown,
     rprojroot,
