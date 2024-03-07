@@ -9,27 +9,10 @@
 
 calc_mort_rates<-function(){
   mort.rates <- raw.mort.rates %>%
-    dplyr::mutate(value = dplyr::if_else(value <= 0, 0, value))
+    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
 
   invisible(mort.rates)
 }
-
-#' calc_mort_rates_str
-#'
-#' Get cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and Diabetes Mellitus type II (DM).
-#' @source GBD
-#' @keywords Baseline mortality rates
-#' @return Baseline mortality rates for TM5-FASST regions for all years, causes (ALRI, COPD, LC, IHD, STROKE), and age-groups. The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
-#' @importFrom magrittr %>%
-#' @export
-
-calc_mort_rates_str<-function(){
-  mort.rates <- raw.mort.rates.str %>%
-    dplyr::mutate(value = dplyr::if_else(value <= 0, 0, value))
-
-  invisible(mort.rates)
-}
-
 
 
 #' calc_daly_tot
@@ -238,60 +221,53 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get PM2.5
-    pm<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    # Get population
-    pop.all<-get(paste0('pop.all.',ssp))
+
     # Get population with age groups
     pop.all.str<-get(paste0('pop.all.str.',ssp))
     # Get baseline mortality rates
-    mort.rates<-calc_mort_rates()
-    # Get baseline mortality rates for different age groups
-    mort.rates.str<-calc_mort_rates_str()
+    mort.rates<-calc_mort_rates() %>%
+      dplyr::mutate(age = dplyr::if_else(age == "All Ages", ">25", age))
+
 
     # Get relative risk parameters
-    B2014 = raw.rr.param.bur2014
-    G = raw.rr.param.gbd2016
-    BW = raw.rr.param.bur2018.with
-    BWO = raw.rr.param.bur2018.without
+    GBD <- raw.rr.gbd.param
+    GEMM <- raw.rr.gemm.param %>%
+      rbind(c(">25", 0, 0, 0, 2.4, 0, "dm"))
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
-    pm<- tibble::as_tibble(pm) %>%
-      gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','copd','stroke','lc')))
+    pm<- tibble::as_tibble(pm.pre) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','stroke'))) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(age = unique(raw.rr.gbd.param$age))) %>%
+      dplyr::filter(year != ">25") %>%
+      dplyr::bind_rows(tibble::as_tibble(pm.pre) %>%
+                         gcamdata::repeat_add_columns(tibble::tibble(disease = c('copd','lc', "dm", "lri"))) %>%
+                         dplyr::mutate(age = ">25"))
 
     pm.list.dis<-split(pm, pm$disease)
 
     calc_rr<-function(df){
 
-      colnames(df)<-c("region", "year", "units", "value", "disease")
+      colnames(df)<-c("region", "year", "units", "value", "disease", "age")
 
-      df_fin<-df %>%
+      df_fin <- df %>%
         dplyr::rowwise() %>%
-        # IER: rr = 1 - alpha * (1 - exp(-beta * z ^ delta)), z = max(0, pm - pm_cf)
-        dplyr::mutate('GBD2016_low' = 1 + G[G$disease == unique(df$disease) & G$ci == 'low',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'low',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'low',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'low',]$delta))) %>%
-        dplyr::mutate('GBD2016_medium' = 1 + G[G$disease == unique(df$disease) & G$ci == 'medium',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'medium',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'medium',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'medium',]$delta))) %>%
-        dplyr::mutate('GBD2016_high' = 1 + G[G$disease == unique(df$disease) & G$ci == 'high',]$alpha * (1 - exp(-G[G$disease == unique(df$disease) & G$ci == 'high',]$beta * max(0, value - G[G$disease == unique(df$disease) & G$ci == 'high',]$cf_pm) ^ G[G$disease == unique(df$disease) & G$ci == 'high',]$delta))) %>%
-        dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == unique(df$disease) & B2014$ci == 'medium',]$delta))) %>%
-        # GEMM: rr = exp( theta * log ( 1 + (z / alpha)) * 1 / (1 + exp(-(z - mu)/ nu))), z = pm - pm_cf. If z < 0, rr = 1
-        dplyr::mutate('BURNETT2018WITH_low' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm < 0, 1,
-                                                     exp(BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$alpha))) /
-                                                           (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'low',]$nu))))) %>%
-        dplyr::mutate('BURNETT2018WITH_medium' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm < 0, 1,
-                                                        exp(BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$alpha))) /
-                                                              (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'medium',]$nu))))) %>%
-        dplyr::mutate('BURNETT2018WITH_high' = ifelse(value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm < 0, 1,
-                                                      exp(BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$theta * log(1 + ((value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) / (BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$alpha))) /
-                                                            (1 + exp( -( (value - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$cf_pm) - BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$mu) / BW[BW$disease == unique(df$disease) & BW$ci == 'high',]$nu))))) %>%
-        dplyr::mutate('BURNETT2018WITHOUT_low' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm < 0, 1,
-                                                        exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$alpha))) /
-                                                              (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'low',]$nu))))) %>%
-        dplyr::mutate('BURNETT2018WITHOUT_medium' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm < 0, 1,
-                                                           exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$alpha))) /
-                                                                 (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'medium',]$nu))))) %>%
-        dplyr::mutate('BURNETT2018WITHOUT_high' = ifelse(value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm < 0, 1,
-                                                         exp(BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$theta * log(1 + ((value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) / (BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$alpha))) /
-                                                               (1 + exp( -( (value - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$cf_pm) - BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$mu) / BWO[BWO$disease == unique(df$disease) & BWO$ci == 'high',]$nu))))) %>%
+        dplyr::left_join(GBD, dplyr::join_by(disease, age)) %>%
+        dplyr::filter(complete.cases(alpha)) %>%
+        dplyr::mutate(GBD_rr = 1 + alpha * (1 - exp(-beta * max(0, value - zcf) ^ delta))) %>%
+        dplyr::select(-alpha, -beta, -zcf, -delta) %>%
+        gcamdata::left_join_error_no_match(GEMM, dplyr::join_by(disease, age)) %>%
+        dplyr::rename(nu = un) %>%
+        dplyr::mutate(theta = as.numeric(theta),
+                      alpha = as.numeric(alpha),
+                      mu = as.numeric(mu),
+                      nu = as.numeric(nu),
+                      cf_pm = as.numeric(cf_pm)
+        ) %>%
+        dplyr::mutate(GEMM_rr =exp(theta * log(max(0, value - cf_pm)/ alpha + 1) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu)))) %>%
+        dplyr::select(-theta, -alpha, - mu, -nu, -cf_pm) %>%
         dplyr::rename(pm_conc = value)
 
       return(invisible(df_fin))
@@ -300,141 +276,89 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
 
-    # Calculate alri values to be included in burnett et al 2014
-    adj_pm_alri<-pm %>%
-      dplyr::select(-disease) %>%
-      dplyr::distinct() %>%
-      dplyr::mutate(disease = "alri") %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate('BURNETT2014_medium' = 1 + B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$alpha * (1 - exp(-B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$beta * max(0, value - B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$cf_pm) ^ B2014[B2014$disease == "alri" & B2014$ci == 'medium',]$delta))) %>%
-      dplyr::rename(pm_conc = value)
-
-    pm.rr<- dplyr::bind_rows(pm.rr.pre, adj_pm_alri) %>%
-      dplyr::select(region, year, pm_conc, disease, BURNETT2014_medium,
-                    GBD2016_medium, GBD2016_low, GBD2016_high,
-                    BURNETT2018WITH_medium, BURNETT2018WITH_low, BURNETT2018WITH_high,
-                    BURNETT2018WITHOUT_medium, BURNETT2018WITHOUT_low, BURNETT2018WITHOUT_high) %>%
-      dplyr::mutate(year = as.character(year))
-
     # The FUSION model needs age-groups, so the calculation is slightly different
-    pm.rr.fusion <- pm.rr.pre %>%
-      dplyr::select(region, year, units, pm_conc, disease) %>%
-      # Add Diabetes Mellitus type II
-      dplyr::bind_rows(
-        pm.rr.pre %>%
-          dplyr::select(region, year, units, pm_conc, disease) %>%
-          dplyr::filter(disease == "ihd") %>%
-          dplyr::mutate(disease = "dm")
-      ) %>%
-      gcamdata::repeat_add_columns(tibble::tibble(age.str = unique(age_str_mapping$age))) %>%
-      dplyr::filter(age.str %!in% c("0-4", "5-9", "10-14", "15-19", "20-24", "100")) %>%
-      dplyr::filter(complete.cases(age.str)) %>%
-      dplyr::mutate(age.str = gsub("95-99", "95+", age.str)) %>%
-      dplyr::mutate(z = round(pm_conc, 1),
-                    disease = toupper(disease)) %>%
-      gcamdata::left_join_error_no_match(raw.rr.fusion, by = dplyr::join_by(disease, age.str, z)) %>%
-      dplyr::mutate(disease = tolower(disease)) %>%
-      dplyr::select(region, year, units, pm_conc, disease, age.str, FUSION2022_med = rr)
+    pm.rr.fusion <- pm.rr %>%
+      dplyr::select(region, year, units, pm_conc, disease, age) %>%
+      dplyr::mutate(z = round(pm_conc, 1)) %>%
+      #dplyr::left_join(raw.rr.fusion, by = dplyr::join_by(disease, age, z)) %>%
+      gcamdata::left_join_error_no_match(raw.rr.fusion, by = dplyr::join_by(disease, age, z)) %>%
+      dplyr::select(region, year, units, pm_conc, disease, age, FUSION_rr = rr)
+
+    pm.rr <- pm.rr.pre %>%
+      gcamdata::left_join_error_no_match(pm.rr.fusion,  by = dplyr::join_by(region, year, units, pm_conc, disease, age))
 
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
-    # Calculate premature mortalities
-    pm.mort<-tibble::as_tibble(pm.rr) %>%
-      dplyr::filter(year >= 2010) %>%
-      dplyr::select(-pm_conc) %>%
-      tidyr::gather(rr, value, -region, -year, -disease) %>%
-      dplyr::arrange(disease) %>%
-      tidyr::replace_na(list(value = 0)) %>%
-      tidyr::spread(disease, value) %>%
-      dplyr::left_join(pop.all, by = c("region", "year")) %>%
-      dplyr::mutate(pop_tot = pop_tot * 1E6,
+    # First, adjust population
+    pop_fin_str <- pop.all.str %>%
+      dplyr::mutate(pop_1K = value * 1E3,
+                    unit = "1K",
                     year = as.numeric(year)) %>%
-      dplyr::select(-unit, -scenario) %>%
-      dplyr::left_join(mort.rates %>%
-                         dplyr::mutate(disease = tolower(disease),
-                                       disease = paste0("mr_", disease)) %>%
-                         tidyr::spread(disease, value) %>%
-                         dplyr::filter(year %in% all_years),
-                       by = c("region", "year")) %>%
-      dplyr::rename(mort_param = rr) %>%
-      dplyr::mutate(mort_alri = pop_tot * perc_pop_5 * mr_alri * (1 - 1/alri),
-                    mort_copd = pop_tot * perc_pop_30 * mr_copd * (1 - 1/copd),
-                    mort_ihd = pop_tot * perc_pop_30 * mr_ihd * (1 - 1/ihd),
-                    mort_stroke = pop_tot * perc_pop_30 * mr_stroke * (1 - 1/stroke),
-                    mort_lc = pop_tot * perc_pop_30 * mr_lc * (1 - 1/lc)) %>%
-      dplyr::select(region, year, mort_param, mort_alri, mort_copd, mort_ihd, mort_stroke, mort_lc) %>%
-      tidyr::gather(disease, value, -region, -year, -mort_param) %>%
-      dplyr::filter(is.finite(value)) %>%
-      dplyr::mutate(value = round(value, 0)) %>%
-      tidyr::spread(disease, value) %>%
-      tidyr::replace_na(list(mort_alri = 0)) %>%
-      dplyr::mutate(mort_tot = mort_alri + mort_copd + mort_ihd + mort_stroke + mort_lc) %>%
-      tidyr::gather(disease, value, -region, -year, -mort_param) %>%
-      tidyr::spread(mort_param, value) %>%
-      dplyr::mutate(disease = gsub("mort_", "", disease))
+      dplyr::select(-scenario, -unit, -value)
 
-    # Calculate premature mortalities using age-groups and the FUSION model
-    pm.mort.fusion <- tibble::as_tibble(pm.rr.fusion) %>%
+    pop_fin_allages <- pop.all.str %>%
+      dplyr::group_by(region, year) %>%
+      dplyr::summarise(value = sum(value)) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(pop_1K = value * 1E3,
+                    unit = "1K",
+                    year = as.numeric(year)) %>%
+      dplyr::select(-value)
+
+    # Calculate premature mortalities
+    pm.mort.pre<-tibble::as_tibble(pm.rr) %>%
       dplyr::filter(as.numeric(as.character(year)) >= 2010) %>%
       dplyr::select(-pm_conc) %>%
-      tidyr::pivot_longer(cols = "FUSION2022_med",
+      tidyr::pivot_longer(cols = dplyr::ends_with("rr"),
                           names_to = "rr",
                           values_to = "value") %>%
       dplyr::arrange(disease) %>%
-      tidyr::replace_na(list(value = 0)) %>%
-      dplyr::mutate(disease = as.factor(disease)) %>%
-      tidyr::pivot_wider(names_from = disease,
-                         values_from = value) %>%
-      dplyr::rename(age = age.str) %>%
-      dplyr::left_join(pop.all.str, by = dplyr::join_by(region, year, age)) %>%
-      dplyr::mutate(pop = value * 1E6,
-                    year = as.numeric(year)) %>%
-      dplyr::select(-unit, -scenario, -value) %>%
-      dplyr::left_join(mort.rates.str %>%
-                         dplyr::mutate(disease = tolower(disease),
-                                       disease = paste0("mr_", disease)) %>%
-                         tidyr::spread(disease, value) %>%
-                         dplyr::filter(year %in% all_years),
-                       by = c("region", "year", "age")) %>%
-      dplyr::rename(mort_param = rr) %>%
-      dplyr::mutate(mort_copd = pop * mr_copd * (1 - 1/copd),
-                    mort_ihd = pop * mr_ihd * (1 - 1/ihd),
-                    mort_stroke = pop * mr_stroke * (1 - 1/stroke),
-                    mort_lc = pop * mr_lc * (1 - 1/lc),
-                    mort_dm = pop * mr_dm * (1 - 1/dm)) %>%
-      dplyr::select(region, year, age, mort_param, mort_copd, mort_ihd, mort_stroke, mort_lc, mort_dm) %>%
-      dplyr::rename(rr = mort_param) %>%
-      tidyr::pivot_longer(cols = starts_with("mort"),
-                          names_to = "disease",
-                          values_to = "value") %>%
-      dplyr::filter(is.finite(value)) %>%
-      dplyr::mutate(value = round(value, 0)) %>%
-      tidyr::pivot_wider(names_from = "disease",
-                         values_from = "value") %>%
-      dplyr::mutate(mort_tot = mort_copd + mort_ihd + mort_stroke + mort_lc) %>%
-      tidyr::pivot_longer(cols = starts_with("mort"),
-                          names_to = "disease",
-                          values_to = "value") %>%
+      tidyr::replace_na(list(value = 0))
+
+    pm.mort.str <- pm.mort.pre %>%
+      dplyr::filter(disease %in% c("ihd", "stroke")) %>%
+      dplyr::mutate(year = as.numeric(as.character(year))) %>%
+      gcamdata::left_join_error_no_match(mort.rates, by = dplyr::join_by(region, year, disease, age)) %>%
+      gcamdata::left_join_error_no_match(pop_fin_str, by = dplyr::join_by(region, year, age)) %>%
+      dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
+                    mort = round(mort, 0)) %>%
+      dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+      dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
       tidyr::pivot_wider(names_from = rr,
-                         values_from = value) %>%
-      dplyr::mutate(disease = gsub("mort_", "", disease))
+                         values_from = pm_mort)
+
+    pm.mort.allages <- pm.mort.pre %>%
+      dplyr::filter(disease %!in% c("ihd", "stroke")) %>%
+      dplyr::mutate(year = as.numeric(as.character(year))) %>%
+      gcamdata::left_join_error_no_match(mort.rates, by = dplyr::join_by(region, year, disease, age)) %>%
+      gcamdata::left_join_error_no_match(pop_fin_allages, by = dplyr::join_by(region, year)) %>%
+      dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
+                    mort = round(mort, 0)) %>%
+      dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+      dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
+      # adjust missing value for dm in the GEMM model
+      dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0)) %>%
+      tidyr::pivot_wider(names_from = rr,
+                         values_from = pm_mort)
+
+
+
+    pm.mort <- dplyr::bind_rows(pm.mort.allages,
+                                pm.mort.str)
+
 
     # Create an aggegated data from fusion to add to the full result
-    pm.mort.fusion.agg <- pm.mort.fusion %>%
-      dplyr::group_by(region, year, disease) %>%
-      dplyr::summarise(FUSION2022_med = sum(FUSION2022_med)) %>%
+    pm.mort.agg <- pm.mort %>%
+      dplyr::group_by(region, year) %>%
+      dplyr::summarise(FUSION = sum(FUSION),
+                       GBD = sum(GBD),
+                       GEMM = sum(GEMM)) %>%
       dplyr::ungroup()
 
-    pm.mort <- pm.mort %>%
-      dplyr::left_join(pm.mort.fusion.agg, by = dplyr::join_by(region, year, disease)) %>%
-      tidyr::replace_na(list(FUSION2022_med = 0))
+    pm.mort.list <- split(pm.mort, pm.mort$year)
+    pm.mort.agg.list <- split(pm.mort.agg, pm.mort.agg$year)
 
-    #------------------------------------------------------------------------------------
-
-    # Write the output
-    pm.mort.list<-split(pm.mort, pm.mort$year)
-    pm.mort.fusion.list<-split(pm.mort.fusion, pm.mort.fusion$year)
 
 
     pm.mort.write<-function(df){
@@ -442,15 +366,15 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       write.csv(df,paste0("output/", "m3/", "PM25_MORT_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
-    pm.mort.fusion.write<-function(df){
+    pm.mort.agg.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_FUSION_AGED_withDM_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
 
       lapply(pm.mort.list,pm.mort.write)
-      lapply(pm.mort.fusion.list,pm.mort.fusion.write)
+      lapply(pm.mort.agg.list,pm.mort.agg.write)
 
     }
     #----------------------------------------------------------------------

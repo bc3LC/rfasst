@@ -8,13 +8,13 @@
 .csv
 }
 \source{
-https://www.who.int/healthinfo/global_burden_disease/cod_2008_sources_methods.pdf
+TM5-FASST, v4.7 -- Global Burden of Disease
 }
 \usage{
 raw.mort.rates
 }
 \description{
-cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI) and lung cancer (LC).
+cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm).
 }
 \examples{
 \dontrun{
