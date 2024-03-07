@@ -277,7 +277,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
 
     # The FUSION model needs age-groups, so the calculation is slightly different
-    pm.rr.fusion <- pm.rr %>%
+    pm.rr.fusion <- pm.rr.pre %>%
       dplyr::select(region, year, units, pm_conc, disease, age) %>%
       dplyr::mutate(z = round(pm_conc, 1)) %>%
       #dplyr::left_join(raw.rr.fusion, by = dplyr::join_by(disease, age, z)) %>%
@@ -383,12 +383,11 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If map=T, it produces a map with the calculated outcomes
 
     if(map==T){
-      pm.mort.map<-pm.mort %>%
+      pm.mort.map<-pm.mort.agg %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(-LB, -UB) %>%
-        dplyr::rename(value = med,
-                      class = disease) %>%
+        dplyr::select(-GEMM, -FUSION) %>%
+        dplyr::rename(value = GBD) %>%
         dplyr::mutate(units = "Mortalities",
                       year = as.numeric(as.character(year)))
 
