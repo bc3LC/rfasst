@@ -619,66 +619,56 @@ usethis::use_data(src.wheat_mi_so2, overwrite = T)
 #=========================================================
 rawDataFolder_m3 = "inst/extdata/module_3/"
 
-# raw.mort.rates
-raw.mort.rates = read.csv(paste0(rawDataFolder_m3,"mort_rates.csv"))
-usethis::use_data(raw.mort.rates, overwrite = T)
+# Load RR-parameter files for the three methods
 
-# raw.rr (Burnett et al 2014)
-raw.rr = read.csv(paste0(rawDataFolder_m3,"tot_rr.csv"))
-usethis::use_data(raw.rr, overwrite = T)
-
-# raw.rr.param.bur2018.with
-raw.rr.param.bur2018.with = read.csv(paste0(rawDataFolder_m3,"BURNETT2018WITH_parameters.csv"))
-usethis::use_data(raw.rr.param.bur2018.with, overwrite = T)
-
-# raw.rr.param.bur2018.without
-raw.rr.param.bur2018.without = read.csv(paste0(rawDataFolder_m3,"BURNETT2018WITHOUT_parameters.csv"))
-usethis::use_data(raw.rr.param.bur2018.without, overwrite = T)
-
-# raw.rr.param.gbd2016
-raw.rr.param.gbd2016 = read.csv(paste0(rawDataFolder_m3,"GBD2016_parameters.csv"))
-usethis::use_data(raw.rr.param.gbd2016, overwrite = T)
-
-# raw.rr.param.bur2014
-raw.rr.param.bur2014 = read.csv(paste0("B2014.csv"))
-usethis::use_data(raw.rr.param.bur2014, overwrite = T)
-
+# 1 FUSION model
 # raw.rr.fusion.allAges
 raw.rr.fusion.allAges <- read.csv("inst/extdata/rr_fusion_allAges.csv") %>%
   tidyr::pivot_longer(cols = c("COPD", "LC", "LRI", "DM"),
                       names_to = "disease",
                       values_to = "rr") %>%
-  gcamdata::repeat_add_columns(tibble(age.str = unique(age_str_mapping$age))) %>%
-  dplyr::filter(age.str %!in% c("0-4", "5-9", "10-14", "15-19", "20-24", "100")) %>%
-  dplyr::filter(complete.cases(age.str)) %>%
-  dplyr::mutate(age.str = gsub("95-99", "95+", age.str))
-usethis::use_data(raw.rr.fusion.allAges, overwrite = T)
+  dplyr::mutate(age = ">25")
 
 # raw.rr.fusion.ihd
 raw.rr.fusion.ihd <- read.csv("inst/extdata/rr_fusion_ihd.csv") %>%
   tidyr::pivot_longer(cols = starts_with("X"),
-                      names_to = "age.str",
+                      names_to = "age",
                       values_to = "rr") %>%
-  dplyr::mutate(age.str = gsub("X", "", age.str),
-                age.str = gsub("95.", "95+", age.str),
-                age.str = gsub("and", "-", age.str))
-usethis::use_data(raw.rr.fusion.ihd, overwrite = T)
+  dplyr::mutate(age = gsub("X", "", age),
+                age = gsub("95.", "95+", age),
+                age = gsub("and", "-", age))
 
 # raw.rr.fusion.stroke
 raw.rr.fusion.stroke <- read.csv("inst/extdata/rr_fusion_stroke.csv") %>%
   tidyr::pivot_longer(cols = starts_with("X"),
-                      names_to = "age.str",
+                      names_to = "age",
                       values_to = "rr") %>%
-  dplyr::mutate(age.str = gsub("X", "", age.str),
-                age.str = gsub("95.", "95+", age.str),
-                age.str = gsub("and", "-", age.str))
-usethis::use_data(raw.rr.fusion.stroke, overwrite = T)
+  dplyr::mutate(age = gsub("X", "", age),
+                age = gsub("95.", "95+", age),
+                age = gsub("and", "-", age))
 
 # raw.rr.fusion
 raw.rr.fusion <- dplyr::bind_rows(raw.rr.fusion.allAges,
                                   raw.rr.fusion.ihd,
-                                  raw.rr.fusion.stroke)
+                                  raw.rr.fusion.stroke) %>%
+  dplyr::mutate(disease = tolower(disease))
 usethis::use_data(raw.rr.fusion, overwrite = T)
+
+# 2- GEMM
+raw.rr.gemm.param <-read.csv("inst/extdata/GEMM parameteres.csv") %>%
+  dplyr::mutate(age = gsub("and", "-", age)) %>%
+  dplyr::mutate(disease = tolower(cause)) %>%
+  dplyr::select(-cause) %>%
+  dplyr::mutate(disease = dplyr::if_else(disease == "lung cancer", "lc", disease))
+usethis::use_data(raw.rr.gemm.param, overwrite = T)
+
+# 3- GBD (2018)
+raw.rr.gbd.param <-read.csv("inst/extdata/GBD_param.csv") %>%
+  dplyr::mutate(age = gsub("and", "-", age)) %>%
+  dplyr::mutate(disease = tolower(cause)) %>%
+  dplyr::select(-cause)
+usethis::use_data(raw.rr.gbd.param, overwrite = T)
+
 
 # raw.daly
 raw.daly = read.csv(paste0(rawDataFolder_m3,"IHME-GBD_2019_DATA_DALYs.csv"))
@@ -696,188 +686,26 @@ usethis::use_data(raw.yll.o3, overwrite = T)
 #raw.mort.rates.old <- raw.mort.rates
 #usethis::use_data(raw.mort.rates.old, overwrite = T)
 
-raw.mort.rates.changeRate <- raw.mort.rates.old %>%
-  dplyr::mutate(perc_change_2025 = `X2025` / `X2020`,
-                perc_change_2030 = `X2030` / `X2020`) %>%
-  dplyr::select(!starts_with("X")) %>%
-  dplyr::mutate(disease = tolower(disease)) %>%
-  # Add Diabetes Mellitus type 2
-  tidyr::complete(tidyr::nesting(region), disease = c(tolower(unique(raw.mort.rates.old$disease)), "dm")) %>%
-  dplyr::mutate(perc_change_2025 = dplyr::if_else(disease == "dm", 1, perc_change_2025),
-                perc_change_2030 = dplyr::if_else(disease == "dm", 1, perc_change_2030))
-
-#all.mort.gbd <- read.csv("inst/extdata/Mort_All_causes_GBD.csv") %>%
-#  dplyr::mutate(iso = countrycode::countrycode(sourcevar = location, origin = "country.name", destination = "iso3c")) %>%
-#  dplyr::rename(subRegionAlt = iso) %>%
-#  dplyr::left_join(fasst_reg)
-
-#all.mort.gbd.reg <- all.mort.gbd %>%
-#  dplyr:::filter(age == "All ages") %>%
-#  dplyr::group_by(fasst_region, year) %>%
-#  dplyr::summarise(all_causes = sum(val)) %>%
-#  dplyr::ungroup()
-
-
-#all.mort.gbd.str <- all.mort.gbd %>%
-#  dplyr::mutate(age = gsub(" years", "", age)) %>%
-#  dplyr:::filter(age %in% str.years) %>%
-#  dplyr::group_by(fasst_region, age, year) %>%
-#  dplyr::summarise(all_causes = sum(val)) %>%
-#  dplyr::ungroup()
-
-
-pm25.mort.gbd <- dplyr::bind_rows(
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-1.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-2.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-3.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-4.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-5.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-6.csv"),
-  read.csv("inst/extdata/IHME-GBD_2019_DATA-33f7724b-7.csv")
+raw.mort.rates <- dplyr::bind_rows(
+  read.csv("inst/extdata/mr_stroke.csv"),
+  read.csv("inst/extdata/mr_ihd.csv"),
+) %>%
+  dplyr::mutate(age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::bind_rows(
+    read.csv("inst/extdata/mr_lri.csv"),
+    read.csv("inst/extdata/mr_lc.csv"),
+    read.csv("inst/extdata/mr_copd.csv"),
+    read.csv("inst/extdata/mr_dm.csv"),
   ) %>%
-  dplyr::mutate(iso = countrycode::countrycode(sourcevar = location_name, origin = "country.name", destination = "iso3c")) %>%
-  dplyr::rename(subRegionAlt = iso) %>%
-  dplyr::left_join(fasst_reg, by = dplyr::join_by(subRegionAlt))
-
-selected_dis <- c("Ischemic heart disease", "Diabetes mellitus type 2", "Chronic obstructive pulmonary disease" ,
-                  "Ischemic stroke", "Lower respiratory infections", "Tracheal, bronchus, and lung cancer")
-
-rename_disease <- function(df){
-
-  df <- df %>%
-    dplyr::mutate(cause_name = dplyr::if_else(cause_name == "Ischemic heart disease", "ihd", cause_name),
-                  cause_name = dplyr::if_else(cause_name == "Diabetes mellitus type 2", "dm", cause_name),
-                  cause_name = dplyr::if_else(cause_name == "Chronic obstructive pulmonary disease", "copd", cause_name),
-                  cause_name = dplyr::if_else(cause_name == "Ischemic stroke", "stroke", cause_name),
-                  cause_name = dplyr::if_else(cause_name == "Lower respiratory infections", "alri", cause_name),
-                  cause_name = dplyr::if_else(cause_name == "Tracheal, bronchus, and lung cancer", "lc", cause_name))
-
-  return(invisible(df))
-
-}
-
-str.years <- c("<1 year", "1-4 years", "5-9 years", "10-14 years", "15-19 years", "20-24 years", "25-29 years","30-34 years","35-39 years",
-               "40-44 years",    "45-49 years",    "50-54 years",    "55-59 years", "60-64 years", "65-69 years", "70-74 years",
-               "75-79 years",  "80-84", "85-89", "90-94", "95+ years")
-
-pm25.mort.gbd.reg.alri <- pm25.mort.gbd %>%
-  dplyr:::filter(age_name %in% c("<1 year", "1-4 years")) %>%
-  rename_disease() %>%
-  dplyr::filter(cause_name %in% "alri") %>%
-  dplyr::group_by(fasst_region, cause_name, year) %>%
-  dplyr::summarise(mort = sum(val)) %>%
-  dplyr::ungroup() %>%
-  dplyr::rename(disease = cause_name)
-
-pm25.mort.gbd.reg.other <- pm25.mort.gbd %>%
-  dplyr:::filter(age_name %in% c("30-34 years","35-39 years","40-44 years",    "45-49 years",    "50-54 years",
-                                 "55-59 years", "60-64 years", "65-69 years", "70-74 years",
-                                 "75-79 years",  "80-84", "85-89", "90-94", "95+ years")) %>%
-  dplyr::filter(cause_name %in% selected_dis) %>%
-  rename_disease() %>%
-  dplyr::filter(cause_name != "alri") %>%
-  dplyr::group_by(fasst_region, cause_name, year) %>%
-  dplyr::summarise(mort = sum(val)) %>%
-  dplyr::ungroup() %>%
-  dplyr::rename(disease = cause_name)
-
-pm25.mort.gbd.reg <- dplyr::bind_rows(
-  pm25.mort.gbd.reg.alri,
-  pm25.mort.gbd.reg.other
-)
-
-pm25.mort.gbd.str <- pm25.mort.gbd %>%
-  dplyr:::filter(age_name %in% str.years) %>%
-  dplyr::filter(cause_name %in% selected_dis) %>%
-  rename_disease() %>%
-  dplyr::group_by(fasst_region, cause_name, age_name, year) %>%
-  dplyr::summarise(mort = sum(val)) %>%
-  dplyr::ungroup() %>%
-  dplyr::rename(age = age_name,
-                disease = cause_name)
-
-pop_adj <- pop.all.SSP2 %>%
-  dplyr::mutate(pop_5 = pop_tot * perc_pop_5,
-                pop_30 = pop_tot * perc_pop_30) %>%
-  dplyr::select(region, year, pop_5, pop_30) %>%
-  dplyr::mutate(pop_5 = pop_5 * 1E6,
-                pop_30 = pop_30 * 1E6) %>%
-  tidyr::complete(tidyr::nesting(region), year = c(year, unique(pm25.mort.gbd.reg$year))) %>%
-  dplyr::group_by(region) %>%
-  dplyr::mutate(year = as.numeric(year)) %>%
-  dplyr::mutate(pop_5 = dplyr::if_else(year < 2010, gcamdata::approx_fun(year, pop_5, rule = 2), pop_5),
-                pop_5 = dplyr::if_else(year >= 2010, gcamdata::approx_fun(year, pop_5, rule = 1), pop_5)) %>%
-  dplyr::mutate(pop_30 = dplyr::if_else(year < 2010, gcamdata::approx_fun(year, pop_30, rule = 2), pop_30),
-                pop_30 = dplyr::if_else(year >= 2010, gcamdata::approx_fun(year, pop_30, rule = 1), pop_30)) %>%
-  dplyr::ungroup() %>%
-  dplyr::filter(year <= 2020)
-
-pop_adj_str <- pop.all.str.SSP2 %>%
-  dplyr::select(region, year, age, value) %>%
-  dplyr::mutate(value = value * 1E6) %>%
-  tidyr::complete(tidyr::nesting(region, age), year = c(year, unique(pm25.mort.gbd.reg$year))) %>%
-  dplyr::group_by(region, age) %>%
-  dplyr::mutate(year = as.numeric(year)) %>%
-  dplyr::mutate(value = dplyr::if_else(year < 2010, gcamdata::approx_fun(year, value, rule = 2), value),
-                value = dplyr::if_else(year >= 2010, gcamdata::approx_fun(year, value, rule = 1), value)) %>%
-  dplyr::filter(year <= 2020)
-
-#Old to check
-mort.rates.old<-raw.mort.rates.old %>%
-  tidyr::gather(year, value, -region, -disease) %>%
-  dplyr::mutate(year = gsub("X", "", year)) %>%
-  dplyr::mutate(value = dplyr::if_else(value <= 0, 0, value),
-                year = as.numeric(year),
-                disease = tolower(disease))
-
-raw.mort.rates <- pm25.mort.gbd.reg %>%
-  dplyr::rename(region = fasst_region) %>%
-  gcamdata::left_join_error_no_match(pop_adj, by = dplyr::join_by(region, year)) %>%
-  dplyr::mutate(rate = dplyr::if_else(disease == "alri", mort / pop_5 * 1E3, mort / pop_30 * 1E3)) %>%
-  dplyr::mutate(year = dplyr::if_else(year == 2019, 2020, year)) %>%
-  dplyr::left_join(mort.rates.old, dplyr::join_by(region, disease, year)) %>%
-  dplyr::mutate(value = value * 100) %>% # Check!!!
-  dplyr::filter(complete.cases(.)) %>%
-  dplyr::select(disease, region, year, rate) %>%
-  tidyr::complete(tidyr::nesting(region, disease), year = c(year, seq(2000, 2100, by = 5))) %>%
-  dplyr::group_by(region, disease) %>%
-  dplyr::mutate(year = as.numeric(year)) %>%
-  dplyr::mutate(rate = dplyr::if_else(year > 2020, gcamdata::approx_fun(year, rate, rule = 2), rate)) %>%
-  dplyr::ungroup() %>%
-  dplyr::left_join(raw.mort.rates.changeRate, by = dplyr::join_by(region, disease)) %>%
-  dplyr::mutate(rate = dplyr::if_else(year  == 2025, rate * perc_change_2025, rate),
-                rate = dplyr::if_else(year  >= 2030, rate * perc_change_2030, rate)) %>%
-  dplyr::select(-perc_change_2025, -perc_change_2030) %>%
-  dplyr::rename(value = rate) %>%
-  # TO CHECK!!!! DIvide value / 100 to be consistent with TM5-FASST rates (%)
-  dplyr:::mutate(value = value / 100)
+  dplyr::select(region = FASST.REGION, year = YEAR, age = age_name, disease = cause_name, rate = Selected) %>%
+  dplyr::mutate(disease = tolower(disease),
+                year = as.numeric(year)) %>%
+  tidyr::complete(tidyr::nesting(region, age, disease), year = seq(1990, 2100, by = 5)) %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), gcamdata::approx_fun(year, rate, rule = 2), rate))
 usethis::use_data(raw.mort.rates, overwrite = T)
 
-raw.mort.rates.str <- pm25.mort.gbd.str %>%
-  dplyr::rename(region = fasst_region) %>%
-  dplyr::mutate(age = dplyr::if_else(age %in% c("1-4 years","<1 year"), "0-4", age)) %>%
-  dplyr::group_by(region, year, disease, age) %>%
-  dplyr::summarise(mort = sum(mort)) %>%
-  dplyr::ungroup() %>%
-  dplyr::mutate(age = gsub(" years", "", age)) %>%
-  gcamdata::left_join_error_no_match(pop_adj_str, by = dplyr::join_by(region, year, age)) %>%
-  dplyr::mutate(rate = mort / value * 1E3,
-                year = dplyr::if_else(year == 2019, 2020, year)) %>%
-  dplyr::filter(year <= 2020) %>%
-  dplyr::select(disease, region, age, year, rate) %>%
-  tidyr::complete(tidyr::nesting(region, disease, age), year = c(year, seq(2000, 2100, by = 5))) %>%
-  dplyr::group_by(region, disease, age) %>%
-  dplyr::mutate(year = as.numeric(year)) %>%
-  dplyr::mutate(rate = dplyr::if_else(year > 2020, gcamdata::approx_fun(year, rate, rule = 2), rate)) %>%
-  dplyr::ungroup() %>%
-  dplyr::left_join(raw.mort.rates.changeRate, by = dplyr::join_by(region, disease)) %>%
-  dplyr::mutate(rate = dplyr::if_else(year  == 2025, rate * perc_change_2025, rate),
-                rate = dplyr::if_else(year  >= 2030, rate * perc_change_2030, rate)) %>%
-  dplyr::select(-perc_change_2025, -perc_change_2030) %>%
-  dplyr::rename(value = rate) %>%
-  # TO CHECK!!!! DIvide value / 100 to be consistent with TM5-FASST rates (%)
-  dplyr:::mutate(value = value / 100)
-usethis::use_data(raw.mort.rates.str, overwrite = T)
 
 #=========================================================
 # Downscalling
