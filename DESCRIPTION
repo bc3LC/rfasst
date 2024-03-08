@@ -25,7 +25,7 @@ Imports:
     readr,
     data.table,
     magrittr,
-    dplyr (>= 1.0.0),
+    dplyr (>= 1.1.2),
     tidyr,
     stringr,
     stringi,
