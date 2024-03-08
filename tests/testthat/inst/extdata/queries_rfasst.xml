@@ -67,19 +67,5 @@
 </emissionsQueryBuilder>
  </aQuery>
 
- <aQuery>
-  <all-regions/>
-            <emissionsQueryBuilder title="nonCO2 emissions by resource production">
-                <axis1 name="GHG">GHG</axis1>
-                <axis2 name="Year">emissions</axis2>
-                <xPath buildList="true" dataName="emissions" group="false" sumAll="false">*[@type = 'resource']//*[@type = 'GHG' and @name != 'CO2' and @name != 'CO2_FUG']/emissions/node()</xPath>
-				<labelRewriteList append-values="false">
-                    <level name="GHG">
-                        <rewrite from="CO2_FUG" to="CO2"/>
-                    </level>
-                </labelRewriteList>
-                <comments/>
-            </emissionsQueryBuilder>
- </aQuery>
 
 </queries>
