@@ -222,6 +222,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    rlang::inform('Computing premature deaths ...')
 
 
     # Get population with age groups
