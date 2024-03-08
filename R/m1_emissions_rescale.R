@@ -101,8 +101,11 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                            prj_rd$`nonCO2 emissions by sector (excluding resource production)` %>%
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::arrange(ghg) %>%
+      dplyr::filter(ghg %in% unique(levels(as.factor(selected_pollutants)))) %>%
+      gcamdata::left_join_error_no_match(my_pol %>% dplyr::rename(ghg = Pollutant), by = dplyr::join_by(ghg)) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
-      dplyr::filter(ghg %in% unique(levels(as.factor(my_pol$My_Pollutant)))) %>%
+      dplyr::select(-ghg) %>%
+      dplyr::rename(ghg = My_Pollutant) %>%
       dplyr::group_by(Units, scenario, region, sector, ghg, year) %>%
       dplyr::summarise(value = sum(value)) %>%
       dplyr::ungroup()
@@ -112,8 +115,11 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                            prj_rd$`nonCO2 emissions by resource production` %>%
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::arrange(ghg) %>%
+      dplyr::filter(ghg %in% unique(levels(as.factor(selected_pollutants)))) %>%
+      gcamdata::left_join_error_no_match(my_pol %>% dplyr::rename(ghg = Pollutant), by = dplyr::join_by(ghg)) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
-      dplyr::filter(ghg %in% unique(levels(as.factor(my_pol$My_Pollutant)))) %>%
+      dplyr::select(-ghg) %>%
+      dplyr::rename(ghg = My_Pollutant) %>%
       dplyr::select(-subresource) %>%
       dplyr::rename(sector = resource) %>%
       dplyr::mutate(sector = "rsc production") %>%
