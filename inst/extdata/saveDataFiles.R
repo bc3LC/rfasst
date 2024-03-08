@@ -354,6 +354,10 @@ rawDataFolder_m2 = "inst/extdata/module_2/"
 raw.base_conc = read.csv(paste0(rawDataFolder_m2,"Conc_base.csv"))
 usethis::use_data(raw.base_conc, overwrite = T)
 
+# raw.base_conc.nat
+raw.base_conc.nat <- read.csv("inst/extdata/nat_pm.csv")
+usethis::use_data(raw.base_conc.nat, overwrite = T)
+
 # raw.base_em
 raw.base_em = read.csv(paste0(rawDataFolder_m2,"EM_base.csv"))
 usethis::use_data(raw.base_em, overwrite = T)

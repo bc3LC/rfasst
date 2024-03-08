@@ -65,7 +65,17 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       tidyr::gather(pollutant,value,-COUNTRY,-AREA_M2,-POP) %>%
       dplyr::mutate(units=dplyr::if_else(pollutant %in% c("O3","M6M","M3M"),"ppbv","ug/m3"),
                     year="base") %>%
-      dplyr::rename(region=COUNTRY)
+      dplyr::rename(region=COUNTRY) %>%
+      dplyr::filter(pollutant %!in% c("SS", "DUST"))
+
+    base_conc_nat <- raw.base_conc.nat %>%
+      tidyr::gather(pollutant,value,-region,-AREA_M2,-POP) %>%
+      dplyr::mutate(pollutant = toupper(pollutant)) %>%
+      dplyr::mutate(year = "base",
+                    units = "ug/m3",
+                    value = as.character(value))
+
+    base_conc <- dplyr::bind_rows(base_conc, base_conc_nat)
 
     base_em<-raw.base_em %>%
       tidyr::gather(pollutant,value,-COUNTRY) %>%
@@ -289,9 +299,18 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       gcamdata::repeat_add_columns(tibble::tibble(year=all_years))%>%
       dplyr::mutate(year=as.factor(as.character(year)))
     #----------------------------------------------------------------------
+    # H2O in aerosols
+    delta_h2o<-tibble::as_tibble(base_conc) %>%
+      dplyr::filter(pollutant %in% c("H2O")) %>%
+      dplyr::select(region,pollutant,value) %>%
+      dplyr::mutate(value=0) %>%
+      dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year=all_years))%>%
+      dplyr::mutate(year=as.factor(as.character(year)))
+    #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Add up all the different PM25
-    delta_pm25<-dplyr::bind_rows(delta_no3,delta_so4,delta_nh4,delta_bc,delta_pom,delta_dust,delta_ss)
+    delta_pm25<-dplyr::bind_rows(delta_no3,delta_so4,delta_nh4,delta_bc,delta_pom,delta_dust,delta_ss,delta_h2o)
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -305,14 +324,24 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(value=value.x+value.y) %>%
       dplyr::select(-value.x,-value.y) %>%
       # Set the negative values to zero:
-      dplyr::mutate(value=dplyr::if_else(value<0,0,value))
+      dplyr::mutate(value=dplyr::if_else(value<0,0,value)) %>%
+      # adjust H2O aerosols
+      dplyr::filter(pollutant != "H2O") %>%
+      tidyr::pivot_wider(names_from = pollutant,
+                         values_from = value) %>%
+      dplyr::mutate(H2O = (NO3 + SO4 + NH4) * 0.27) %>%
+      tidyr::pivot_longer(cols = c("NO3", "NH4", "SO4", "BC", "POM", "DUST", "SS", "H2O"),
+                          names_to = "pollutant",
+                          values_to = "value")
+
     #----------------------------------------------------------------------
 
     # PM2.5 aggregated to primary, secondary, and natural
     pm25_pr_sec<-pm25 %>%
       dplyr::mutate(type=dplyr::if_else(pollutant %in% c("NO3","SO4","NH4"),"SEC","a"),
                     type=dplyr::if_else(pollutant %in% c("BC","POM"),"PRIM",type),
-                    type=dplyr::if_else(pollutant %in% c("DUST","SS"),"NAT",type)) %>%
+                    type=dplyr::if_else(pollutant %in% c("DUST","SS"),"NAT",type),
+                    type=dplyr::if_else(pollutant %in% c("H2O"),"H2O",type)) %>%
       dplyr::group_by(region,year,units,type) %>%
       dplyr::summarise(value=sum(value)) %>%
       dplyr::ungroup()
