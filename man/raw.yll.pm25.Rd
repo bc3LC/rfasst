@@ -5,7 +5,7 @@
 \alias{raw.yll.pm25}
 \title{raw.yll.pm25}
 \format{
-An object of class \code{data.frame} with 56 rows and 8 columns.
+An object of class \code{data.frame} with 39168 rows and 11 columns.
 }
 \source{
 TM5-FASST

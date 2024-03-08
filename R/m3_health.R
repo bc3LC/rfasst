@@ -31,27 +31,29 @@ calc_mort_rates<-function(){
 calc_daly_pm25<-function(){
 
   daly_calc_pm<-tibble::as_tibble(raw.daly) %>%
-    dplyr::filter(rei_name == "Ambient particulate matter pollution") %>%
-    dplyr::select(location_name,year,measure_name,cause_name,val) %>%
+    dplyr::filter(rei == "Ambient particulate matter pollution") %>%
+    dplyr::select(location_name = location, year,measure_name = measure, cause_name = cause, age,val) %>%
     dplyr::mutate(cause_name=dplyr::if_else(grepl("stroke", cause_name), "stroke", cause_name),
-                  cause_name=dplyr::if_else(grepl("Lower respiratory", cause_name), "alri", cause_name),
+                  cause_name=dplyr::if_else(grepl("Lower respiratory", cause_name), "lri", cause_name),
                   cause_name=dplyr::if_else(grepl("lung cancer", cause_name), "lc", cause_name),
                   cause_name=dplyr::if_else(grepl("Ischemic heart disease", cause_name), "ihd", cause_name),
                   cause_name=dplyr::if_else(grepl("Chronic obstructive", cause_name), "copd", cause_name),
-                  cause_name=dplyr::if_else(grepl("Diabetes", cause_name), "diab", cause_name)) %>%
+                  cause_name=dplyr::if_else(grepl("Diabetes", cause_name), "dm", cause_name)) %>%
+    dplyr::mutate(age = dplyr::if_else(age == "All ages", ">25", age)) %>%
     tidyr::spread(measure_name, val) %>%
     dplyr::rename(country = location_name) %>%
+    dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by="country") %>%
     gcamdata::left_join_error_no_match(fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
                                        by = "iso3") %>%
-    dplyr::group_by(fasst_region, year, cause_name) %>%
+    dplyr::group_by(fasst_region, year, age, cause_name) %>%
     dplyr::summarise(`DALYs (Disability-Adjusted Life Years)` = sum(`DALYs (Disability-Adjusted Life Years)`),
                      Deaths = sum(Deaths)) %>%
     dplyr::ungroup() %>%
     dplyr::rename(DALYs = `DALYs (Disability-Adjusted Life Years)`) %>%
     dplyr::mutate(DALY_ratio = DALYs / Deaths) %>%
-    dplyr::select(fasst_region, year, cause_name, DALY_ratio) %>%
+    dplyr::select(fasst_region, year, age, cause_name, DALY_ratio) %>%
     dplyr::mutate(risk = "Ambient particulate matter pollution") %>%
     dplyr::rename(region = fasst_region,
                   disease = cause_name)
@@ -75,11 +77,14 @@ calc_daly_pm25<-function(){
 calc_daly_o3<-function(){
 
   daly_calc_o3<-tibble::as_tibble(raw.daly) %>%
-    dplyr::filter(rei_name == "Ambient ozone pollution") %>%
-    dplyr::select(location_name, year, measure_name, cause_name, val) %>%
+    dplyr::filter(rei == "Ambient ozone pollution",
+                  age == "All ages") %>%
+    dplyr::select(-age) %>%
+    dplyr::select(location_name = location, year,measure_name = measure, cause_name = cause, val) %>%
     dplyr::mutate(cause_name = dplyr::if_else(grepl("Chronic obstructive",cause_name), "copd", cause_name)) %>%
     tidyr::spread(measure_name, val) %>%
     dplyr::rename(country = location_name) %>%
+    dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by = "country") %>%
     gcamdata::left_join_error_no_match(fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
@@ -371,7 +376,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @export
 
 m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
@@ -401,47 +406,88 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
-      dplyr::select(region, year, disease, mort_param) %>%
-      dplyr::rename(mort_pm25 = mort_param)
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+                              queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # Get years of life lost
-    yll.pm.mort<-raw.yll.pm25 %>%
-      tidyr::gather(disease, value, -region) %>%
-      dplyr::mutate(disease = tolower(disease))
+    yll.pm.mort<-tibble::as_tibble(raw.yll.pm25) %>%
+      dplyr::filter(year == max(as.numeric(year))) %>%
+      dplyr::select(-year) %>%
+      dplyr::select(location_name = location, measure_name = measure, cause_name = cause, age, val) %>%
+      dplyr::mutate(cause_name=dplyr::if_else(grepl("stroke", cause_name), "stroke", cause_name),
+                    cause_name=dplyr::if_else(grepl("Lower respiratory", cause_name), "lri", cause_name),
+                    cause_name=dplyr::if_else(grepl("lung cancer", cause_name), "lc", cause_name),
+                    cause_name=dplyr::if_else(grepl("Ischemic heart disease", cause_name), "ihd", cause_name),
+                    cause_name=dplyr::if_else(grepl("Chronic obstructive", cause_name), "copd", cause_name),
+                    cause_name=dplyr::if_else(grepl("Diabetes", cause_name), "dm", cause_name)) %>%
+      dplyr::mutate(age = dplyr::if_else(age == "All ages", ">25", age)) %>%
+      tidyr::spread(measure_name, val) %>%
+      dplyr::rename(country = location_name) %>%
+      dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
+      gcamdata::left_join_error_no_match(country_iso, by="country") %>%
+      gcamdata::left_join_error_no_match(fasst_reg %>%
+                                           dplyr::rename(iso3 = subRegionAlt),
+                                         by = "iso3") %>%
+      dplyr::group_by(fasst_region, age, cause_name) %>%
+      dplyr::summarise(`YLLs (Years of Life Lost)` = sum(`YLLs (Years of Life Lost)`),
+                       Deaths = sum(Deaths)) %>%
+      dplyr::ungroup() %>%
+      dplyr::rename(YLLs = `YLLs (Years of Life Lost)`) %>%
+      dplyr::mutate(YLL_ratio = YLLs / Deaths) %>%
+      dplyr::select(fasst_region, age, cause_name, YLL_ratio) %>%
+      dplyr::mutate(risk = "Ambient particulate matter pollution") %>%
+      dplyr::rename(region = fasst_region,
+                    disease = cause_name) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year = unique(pm.mort$year))) %>%
+      dplyr::mutate(age = gsub(" years", "", age))
+
+    yll.pm.mort <- dplyr::bind_rows(
+      yll.pm.mort,
+      yll.pm.mort %>% dplyr::filter(region == "RUS") %>% dplyr::mutate(region = "RUE")
+    )
+
+
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
     pm.yll<- tibble::as_tibble(pm.mort) %>%
       dplyr::filter(disease != "tot") %>%
-      gcamdata::left_join_error_no_match(yll.pm.mort, by = c("region", "disease")) %>%
-      dplyr::rename(yll = value) %>%
-      dplyr::mutate(yll = mort_pm25 * yll) %>%
-      dplyr::select(region, year, disease, yll)
+      gcamdata::left_join_error_no_match(yll.pm.mort, by = c("region", "disease", "year", "age")) %>%
+      dplyr::mutate(yll_GBD = GBD * YLL_ratio,
+                    yll_GEMM = GEMM * YLL_ratio,
+                    yll_FUSION = FUSION * YLL_ratio) %>%
+      dplyr::select(region, year, disease, yll_GBD, yll_GEMM, yll_FUSION)
 
     pm.yll.tot<-pm.yll %>%
       dplyr::group_by(region, year) %>%
-      dplyr::summarise(yll = sum(yll)) %>%
+      dplyr::summarise(yll_GBD = sum(yll_GBD),
+                       yll_GEMM = sum(yll_GBD),
+                       yll_FUSION = sum(yll_FUSION)) %>%
       dplyr::ungroup() %>%
       dplyr::mutate(disease = "tot")
 
-    pm.yll.fin<-dplyr::bind_rows(pm.yll, pm.yll.tot) %>%
-      dplyr::mutate(yll = round(yll))
 
     #------------------------------------------------------------------------------------
     # Write the output
-    pm.yll.list<-split(pm.yll.fin,pm.yll.fin$year)
+    pm.yll.list<-split(pm.yll,pm.yll$year)
+    pm.yll.tot.list<-split(pm.yll.tot,pm.yll.tot$year)
 
 
     pm.yll.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+    }
+
+    pm.yll.tot.write<-function(df){
       df<-as.data.frame(df) %>%
         tidyr::spread(disease, yll)
-      write.csv(df,paste0("output/","m3/","PM25_YLL_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_YLL_TOT_", scen_name[1], "_", unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
 
       lapply(pm.yll.list, pm.yll.write)
+      lapply(pm.yll.tot.list, pm.yll.tot.write)
 
     }
 
@@ -451,10 +497,11 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      pm.yll.fin.map<-pm.yll.fin %>%
+      pm.yll.fin.map<-pm.yll %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::rename(value = yll,
+        dplyr::select(subRegion, year, disease, yll_GBD) %>%
+        dplyr::rename(value = yll_GBD,
                       class = disease) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "YLLs")
@@ -540,57 +587,62 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     daly_calc_pm<-calc_daly_pm25()
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
-      dplyr::select(region, year, disease, mort_param) %>%
-      dplyr::rename(mort_pm25 = mort_param)
-
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+                              queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
     daly.calc.pm.adj<-tibble::as_tibble(daly_calc_pm) %>%
-      dplyr::filter(year == max(year),
-                    disease != "diab") %>%
+      dplyr::filter(year == max(year)) %>%
       dplyr::select(-year) %>%
       gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))) %>%
       dplyr::bind_rows(tibble::as_tibble(daly_calc_pm) %>%
                          dplyr::filter(year == max(year),
-                                       disease != "diab",
                                        region == "RUS") %>%
                          dplyr::select(-year) %>%
                          dplyr::mutate(region = "RUE") %>%
-                  gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year))))))
+                  gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(pm.mort$year)))))) %>%
+      dplyr::mutate(year = as.numeric(year))
 
 
     pm.daly<- tibble::as_tibble(pm.mort) %>%
       dplyr::filter(disease != "tot") %>%
-      gcamdata::left_join_error_no_match(daly.calc.pm.adj, by = c("region","disease","year")) %>%
-      dplyr::rename(daly = DALY_ratio) %>%
-      dplyr::mutate(daly = mort_pm25 * daly) %>%
-      dplyr::select(region, year, disease, daly)
+      gcamdata::left_join_error_no_match(daly.calc.pm.adj, by = c("region","disease","year", "age")) %>%
+      dplyr::mutate(daly_GBD = GBD * DALY_ratio,
+                    daly_GEMM = GEMM * DALY_ratio,
+                    daly_FUSION = FUSION * DALY_ratio) %>%
+      dplyr::select(region, year, disease, age, daly_GBD, daly_GEMM, daly_FUSION)
 
 
     pm.daly.tot<-pm.daly %>%
       dplyr::group_by(region, year) %>%
-      dplyr::summarise(daly = sum(daly)) %>%
+      dplyr::summarise(daly_GBD = sum(daly_GBD),
+                       daly_GEMM = sum(daly_GEMM),
+                       daly_FUSION = sum(daly_FUSION)) %>%
       dplyr::ungroup() %>%
       dplyr::mutate(disease = "tot")
 
 
-    pm.daly.tot.fin<-dplyr::bind_rows(pm.daly, pm.daly.tot) %>%
-      dplyr::mutate(daly = round(daly, 0))
 
     #------------------------------------------------------------------------------------
     # Write the output
-    pm.daly.tot.fin.list<-split(pm.daly.tot.fin,pm.daly.tot.fin$year)
+    pm.daly.list<-split(pm.daly,pm.daly$year)
+    pm.daly.tot.list<-split(pm.daly.tot,pm.daly.tot$year)
 
-    pm.daly.tot.fin.write<-function(df){
-      df<-as.data.frame(df) %>%
-        tidyr::spread(disease, daly)
+    pm.daly.write<-function(df){
+      df<-as.data.frame(df)
       write.csv(df,paste0("output/","m3/","PM25_DALY_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+    }
+
+    pm.daly.tot.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","PM25_DALY_TOT_",scen_name,"_",unique(df$year),".csv"),row.names = F)
     }
 
     if(saveOutput==T){
 
-      lapply(pm.daly.tot.fin.list, pm.daly.tot.fin.write)
+      lapply(pm.daly.list, pm.daly.write)
+      lapply(pm.daly.tot.list, pm.daly.tot.write)
+
 
     }
 
@@ -600,11 +652,11 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      pm.daly.tot.fin.map<-pm.daly.tot.fin %>%
+      pm.daly.tot.fin.map<-pm.daly.tot %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, disease, daly) %>%
-        dplyr::rename(value = daly,
+        dplyr::select(subRegion, year, disease, daly_GBD) %>%
+        dplyr::rename(value = daly_GBD,
                       class = disease) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "DALYs")
@@ -622,7 +674,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    pm.daly.tot.fin<-dplyr::bind_rows(pm.daly.tot.fin.list)
+    pm.daly.tot.fin<-dplyr::bind_rows(pm.daly.list)
     m3_get_daly_pm25.output <<- pm.daly.tot.fin
     return(invisible(pm.daly.tot.fin))
   }
@@ -733,6 +785,8 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       df<-as.data.frame(df)
       write.csv(df,paste0("output/","m3/","O3_MORT_",scen_name,"_",unique(df$year),".csv"),row.names = F)
     }
+
+
 
 
     if(saveOutput == T){
@@ -955,9 +1009,8 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     daly_calc_o3<-calc_daly_o3()
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
-      dplyr::select(region, year, disease, mort_param) %>%
-      dplyr::rename(mort_o3 = mort_param)
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
@@ -971,42 +1024,47 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                          dplyr::select(-year) %>%
                          dplyr::mutate(region = "RUE") %>%
                   gcamdata::repeat_add_columns(tibble::tibble(year = unique(levels(as.factor(o3.mort$year)))))) %>%
-      dplyr::mutate(disease = "RESP")
+      dplyr::mutate(disease = "copd",
+                    year = as.numeric(year))
 
 
     o3.daly<- tibble::as_tibble(o3.mort) %>%
       dplyr::filter(disease != "tot") %>%
       gcamdata::left_join_error_no_match(daly.calc.o3.adj, by = c("region","disease","year")) %>%
-      dplyr::rename(daly = DALY_ratio) %>%
-      dplyr::mutate(daly_med = round(mort_o3 * daly, 0)) %>%
-      dplyr::select(region, year, disease, daly_med)
+      dplyr::mutate(daly_jerret2009 = round(Jerret2009 * DALY_ratio, 0),
+                    daly_GBD2016 = round(GBD2016 * DALY_ratio, 0)) %>%
+      dplyr::select(region, year, disease, daly_jerret2009, daly_GBD2016 )
 
 
     o3.daly.tot<-o3.daly %>%
       dplyr::group_by(region, year) %>%
-      dplyr::summarise(daly_med = sum(daly_med)) %>%
+      dplyr::summarise(daly_jerret2009 = sum(daly_jerret2009),
+                       daly_GBD2016 = sum(daly_GBD2016)) %>%
       dplyr::ungroup() %>%
       dplyr::mutate(disease = "tot")
 
 
-    o3.daly.tot.fin<-dplyr::bind_rows(o3.daly, o3.daly.tot) %>%
-      dplyr::mutate(daly_med = round(daly_med, 0))
-
 
     #------------------------------------------------------------------------------------
     # Write the output
-    o3.daly.tot.fin.list<-split(o3.daly.tot.fin,o3.daly.tot.fin$year)
+    o3.daly.list<-split(o3.daly,o3.daly$year)
+    o3.daly.tot.list<-split(o3.daly.tot,o3.daly.tot$year)
 
-    o3.daly.tot.fin.write<-function(df){
-      df<-as.data.frame(df) %>%
-        tidyr::spread(disease, daly_med)
+    o3.daly.write<-function(df){
+      df<-as.data.frame(df)
       write.csv(df,paste0("output/","m3/","O3_DALY_",scen_name,"_",unique(df$year),".csv"), row.names = F)
+    }
+
+    o3.daly.tot.write<-function(df){
+      df<-as.data.frame(df)
+      write.csv(df,paste0("output/","m3/","O3_DALY_TOT_",scen_name,"_",unique(df$year),".csv"), row.names = F)
     }
 
 
     if(saveOutput == T){
 
-      lapply(o3.daly.tot.fin.list, o3.daly.tot.fin.write)
+      lapply(o3.daly.list, o3.daly.write)
+      lapply(o3.daly.tot.list, o3.daly.tot.write)
     }
 
     #----------------------------------------------------------------------
@@ -1015,12 +1073,12 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      o3.daly.tot.fin.map<-o3.daly.tot.fin %>%
+      o3.daly.tot.fin.map<-o3.daly.tot %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE",
-                      disease == "RESP") %>%
-        dplyr::select(subRegion, year, daly_med) %>%
-        dplyr::rename(value = daly_med) %>%
+                      disease == "copd") %>%
+        dplyr::select(subRegion, year, daly_jerret2009) %>%
+        dplyr::rename(value = daly_jerret2009) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "DALYs")
 
@@ -1037,7 +1095,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    o3.daly.tot.fin<-dplyr::bind_rows(o3.daly.tot.fin.list)
+    o3.daly.tot.fin<-dplyr::bind_rows(o3.daly.list)
     m3_get_daly_o3.output <<- o3.daly.tot.fin
     return(invisible(o3.daly.tot.fin))
   }

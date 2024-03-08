@@ -5,7 +5,7 @@
 \alias{raw.daly}
 \title{raw.daly}
 \format{
-An object of class \code{data.frame} with 85680 rows and 18 columns.
+An object of class \code{data.frame} with 45696 rows and 11 columns.
 }
 \source{
 Institute for Health Metrics and Evaluation (http://www.healthdata.org/)
