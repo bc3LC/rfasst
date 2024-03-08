@@ -681,16 +681,39 @@ usethis::use_data(raw.rr.gbd.param, overwrite = T)
 
 
 # raw.daly
-raw.daly = read.csv(paste0(rawDataFolder_m3,"IHME-GBD_2019_DATA_DALYs.csv"))
+raw.daly = dplyr::bind_rows(
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-1.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-2.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-3.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-4.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-5.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-6.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-7.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-8.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-9.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-10.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-11.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-12.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-13.csv"),
+  read.csv("inst/extdata/IHME-GBD_2019_DATA-f0e0e3fd-14.csv")
+
+) %>%
+  dplyr::filter(year == max(as.numeric(year)),
+                cause %in% c("Diabetes mellitus type 2", "Lower respiratory infections", "Ischemic stroke", "Ischemic heart disease", "Tracheal, bronchus, and lung cancer", "Chronic obstructive pulmonary disease"),
+                age %in% (c("All ages", "25-29 years", "30-34 years", "35-39 years", "40-44 years", "45-49 years", "50-54 years","55-59 years","60-64 years",
+                       "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
+  dplyr::mutate(age = gsub(" years", "", age))
+
 usethis::use_data(raw.daly, overwrite = T)
 
 # raw.yll.pm25
-raw.yll.pm25 = read.csv(paste0(rawDataFolder_m3,"yll_pm25.csv"))
+raw.yll.pm25 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
+  dplyr::filter(rei == "Ambient particulate matter pollution")
 usethis::use_data(raw.yll.pm25, overwrite = T)
 
-raw.yll.o3 = read.csv(paste0(rawDataFolder_m3,"yll_o3.csv"))
+raw.yll.o3 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
+  dplyr::filter(rei == "Ambient ozone pollution")
 usethis::use_data(raw.yll.o3, overwrite = T)
-
 #------------------
 # New mortality rates
 #raw.mort.rates.old <- raw.mort.rates

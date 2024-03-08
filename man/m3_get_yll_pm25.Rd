@@ -13,7 +13,7 @@ m3_get_yll_pm25(
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
-  mort_param = "GBD2016_medium",
+  mort_param = "GBD",
   ssp = "SSP2",
   saveOutput = T,
   map = F,
