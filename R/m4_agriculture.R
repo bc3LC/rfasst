@@ -430,6 +430,8 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
+    rlang::inform('Computing relative yield losses with AOT40 method ...')
+
     aot40.list<-split(aot40, aot40$year)
     #------------------------------------------------------------------------------------
     # Set a dataframe with the AOT damage coefficients from Mills et al 2007:
@@ -556,6 +558,8 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+
+    rlang::inform('Computing relative yield losses with Mi method ...')
 
     mi.list<-split(mi, mi$year)
     #------------------------------------------------------------------------------------
@@ -690,6 +694,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Get Prod
     prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
+    rlang::inform('Computing agricultural production losses ...')
 
       #------------------------------------------------------------------------------------
     ryl.fin<-ryl.aot.40.fin %>%
@@ -911,6 +916,8 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     # Get Revenue: re-calculate to consider C4 categories
     prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+
+    rlang::inform('Computing agricultural revenue losses ...')
 
     price<-prod %>%
       dplyr::select(-prod, -unit) %>%
