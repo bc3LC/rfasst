@@ -33,6 +33,20 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     return(m2_get_conc_pm25.output)
   } else {
 
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay
+
+    if(saveRaster_grid == T) assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to save the raster grid')
+    if(identical(agg_grid, TRUE)) stop('Specify the downscaled PM25 aggretagion. Currently only `NUTS3` is allowed, i.e., `agg_grid = "NUTS3"`')
+    if(agg_grid == "NUTS3") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to NUTS3')
+    if(save_AggGrid == T) assertthat::assert_that(agg_grid  == "NUTS3" & downscale == T,
+                                                  msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` to save the aggregated raster grid')
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+
     all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
@@ -59,6 +73,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
+    rlang::inform('Computing PM2.5 concentration ...')
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -341,7 +356,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     if(saveOutput==T){
 
-    lapply(pm25.list,pm25.write)
+      lapply(pm25.list,pm25.write)
 
     }
     #----------------------------------------------------------------------
@@ -362,7 +377,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     if(saveOutput==T){
 
-    lapply(pm25.agg.list,pm25.agg.write)
+      lapply(pm25.agg.list,pm25.agg.write)
 
     }
 
@@ -391,21 +406,21 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If downscale = T, the function gives gridded outputs
     if(downscale == T){
+      rlang::inform('Downscaling PM25 ...')
 
       # Expand data to all countries
       pm25_agg_fin_grid <- pm25_agg_fin %>%
       dplyr::filter(region != "RUE") %>%
         dplyr::rename(n = 'region',
                       rfasst_pm25 = 'value') %>%
-        dplyr::left_join(countries, by = "n") %>%
+        dplyr::left_join(countries, by = "n", multiple = "all") %>%
         dplyr::select(-n) %>%
         dplyr::arrange(ISO3V10)
 
-      # create a list with the outputs by year
-      pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
+      # Load pm2.5 grid to country weights
+      pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
 
-
-    # Create a function
+      # Create a function
       generate_gridded_output <- function(df){
 
         # Add iso and rasterize the output
@@ -415,8 +430,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         # Rasterize the output
         out <- raster::rasterize(ssPDF_pm25_agg_fin_grid, out, field = 'rfasst_pm25')
 
-        # Load pm2.5 grid to country weights
-        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+        # create a list with the outputs by year
+        pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
 
         # Compute calculations
         out_rast <- as(out, "SpatRaster")
@@ -426,27 +441,28 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         pm25_weighted_log <- log(pm25_weighted)
 
         # Save figures
-        if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
+        if(map) {
 
-        png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.png"))
-        terra::plot(pm25_weighted, col = grDevices::terrain.colors(50))
-        dev.off()
+          if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
 
-        png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_logpm25_fin_weighted.png"))
-        terra::plot(pm25_weighted_log, col = grDevices::terrain.colors(50))
-        dev.off()
+          png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.png"))
+          terra::plot(pm25_weighted, col = grDevices::terrain.colors(50))
+          dev.off()
+
+          png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_logpm25_fin_weighted.png"))
+          terra::plot(pm25_weighted_log, col = grDevices::terrain.colors(50))
+          dev.off()
+
+        }
 
         if(saveRaster_grid == T){
 
-          assertthat::assert_that(downscale == T)
-
-        terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"))
+          terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"))
 
         }
 
         if(agg_grid == "NUTS3"){
-
-          assertthat::assert_that(downscale == T)
+          rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
 
           # Load NUTS-3 map
           nuts3_sf<- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
@@ -469,25 +485,24 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           nuts3$pm25_avg <- terra::extract(pm25_weighted_nuts3, nuts3, mean, na.rm = TRUE)$layer
 
           # Plot average raster values within polygons
-          library(ggplot2)
-          library(tidyterra)
+          if(map) {
 
-          plot_nuts3 <- ggplot(data = nuts3) +
-            geom_spatvector(aes(fill = pm25_avg)) +
-            scale_fill_distiller(palette = "OrRd", direction = 1) +
-            theme_bw() +
-            theme(legend.title = element_blank())
+            plot_nuts3 <- ggplot2::ggplot(data = nuts3) +
+              tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg)) +
+              ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+              ggplot2::theme_bw() +
+              ggplot2::theme(legend.title = ggplot2::element_blank())
 
-          ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.png"), plot_nuts3, device = "png")
+            ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.png"), plot_nuts3, device = "png")
+
+          }
 
           if(save_AggGrid == T){
-
-            assertthat::assert_that(agg_grid  == "NUTS3")
-            assertthat::assert_that(downscale == T)
 
             # Write df with NUTS3-averagre values
             nuts3_df <- as.data.frame(nuts3)
             write.csv(nuts3_df, paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.csv"), row.names =  F)
+
           }
 
         }
@@ -568,6 +583,11 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    rlang::inform('Computing O3 concentration ...')
+
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
