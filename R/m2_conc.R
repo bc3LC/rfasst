@@ -379,7 +379,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     pm25.write<-function(df){
       df<-as.data.frame(df)
-      colnames(df)<-c("region","year","units","NAT","PRIM","SEC")
+      colnames(df)<-c("region","year","units","NAT","PRIM","SEC", "H2O")
       write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
     }
 
