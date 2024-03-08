@@ -175,6 +175,18 @@
 #' }
 "raw.base_conc"
 
+#'Base Nat PM2.5 concentration
+#'
+#' @description Natural Fine Particulate Matter (PM2.5) concentration levels in the base year (2000) per TM5-FASST region
+#' @source Results from CAMS
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.base_conc.nat
+#' }
+"raw.base_conc.nat"
+
 
 #'Base emissions
 #'
