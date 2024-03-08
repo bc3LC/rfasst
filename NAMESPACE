@@ -2,7 +2,6 @@
 
 export(calc_daly_o3)
 export(calc_daly_pm25)
-export(calc_daly_tot)
 export(calc_gdp_pc)
 export(calc_mort_rates)
 export(calc_pop)
