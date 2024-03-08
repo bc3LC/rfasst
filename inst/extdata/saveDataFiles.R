@@ -7,6 +7,12 @@ library(sf)
 #=========================================================
 # Constants
 #=========================================================
+
+selected_pollutants <- c("BC", "CH4", "CO", "CO2", "N2O", "NH3", "NMVOC", "NOx", "OC", "SO2", "SO2_1", "SO2_2", "SO2_3", "SO2_4",
+                         "BC_AWB", "CH4_AWB", "CO_AWB", "N2O_AWB", "NH3_AWB", "NMVOC_AWB", "NOx_AWB", "OC_AWB", "SO2_1_AWB", "SO2_2_AWB", "SO2_3_AWB", "SO2_4_AWB",
+                         "CH4_AGR",  "N2O_AGR", "NH3_AGR", "NOx_AGR")
+usethis::use_data(selected_pollutants, overwrite = T)
+
 # Years to be analyzed: c('2005','2010','2020','2030','2040','2050','2060','2070','2080','2090','2100')
 all_years<-c('2005','2010','2020','2030','2040','2050','2060','2070','2080','2090','2100')
 usethis::use_data(all_years, overwrite = T)

@@ -2,6 +2,19 @@
 # Ancillary data
 #=========================================================
 
+#' Selected pollutants
+#'
+#' @description Selected pollutants
+#' @source -
+#' @format vector
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::selected_pollutants
+#' }
+"selected_pollutants"
+
+
 #' SSP data
 #'
 #' @description Country level population and GDP data per SSP (SSP_database_v9.csv). To be consistent we make use of the IIASA-WIC Model/scenarios
