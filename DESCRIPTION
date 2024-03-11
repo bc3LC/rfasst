@@ -20,7 +20,7 @@ RoxygenNote: 7.2.3
 Imports:
     usethis,
     knitr,
-  	markdown,
+    markdown,
     rlang,
     readr,
     data.table,
