@@ -366,7 +366,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
-#' @param mort_param Select the health function (GBD 2016, Burnett et al, 2014 (IERs), or Burnett et al 2018 (GEMM)) and the Low/Med/High RR. By default = GBD2016_medium
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -376,7 +375,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @export
 
 m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
@@ -543,7 +542,6 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
-#' @param mort_param Select the health function (GBD 2016, Burnett et al, 2014 (IERs), or Burnett et al 2018 (GEMM)) and the Low/Med/High RR. By default = GBD2016_medium
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -553,7 +551,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @export
 
 m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
 
@@ -883,25 +881,55 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
-      dplyr::select(region, year, disease, mort_param) %>%
-      dplyr::rename(mort_o3 = mort_param)
+    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
-    o3.yll<-tibble::as_tibble(raw.yll.o3) %>%
-      tidyr::gather(disease, value, -region) %>%
-      gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-      dplyr::filter(year >= 2010) %>%
-      dplyr::mutate(year = as.character(year)) %>%
-      gcamdata::left_join_error_no_match(o3.mort, by = c("region","year")) %>%
-      dplyr::mutate(yll_o3 = round(value * mort_o3, 0),
-                    disease = "resp") %>%
-      dplyr::select(region, year, disease, yll_o3)
+    o3.yll <- tibble::as_tibble(raw.yll.o3) %>%
+      dplyr::filter(year == max(as.numeric(year))) %>%
+      dplyr::select(-year) %>%
+      dplyr::filter(age == "All ages") %>%
+      dplyr::mutate(cause = dplyr::if_else(grepl("Chronic obstructive", cause), "copd", cause)) %>%
+      dplyr::filter(cause == "copd",
+                    grepl("ozone", rei)) %>%
+      dplyr::select(location_name = location, measure_name = measure, cause_name = cause, age, val) %>%
+      tidyr::spread(measure_name, val) %>%
+      dplyr::rename(country = location_name) %>%
+      dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
+      gcamdata::left_join_error_no_match(country_iso, by="country") %>%
+      gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
+                                           dplyr::rename(iso3 = subRegionAlt),
+                                         by = "iso3") %>%
+      dplyr::group_by(fasst_region, age, cause_name) %>%
+      dplyr::summarise(`YLLs (Years of Life Lost)` = sum(`YLLs (Years of Life Lost)`),
+                       Deaths = sum(Deaths)) %>%
+      dplyr::ungroup() %>%
+      dplyr::rename(YLLs = `YLLs (Years of Life Lost)`) %>%
+      dplyr::mutate(YLL_ratio = YLLs / Deaths) %>%
+      dplyr::select(fasst_region, cause_name, YLL_ratio) %>%
+      dplyr::mutate(risk = "Ambient ozone pollution") %>%
+      dplyr::rename(region = fasst_region,
+                    disease = cause_name) %>%
+      gcamdata::repeat_add_columns(tibble::tibble(year = unique(o3.mort$year)))
+
+    o3.yll <- dplyr::bind_rows(
+      o3.yll,
+      o3.yll %>% dplyr::filter(region == "RUS") %>% dplyr::mutate(region = "RUE")
+    )
+
+
+    o3.yll.fin<- tibble::as_tibble(o3.mort) %>%
+      dplyr::filter(disease != "tot") %>%
+      gcamdata::left_join_error_no_match(o3.yll, by = c("region", "disease", "year")) %>%
+      dplyr::mutate(yll_jerret2009 = Jerret2009 * YLL_ratio,
+                    yll_GBD2016 = GBD2016 * YLL_ratio) %>%
+      dplyr::select(region, year, disease, yll_jerret2009, yll_GBD2016)
+
 
     #------------------------------------------------------------------------------------
     # Write the output
-    o3.yll.list<-split(o3.yll,o3.yll$year)
+    o3.yll.list<-split(o3.yll.fin, o3.yll.fin$year)
 
     o3.yll.write<-function(df){
       df<-as.data.frame(df)
@@ -921,11 +949,11 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      o3.yll.map<-o3.yll %>%
+      o3.yll.map <- o3.yll.fin %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, yll_o3) %>%
-        dplyr::rename(value = yll_o3) %>%
+        dplyr::select(subRegion, year, yll_jerret2009) %>%
+        dplyr::rename(value = yll_jerret2009) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "YLLs")
 
@@ -966,7 +994,6 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
-#' @param mort_param Select the health function (GBD 2016 or Jerret et al 2009) and the Low/Med/High RR. By default = mort_o3_gbd2016_med
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -976,7 +1003,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @export
 
 m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
