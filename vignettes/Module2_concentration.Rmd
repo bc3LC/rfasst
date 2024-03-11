@@ -6,6 +6,9 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
+## Description
+
 The functions that form this module take the emission sets per TM5-FASST region and year generated in Module 1 (by `m1_emissions_rescale`), and estimate the fine particulate matter (PM2.5) and ozone (O3) concentration levels for each period and TM5-FASST region. In particular the package reports the following range of PM2.5 and O3 indicators:
 
 * Fine particulate matter (PM2.5) concentration levels (`m2_get_conc_pm25`)
@@ -25,7 +28,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup_pm5, eval = F}
+```{r, eval = F}
 library(rfasst)
 library(magrittr)
 

@@ -1,4 +1,9 @@
 title: rfasst
+url: https://bc3lc.github.io/rfasst/
+template:
+  bootstrap: 5
+development:
+  model: auto
 
 navbar:
   type: inverse
