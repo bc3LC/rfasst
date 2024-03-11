@@ -44,7 +44,7 @@ calc_daly_pm25<-function(){
     dplyr::rename(country = location_name) %>%
     dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by="country") %>%
-    gcamdata::left_join_error_no_match(fasst_reg %>%
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
                                        by = "iso3") %>%
     dplyr::group_by(fasst_region, year, age, cause_name) %>%
@@ -86,7 +86,7 @@ calc_daly_o3<-function(){
     dplyr::rename(country = location_name) %>%
     dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by = "country") %>%
-    gcamdata::left_join_error_no_match(fasst_reg %>%
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
                                        by = "iso3") %>%
     dplyr::group_by(fasst_region, year, cause_name) %>%
@@ -152,7 +152,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -400,7 +400,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -425,7 +425,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::rename(country = location_name) %>%
       dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
       gcamdata::left_join_error_no_match(country_iso, by="country") %>%
-      gcamdata::left_join_error_no_match(fasst_reg %>%
+      gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                            dplyr::rename(iso3 = subRegionAlt),
                                          by = "iso3") %>%
       dplyr::group_by(fasst_region, age, cause_name) %>%
@@ -578,7 +578,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -731,7 +731,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -877,7 +877,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -1000,7 +1000,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))

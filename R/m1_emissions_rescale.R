@@ -54,13 +54,13 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Transform the loaded TM5-FASST regions
-    FASST_reg<-fasst_reg %>%
+    FASST_reg<-rfasst::fasst_reg %>%
       dplyr::rename(`ISO 3`=subRegionAlt,
                     `FASST Region`=fasst_region)
 
@@ -102,7 +102,10 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::arrange(ghg) %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(selected_pollutants)))) %>%
-      gcamdata::left_join_error_no_match(my_pol %>% dplyr::rename(ghg = Pollutant), by = dplyr::join_by(ghg)) %>%
+      tibble::as_tibble() %>%
+      gcamdata::left_join_error_no_match(my_pol %>%
+                                           dplyr::rename(ghg = Pollutant) %>%
+                                           tibble::as_tibble(), by = dplyr::join_by(ghg)) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
       dplyr::select(-ghg) %>%
       dplyr::rename(ghg = My_Pollutant) %>%

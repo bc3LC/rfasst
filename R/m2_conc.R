@@ -64,7 +64,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -606,7 +606,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -847,7 +847,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -1113,7 +1113,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -1546,7 +1546,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))

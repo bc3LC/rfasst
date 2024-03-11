@@ -49,7 +49,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -192,7 +192,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -330,7 +330,7 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -469,7 +469,7 @@ m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", d
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
