@@ -41,7 +41,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -180,7 +180,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -310,7 +310,7 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -423,7 +423,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg,by="subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
@@ -552,7 +552,7 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -680,7 +680,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
@@ -903,7 +903,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     fasstSubset<-fasstSubset %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(fasst_reg, by = "subRegionAlt") %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))

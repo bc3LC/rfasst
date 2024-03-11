@@ -169,7 +169,7 @@ calc_pop<-function(ssp = "SSP2"){
     dplyr::filter(variable == "Population") %>%
     dplyr::rename(pop_tot = value) %>%
     #add FASST regions and aggregate the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -185,7 +185,7 @@ calc_pop<-function(ssp = "SSP2"){
     dplyr::ungroup()%>%
     dplyr::rename(pop_5 = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -214,7 +214,7 @@ calc_pop<-function(ssp = "SSP2"){
     dplyr::ungroup()%>%
     dplyr::rename(pop_30 = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -234,7 +234,7 @@ calc_pop<-function(ssp = "SSP2"){
     dplyr::ungroup()%>%
     dplyr::rename(pop_other = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -271,7 +271,7 @@ calc_pop<-function(ssp = "SSP2"){
     dplyr::filter(variable == "Population") %>%
     dplyr::rename(pop_tot = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -337,7 +337,7 @@ calc_pop_str<-function(ssp = "SSP2"){
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup() %>%
     #add FASST regions and aggregate the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                                        by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -365,7 +365,7 @@ calc_pop_str<-function(ssp = "SSP2"){
     dplyr::filter(variable == "Population") %>%
     dplyr::rename(pop_tot = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                                        by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
@@ -441,7 +441,7 @@ calc_gdp_pc<-function(ssp="SSP2"){
     dplyr::filter(variable == "GDP|PPP") %>%
     dplyr::rename(gdp_tot = value) %>%
     #add FASST regions and add the values to those categories:
-    gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(region = subRegionAlt),
+    gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
                              by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
