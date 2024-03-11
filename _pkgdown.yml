@@ -1,7 +1,9 @@
 title: rfasst
 url: https://bc3lc.github.io/rfasst/
 template:
-  bootstrap: 5
+  params:
+    bootswatch: flatly
+    ganalytics: UA-12345678-0
 development:
   model: auto
 
