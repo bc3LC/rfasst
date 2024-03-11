@@ -1,3 +1,4 @@
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![build](https://github.com/bc3LC/rfasst/actions/workflows/build.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/build.yml)
 [![docs](https://github.com/bc3LC/rfasst/actions/workflows/pkgdown.yaml/badge.svg?branch=main)](https://github.com/bc3LC/rfasst/actions/workflows/pkgdown.yaml)
 [![codecov](https://codecov.io/gh/JGCRI/rfasst/branch/main/graph/badge.svg?token=2IBODRZKVF)](https://codecov.io/gh/JGCRI/rfasst)
@@ -95,7 +96,7 @@ Then, open the Rproject (rfasst.Rproj): In the Rstudio menu, click "Build -> Ins
 The package consists of a set of functions divided in four different modules:
 - Module 1. Emissions re-scaling: Process emissions by GCAM-region and re-scale them to TM5-FASST regions, and make some additional pollutant-related adjustments. More details in the [Module1 emissions](https://jgcri.github.io/rfasst/articles/Module1_emissions.html) page. 
 - Module 2. Concentration: Estimate fine particulate matter (PM2.5) and ozone (O3) concentration levels (measured by different indicators) for each region. More details in the [Module2 concentration](https://jgcri.github.io/rfasst/articles/Module2_concentration.html) page. 
-- Module 3. Health: Report adverse health effects attributable to exposure to fine particulate matter (PM2.5) and ozone (O3; M6M). More details in the [Module3 health](https://jgcri.github.io/rfasst/articles/Module3_health.html) page. 
+- Module 3. Health: Report adverse health effects attributable to exposure to fine particulate matter (PM2.5) and ozone (O3; M6M). More details in the [Module3 health](https://jgcri.github.io/rfasst/articles/Module3_health.html) page. Module 3 includes a submodule to calculate economics impacts associated to the estimated adverse health effects (ADD LINK) 
 - Module 4. Agriculture: Estimate adverse agricultural impacts associated to ozone exposure, including relative yield losses (RYLs) and production and revenue losses. More details in the [Module4 agriculture](https://jgcri.github.io/rfasst/articles/Module4_agriculture.html) page. 
 
 In addition, the package includes some default input files (.Rda), that are read by the different functions. These can be changed by the user. Some of these constants include:
@@ -103,7 +104,7 @@ In addition, the package includes some default input files (.Rda), that are read
 - Shares to allocate emissions between Russia Eastern (RUE) and Russia Western (RUS)
 - Coefficients and/or counterfactual values for exposure-response functions applied to estimate adverse health and agricultural impacts.
 - Baseline moratlity rates.
-- Median values for the health impact economic assessment (Value of Statistical Life)
+- Values for the health impact economic assessment (e.g., Value of Statistical Life)
 - Other
 
 

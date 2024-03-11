@@ -8,7 +8,15 @@ vignette: >
 ---
 The functions that form this module take the emission sets per TM5-FASST region and year generated in Module 1 (by `m1_emissions_rescale`), and estimate the fine particulate matter (PM2.5) and ozone (O3) concentration levels for each period and TM5-FASST region. In particular the package reports the following range of PM2.5 and O3 indicators:
 
-Fine particulate matter (PM2.5) concentration levels (`m2_get_conc_pm25`)
+* Fine particulate matter (PM2.5) concentration levels (`m2_get_conc_pm25`)
+* Raw ozone concentration levels (`m2_get_conc_o3`)
+* Maximum 6-monthly running average of daily maximum hourly O3 (M6M, also known as 6mDMA1) (`m2_get_conc_m6m`). This indicator is used to compute health impacts attributable to exposure to ozone (see [Jerret et al 2009](https://www.nejm.org/doi/full/10.1056/nejmoa0803894))
+
+The module includes two additional functions to estimate crop losses associated with high ozone concentration levels, suing two different mettrics described in [Van Dingenen et al 2009](https://www.sciencedirect.com/science/article/pii/S1352231008009424):
+* Accumulated daytime hourly O3 concentration above a threshold of 40 ppbV (AOT40) (`m2_get_conc_aot40`)
+* Seasonal mean daytime O3 concentration (`m2_get_conc_mi`)
+
+The code below shows an example to get PM2.5 concentration levels: 
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
@@ -27,130 +35,24 @@ library(magrittr)
  prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
  scen_name<-"name of the GCAM scenario"
  queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
- saveOutput: Writes the files.By default=T
- map: Produce the maps. By default=F
+ # saveOutput: Writes the files.By default = T
+ # map: Produce the maps. By default = F
+ # 
 
   # To write the csv files into the output folder:
 
-     m2_get_conc_pm25(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=T,map=F) 
+     m2_get_conc_pm25(db_path, query_path, db_name, prj_name,
+                      scen_name, queries, saveOutput = T, map = F, anim = T, recompute = F) 
 
   # To save as data frame pm2.5 concentration levels by TM5-FASST region in year 2050:
 
-     pm25.conc.2050<-dplyr::bind_rows(m2_get_conc_pm25(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=F)) %>% dplyr::filter(year==2050) 
+     pm25.conc.2050<-dplyr::bind_rows(m2_get_conc_pm25(db_path,query_path,db_name,prj_name,scen_name,queries, saveOutput = F)) %>% dplyr::filter(year == 2050) 
                          
      head(pm25.conc.2050)
 
 ```
 
-* Ozone concentration levels (`m2_get_conc_o3`)
-
-```{r setup_o3, eval =F}
-library(rfasst)
-library(magrittr)
-
- db_path<-"path_to_your_gcam_database"
- query_path<-"path_to_your_gcam_queries_file"
- db_name<-"name of the database"
- prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
- scen_name<-"name of the GCAM scenario",
- queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
- saveOutput: Writes the files.By default=T
- map: Produce the maps. By default=F
-
-  # To write the csv files into the output folder:
-
-     m2_get_conc_o3(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=T,map=F) 
-
-  # To save as data frame ozone (O3) concentration levels by TM5-FASST region in year 2050:
-
-     o3.conc.2050<-dplyr::bind_rows(m2_get_conc_o3(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=F)) %>% dplyr::filter(year==2050) 
-                         
-     head(o3.conc.2050)
-
-```
-
-* Maximum 6-monthly running average of daily maximum hourly O3 (M6M, also known as 6mDMA1) (`m2_get_conc_m6m`)
-
-```{r setup_m6m, eval = F}
-library(rfasst)
-library(magrittr)
-
- db_path<-"path_to_your_gcam_database"
- query_path<-"path_to_your_gcam_queries_file"
- db_name<-"name of the database"
- prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
- scen_name<-"name of the GCAM scenario",
- queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
- saveOutput: Writes the files.By default=T
- map: Produce the maps. By default=F
-
-  # To write the csv files into the output folder:
-
-     m2_get_conc_m6m(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=T,map=F) 
-
-  # To save as data frame ozone-M6M (6mDMAI) concentration levels by TM5-FASST region in year 2050:
-
-     m6m.conc.2050<-dplyr::bind_rows(m2_get_conc_m6m(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=F)) %>% dplyr::filter(year==2050) 
-                         
-     head(m6m.conc.2050)
-
-```
-
-* Accumulated daytime hourly O3 concentration above a threshold of 40 ppbV (AOT40) (`m2_get_conc_aot40`)
-
-```{r setup_aot40, eval = F}
-library(rfasst)
-library(magrittr)
-
- db_path<-"path_to_your_gcam_database"
- query_path<-"path_to_your_gcam_queries_file"
- db_name<-"name of the database"
- prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
- scen_name<-"name of the GCAM scenario"
- queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
- saveOutput: Writes the files.By default=T
- map: Produce the maps. By default=F
-
-  # To write the csv files into the output folder:
-
-     m2_get_conc_aot40(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=T,map=F) 
-
-  # To save as data frame ozone-AOT40 concentration levels by TM5-FASST region in year 2050:
-
-     aot40.conc.2050<-dplyr::bind_rows(m2_get_conc_aot40(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=F)) %>% dplyr::filter(year==2050) 
-                         
-     head(aot40.conc.2050)
-
-```
-
-* Seasonal mean daytime O3 concentration (`m2_get_conc_mi`)
-
-```{r setup_mi, eval = F}
-library(rfasst)
-library(magrittr)
-
- db_path<-"path_to_your_gcam_database"
- query_path<-"path_to_your_gcam_queries_file"
- db_name<-"name of the database"
- prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
- scen_name<-"name of the GCAM scenario",
- queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
- saveOutput: Writes the files.By default=T
- map: Produce the maps. By default=F
-
-  # To write the csv files into the output folder:
-
-     m2_get_conc_mi(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=T,map=F) 
-
-  # To save as data frame ozone-Mi concentration levels by TM5-FASST region in year 2050:
-
-     mi.conc.2050<-dplyr::bind_rows(m2_get_conc_mi(db_path,query_path,db_name,prj_name,scen_name,queries,saveOutput=F)) %>% dplyr::filter(year==2050) 
-                         
-     head(mi.conc.2050)
-
-```
-
-In addition, for all these functions, the package allows to produce different figures and/or animations, generated using the [rmap](https://github.com/JGCRI/rmap) package documented in the following [page](jgcri.github.io/rmap/). To generate these maps, the user needs to include the `map=T` parameter, and they will be generated and stored in the corresponding output sub-directory. As an example for this module, the following map shows the PM2.5 concentrations in 2050:
+In addition, for all these functions, the package allows to produce different figures and/or animations, generated using the [rmap](https://github.com/JGCRI/rmap) package documented in the following [page](jgcri.github.io/rmap/). To generate these maps, the user needs to include the `map = T` parameter, and they will be generated and stored in the corresponding output sub-directory. As an example for this module, the following map shows the PM2.5 concentrations in 2050:
 <!-------------------------->
 <!-------------------------->
 <p align="center" style="font-size:18px;"> *PM2.5 concntration by region in 2050 (ug/m3)* </p>
@@ -190,6 +92,53 @@ Following this equation, base-run emissions and concentrations, and source-recep
 The package also includes the base emission and concentration levels for all these indicators.
 
 In addition, primary PM2.5 emissions (BC and POM) are assumed to have a more direct influence in urban (more dense) areas, so the emission-concentration relation for these two pollutants is modified using adjustment coefficients that are included in the package.
+
+## Downscaling PM2.5 concentrations
+
+The new release of rfasst (rfasst-v2.0) allows the user to get high-resolution (0.01 x 0.01 km) gridded concentration maps. 
+The gridded PM2.5 maps are based on a static downscaling approach, based on observed PM2.5 data from [Hammer et al 2020](https://sedac.ciesin.columbia.edu/data/set/sdei-global-annual-gwr-pm2-5-modis-misr-seawifs-aod-v4-gl-03).
+As indicated in their publication, this dataset includes "annual concentrations (micrograms per cubic meter) of all composition ground-level fine particulate matter (PM2.5). This data set combines "AOD retrievals from multiple satellite algorithms including the NASA MODerate resolution Imaging Spectroradiometer Collection 6.1 (MODIS C6.1), Multi-angle Imaging SpectroRadiometer Version 23 (MISRv23), MODIS Multi-Angle Implementation of Atmospheric Correction Collection 6 (MAIAC C6), and the Sea-Viewing Wide Field-of-View Sensor (SeaWiFS) Deep Blue Version 4."
+
+We use this data to compute static "grid-to-region" coefficients that are saved as a raster file and provided with the package (`pm25_weights_rast`).
+
+Once the region-level PM2.5 concentration levels are calculated (using the `m2_get_conc_pm25` function), the obtained dataframe can be rasterized to a 0.01 x 0.01 resolution grid map.
+
+Then, we combine the rasterized output with the pre-computed grid-to-region downscaling coefficients to obtain the final gridded output. 
+
+The downscaling procedure can be activated by setting the parameter `downscale = T`. This requires significantly more computing time so it is set to `F`by default. In addition, the user can write the produced raster file as a georeferenced "tiff" file by setting `saveRaster_grid = T` (with the associated increase in the computing time).
+
+Finally, the updated tool also enables to re-aggregate the gridded output to a new resolution of interest for the user. In this version, the tool only includes to re-aggregate gridded results to the ["NUTS3"](https://www.europarl.europa.eu/factsheets/en/sheet/99/common-classification-of-territorial-units-for-statistics-nuts-) aggregation by the European Commission. In order to get additional resolutions, the user would need to load their shape file (as a SpatVector object) and make some changes in the corresponding code (Lines 493-527). Future model version will try to make this procedure more user-friendly, which is a challenge due to the large size of these shape files. The re-aggregation of the gridded data to new resolutions can be activated with the following boolean: `agg_grid = T`. Likewise, the re-aggregated results can be written as a `.csv` file by setting `save_AggGrid = T`.
+
+An example is provided in the code below:
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup_pm5, eval = F}
+library(rfasst)
+library(magrittr)
+
+ db_path<-"path_to_your_gcam_database"
+ query_path<-"path_to_your_gcam_queries_file"
+ db_name<-"name of the database"
+ prj_name<-"name for a Project to add extracted results to" # (any name should work, avoid spaces just in case) 
+ scen_name<-"name of the GCAM scenario"
+ queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
+
+  # Produce downscaled/gridded outputs and save them as a raster file.
+  # Also, re-aggregate the gridded output to NUTS3 resolution (and save the re-aggrgeated dataframe into a csv file)
+
+     m2_get_conc_pm25(db_path, query_path, db_name, prj_name,
+                      scen_name, queries, saveOutput = F, map = F, anim = T, recompute = F,
+                           downscale = T, saveRaster_grid = T,
+                           agg_grid = "NUTS3", save_AggGrid = T) 
+
+
+```
 
 
 
