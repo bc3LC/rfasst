@@ -106,9 +106,6 @@
     <loc>/reference/calc_daly_pm25.html</loc>
   </url>
   <url>
-    <loc>/reference/calc_daly_tot.html</loc>
-  </url>
-  <url>
     <loc>/reference/calc_gdp_pc.html</loc>
   </url>
   <url>
@@ -116,6 +113,9 @@
   </url>
   <url>
     <loc>/reference/calc_pop.html</loc>
+  </url>
+  <url>
+    <loc>/reference/calc_pop_str.html</loc>
   </url>
   <url>
     <loc>/reference/calc_price_gcam.html</loc>
@@ -310,6 +310,9 @@
     <loc>/reference/raw.base_conc.html</loc>
   </url>
   <url>
+    <loc>/reference/raw.base_conc.nat.html</loc>
+  </url>
+  <url>
     <loc>/reference/raw.base_em.html</loc>
   </url>
   <url>
@@ -325,19 +328,13 @@
     <loc>/reference/raw.mort.rates.html</loc>
   </url>
   <url>
-    <loc>/reference/raw.rr.html</loc>
+    <loc>/reference/raw.rr.fusion.html</loc>
   </url>
   <url>
-    <loc>/reference/raw.rr.param.bur2014.html</loc>
+    <loc>/reference/raw.rr.gbd.param.html</loc>
   </url>
   <url>
-    <loc>/reference/raw.rr.param.bur2018.with.html</loc>
-  </url>
-  <url>
-    <loc>/reference/raw.rr.param.bur2018.without.html</loc>
-  </url>
-  <url>
-    <loc>/reference/raw.rr.param.gbd2016.html</loc>
+    <loc>/reference/raw.rr.gemm.param.html</loc>
   </url>
   <url>
     <loc>/reference/raw.ssp.data.html</loc>
@@ -374,6 +371,9 @@
   </url>
   <url>
     <loc>/reference/rr_resp_o3_Jerret2009_med.html</loc>
+  </url>
+  <url>
+    <loc>/reference/selected_pollutants.html</loc>
   </url>
   <url>
     <loc>/reference/src.bc.html</loc>

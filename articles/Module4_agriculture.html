@@ -179,45 +179,45 @@ production losses using both the AOT40 and Mi indicators</li>
 </ul>
 <p>The code below shows some examples that show how to produce some of
 these outputs:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rfasst)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> db_path<span class="ot">&lt;-</span><span class="st">"path_to_your_gcam_database"</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> query_path<span class="ot">&lt;-</span><span class="st">"path_to_your_gcam_queries_file"</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a> db_name<span class="ot">&lt;-</span><span class="st">"name of the database"</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> prj_name<span class="ot">&lt;-</span><span class="st">"name for a Project to add extracted results to"</span> <span class="co"># (any name should work, avoid spaces just in case) </span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> scen_name<span class="ot">&lt;-</span><span class="st">"name of the GCAM scenario"</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a> queries<span class="ot">&lt;-</span><span class="st">"Name of the query file"</span> <span class="co"># (the package includes a default query file that includes all the queries required in every function in the package, "queries_rfasst.xml")</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># To write the some outputs as csv files into the corresponding output folder:</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Relative yield losses.</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>       Using AOT40 as O3 exposure indicator<span class="sc">:</span> <span class="fu">m4_get_ryl_aot40</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>       Using Mi as O3 exposure indicator<span class="sc">:</span> <span class="fu">m4_get_ryl_mi</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Production losses (includes losses using both AOT40 and Mi).</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>       <span class="fu">m4_get_prod_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Revenue losses (includes losses using both AOT40 and Mi).</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>       <span class="fu">m4_get_rev_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#----------------------------------------------</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># To save this data by TM5-FASST region in year 2050 as dataframes:</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Relative yield losses.</span></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Using AOT40 as O3 exposure indicator:</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>         ryl.aot40<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_ryl_aot40</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>F, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>                                                              </span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>      <span class="co"># Using Mi as O3 exposure indicator:</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>         ryl.mi<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_ryl_mi</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>F, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Production losses (includes losses using both AOT40 and Mi).</span></span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>       prod.loss<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_prod_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Revenue losses (includes losses using both AOT40 and Mi).</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>       rev.loss<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_rev_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(rfasst)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(magrittr)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a> db_path<span class="ot">&lt;-</span><span class="st">"path_to_your_gcam_database"</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a> query_path<span class="ot">&lt;-</span><span class="st">"path_to_your_gcam_queries_file"</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a> db_name<span class="ot">&lt;-</span><span class="st">"name of the database"</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a> prj_name<span class="ot">&lt;-</span><span class="st">"name for a Project to add extracted results to"</span> <span class="co"># (any name should work, avoid spaces just in case) </span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a> scen_name<span class="ot">&lt;-</span><span class="st">"name of the GCAM scenario"</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a> queries<span class="ot">&lt;-</span><span class="st">"Name of the query file"</span> <span class="co"># (the package includes a default query file that includes all the queries required in every function in the package, "queries_rfasst.xml")</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>  <span class="co"># To write the some outputs as csv files into the corresponding output folder:</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>    <span class="co"># Relative yield losses.</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>       Using AOT40 as O3 exposure indicator<span class="sc">:</span> <span class="fu">m4_get_ryl_aot40</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>       Using Mi as O3 exposure indicator<span class="sc">:</span> <span class="fu">m4_get_ryl_mi</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>    <span class="co"># Production losses (includes losses using both AOT40 and Mi).</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>       <span class="fu">m4_get_prod_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>    <span class="co"># Revenue losses (includes losses using both AOT40 and Mi).</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>       <span class="fu">m4_get_rev_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F) </span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#----------------------------------------------</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>  <span class="co"># To save this data by TM5-FASST region in year 2050 as dataframes:</span></span>
+<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a>    </span>
+<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a>    <span class="co"># Relative yield losses.</span></span>
+<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a>      <span class="co"># Using AOT40 as O3 exposure indicator:</span></span>
+<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a>         ryl.aot40<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_ryl_aot40</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>F, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
+<span id="cb1-31"><a href="#cb1-31" tabindex="-1"></a>                                                              </span>
+<span id="cb1-32"><a href="#cb1-32" tabindex="-1"></a>      <span class="co"># Using Mi as O3 exposure indicator:</span></span>
+<span id="cb1-33"><a href="#cb1-33" tabindex="-1"></a>         ryl.mi<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_ryl_mi</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>F, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
+<span id="cb1-34"><a href="#cb1-34" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" tabindex="-1"></a>    <span class="co"># Production losses (includes losses using both AOT40 and Mi).</span></span>
+<span id="cb1-36"><a href="#cb1-36" tabindex="-1"></a>       prod.loss<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_prod_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span>
+<span id="cb1-37"><a href="#cb1-37" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" tabindex="-1"></a>    <span class="co"># Revenue losses (includes losses using both AOT40 and Mi).</span></span>
+<span id="cb1-39"><a href="#cb1-39" tabindex="-1"></a>       rev.loss<span class="fl">.2050</span><span class="ot">&lt;-</span>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(<span class="fu">m4_get_rev_loss</span>(db_path,query_path,db_name,prj_name,scen_name,queries,<span class="at">saveOutput=</span>T, <span class="at">map=</span>F)) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(year<span class="sc">==</span><span class="dv">2050</span>)</span></code></pre></div>
 <p>As in Modules 2 and 3, for all these functions, the package allows to
 produce different figures and/or animations, generated using the <a href="https://github.com/JGCRI/rmap" class="external-link">rmap</a> package documented in the
 following <a href="jgcri.github.io/rmap/">page</a>. To generate these
