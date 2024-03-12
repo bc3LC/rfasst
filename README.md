@@ -1,6 +1,6 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![build](https://github.com/bc3LC/rfasst/actions/workflows/build.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/build.yml)
-[![docs](https://github.com/bc3LC/rfasst/actions/workflows/pkgdown.yaml/badge.svg?branch=main)](https://github.com/bc3LC/rfasst/actions/workflows/pkgdown.yaml)
+[![docs](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml)
 [![codecov](https://codecov.io/gh/JGCRI/rfasst/branch/main/graph/badge.svg?token=2IBODRZKVF)](https://codecov.io/gh/JGCRI/rfasst)
 [![test_coverage](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml)
 [![DOI](https://zenodo.org/badge/344924589.svg)](https://zenodo.org/badge/latestdoi/344924589)
@@ -29,7 +29,7 @@
 [Back to Contents](#Contents)
 
 - Github: https://github.com/bc3LC/rfasst
-- Webpage: https://jgcri.github.io/rfasst/
+- Webpage: https://bc3lc.github.io/rfasst
 
 <!-- ------------------------>
 <!-- ------------------------>
