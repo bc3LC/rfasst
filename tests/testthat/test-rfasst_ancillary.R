@@ -1,9 +1,7 @@
-library(rfasst); library(testthat); library(magrittr); library(rprojroot);library(rpackageutils)
+library(rfasst); library(testthat); library(magrittr); library(rprojroot)
 #-----------------------------
 
 test_that("calc_pop function works", {
-
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
 
   pop<-calc_pop()
 
@@ -18,8 +16,6 @@ test_that("calc_pop function works", {
 
 test_that("calc_gdp function works", {
 
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
-
   gdp<-calc_gdp_pc()
 
   gdp_reg<-length(unique(gdp$region))
@@ -33,8 +29,6 @@ test_that("calc_gdp function works", {
 
 test_that("DALY PM2.5 function works", {
 
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
-
   daly_pm25<-calc_daly_pm25()
 
   daly_pm25_reg<-length(unique(daly_pm25$region))
@@ -46,8 +40,6 @@ test_that("DALY PM2.5 function works", {
 })
 
 test_that("DALY O3 function works", {
-
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
 
   daly_o3<-calc_daly_o3()
 
@@ -61,12 +53,11 @@ test_that("DALY O3 function works", {
 
 test_that("GCAM production function works", {
 
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
 
-  gcam_prod<-calc_prod_gcam(db_path = db_path,
+  gcam_prod<-calc_prod_gcam(db_path = NULL,
                             query_path="./inst/extdata",
-                            db_name = "database_basexdb_gcam7",
-                            prj_name = "scentest.dat",
+                            db_name = NULL,
+                            prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
                             scen_name = "Reference",
                             queries ="queries_rfasst.xml",
                             final_db_year = 2030,
@@ -82,17 +73,14 @@ test_that("GCAM production function works", {
 
 test_that("GCAM price function works", {
 
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
-
-
-  gcam_price<-calc_price_gcam(db_path = db_path,
-                            query_path="./inst/extdata",
-                            db_name = "database_basexdb_gcam7",
-                            prj_name = "scentest.dat",
-                            scen_name = "Reference",
-                            queries ="queries_rfasst.xml",
-                            final_db_year = 2030,
-                            saveOutput = F)
+  gcam_price<-calc_price_gcam(db_path = NULL,
+                              query_path="./inst/extdata",
+                              db_name = NULL,
+                              prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                              scen_name = "Reference",
+                              queries ="queries_rfasst.xml",
+                              final_db_year = 2030,
+                              saveOutput = F)
 
   gcam_price_reg<-length(unique(gcam_price$region))
 
@@ -104,17 +92,14 @@ test_that("GCAM price function works", {
 
 test_that("GCAM revenue function works", {
 
-  db_path = paste0(rprojroot::find_root(rprojroot::is_testthat),"/testOutputs")
-
-
-  gcam_rev<-calc_rev_gcam(db_path = db_path,
-                              query_path="./inst/extdata",
-                              db_name = "database_basexdb_gcam7",
-                              prj_name = "scentest.dat",
-                              scen_name = "Reference",
-                              queries ="queries_rfasst.xml",
-                              final_db_year = 2030,
-                              saveOutput = F)
+  gcam_rev<-calc_rev_gcam(db_path = NULL,
+                          query_path="./inst/extdata",
+                          db_name = NULL,
+                          prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                          scen_name = "Reference",
+                          queries ="queries_rfasst.xml",
+                          final_db_year = 2030,
+                          saveOutput = F)
 
   gcam_rev_reg<-length(unique(gcam_rev$region))
 
