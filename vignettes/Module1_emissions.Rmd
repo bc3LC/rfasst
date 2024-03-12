@@ -1,5 +1,5 @@
 ---
-title: "Module1_emissions"
+title: "Module 1: Emissions"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Module1_emissions}
