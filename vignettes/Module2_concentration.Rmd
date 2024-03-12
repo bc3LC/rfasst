@@ -1,5 +1,5 @@
 ---
-title: "Module2_concentration"
+title: "Module 2: Concentration"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Module2_concentration}
@@ -59,7 +59,7 @@ In addition, for all these functions, the package allows to produce different fi
 <!-------------------------->
 <!-------------------------->
 <p align="center" style="font-size:18px;"> *PM2.5 concntration by region in 2050 (ug/m3)* </p>
-<p align="center"> <img src="https://raw.githubusercontent.com/JGCRI/rfasst/main/vignettes/vignetteFigs/PM2.5_concentration_2050.png"></p>
+<p align="center"> <img src="https://github.com/bc3LC/rfasst/blob/main/vignettes/vignetteFigs/PM2.5_concentration_2050.png"></p>
 <!-------------------------->
 <!-------------------------->
 
@@ -143,5 +143,21 @@ library(magrittr)
 
 ```
 
+The figures below are an example of the downscaled outputs that can be produced:
 
+
+<!-------------------------->
+<!-------------------------->
+<p align="center" style="font-size:18px;"> *Gridded PM2.5 concentration levels for year 2020 (ug/m3, in logarithmic scale)* </p>
+<p align="center"> <img src="https://github.com/bc3LC/rfasst/blob/main/vignettes/vignetteFigs/2020_logpm25_fin_weighted.png"></p>
+<!-------------------------->
+<!-------------------------->
+
+
+<!-------------------------->
+<!-------------------------->
+<p align="center" style="font-size:18px;"> *PM2.5 concentration by NUTS3 region in 2020 (ug/m3)* </p>
+<p align="center"> <img src="https://github.com/bc3LC/rfasst/blob/main/vignettes/vignetteFigs/2020_NUTS3_pm25_avg.png"></p>
+<!-------------------------->
+<!-------------------------->
 
