@@ -702,17 +702,20 @@ raw.daly = dplyr::bind_rows(
                 cause %in% c("Diabetes mellitus type 2", "Lower respiratory infections", "Ischemic stroke", "Ischemic heart disease", "Tracheal, bronchus, and lung cancer", "Chronic obstructive pulmonary disease"),
                 age %in% (c("All ages", "25-29 years", "30-34 years", "35-39 years", "40-44 years", "45-49 years", "50-54 years","55-59 years","60-64 years",
                        "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
-  dplyr::mutate(age = gsub(" years", "", age))
+  dplyr::mutate(age = gsub(" years", "", age)) %>%
+  dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 
 usethis::use_data(raw.daly, overwrite = T)
 
 # raw.yll.pm25
 raw.yll.pm25 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
-  dplyr::filter(rei == "Ambient particulate matter pollution")
+  dplyr::filter(rei == "Ambient particulate matter pollution") %>%
+  dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 usethis::use_data(raw.yll.pm25, overwrite = T)
 
 raw.yll.o3 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
-  dplyr::filter(rei == "Ambient ozone pollution")
+  dplyr::filter(rei == "Ambient ozone pollution") %>%
+  dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 usethis::use_data(raw.yll.o3, overwrite = T)
 #------------------
 # New mortality rates

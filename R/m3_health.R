@@ -42,7 +42,6 @@ calc_daly_pm25<-function(){
     dplyr::mutate(age = dplyr::if_else(age == "All ages", ">25", age)) %>%
     tidyr::spread(measure_name, val) %>%
     dplyr::rename(country = location_name) %>%
-    dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by="country") %>%
     gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
@@ -84,7 +83,7 @@ calc_daly_o3<-function(){
     dplyr::mutate(cause_name = dplyr::if_else(grepl("Chronic obstructive",cause_name), "copd", cause_name)) %>%
     tidyr::spread(measure_name, val) %>%
     dplyr::rename(country = location_name) %>%
-    dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
+    #dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
     gcamdata::left_join_error_no_match(country_iso, by = "country") %>%
     gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                          dplyr::rename(iso3 = subRegionAlt),
@@ -422,7 +421,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(age = dplyr::if_else(age == "All ages", ">25", age)) %>%
       tidyr::spread(measure_name, val) %>%
       dplyr::rename(country = location_name) %>%
-      dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
+      #dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
       gcamdata::left_join_error_no_match(country_iso, by="country") %>%
       gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                            dplyr::rename(iso3 = subRegionAlt),
@@ -896,7 +895,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::select(location_name = location, measure_name = measure, cause_name = cause, age, val) %>%
       tidyr::spread(measure_name, val) %>%
       dplyr::rename(country = location_name) %>%
-      dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
+      #dplyr::mutate(country = dplyr::if_else(country == "CÃ´te d'Ivoire", "Cote d'Ivoire", country)) %>%
       gcamdata::left_join_error_no_match(country_iso, by="country") %>%
       gcamdata::left_join_error_no_match(rfasst::fasst_reg %>%
                                            dplyr::rename(iso3 = subRegionAlt),
