@@ -9,6 +9,7 @@
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -23,7 +24,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                    rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_param = "GBD2016_medium",  Damage_vsl_range = "Damage_vsl_med",
                                    queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -55,7 +56,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+    pm.mort<-m3_get_mort_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       dplyr::select(region, year, disease, mort_param) %>%
       dplyr::rename(mort_pm25 = mort_param)
 
@@ -154,6 +155,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -167,7 +169,7 @@ m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata"
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                   rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
                                   ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
@@ -198,7 +200,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.yll.fin<-m3_get_yll_pm25(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
+    pm.yll.fin<-m3_get_yll_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F,
                                 final_db_year = final_db_year, mort_param = mort_param, recompute = recompute)
 
     # Get gdp_pc
@@ -290,6 +292,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -304,7 +307,7 @@ m3_get_yll_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                  rdata_name = NULL, scen_name, final_db_year = 2100,
                                  mort_param = "mort_o3_gbd2016_med", Damage_vsl_range = "Damage_vsl_med",
                                  ssp = "SSP2", queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -336,7 +339,7 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get Mortalities
-    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       dplyr::select(region, year, disease, mort_param) %>%
       dplyr::rename(mort_o3 = mort_param)
 
@@ -431,6 +434,7 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -444,7 +448,7 @@ m3_get_mort_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", 
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj,
                                 rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                                 ssp = "SSP2", saveOutput = T, map = F, anim = T, mort_param = "mort_o3_gbd2016_med", recompute = F){
 
@@ -475,7 +479,7 @@ m3_get_yll_o3_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get Mortalities
-    o3.yll<-m3_get_yll_o3(db_path, query_path, db_name, prj_name, scen_name, queries, ssp = ssp, saveOutput = F,
+    o3.yll<-m3_get_yll_o3(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F,
                           final_db_year = final_db_year, mort_param = mort_param, recompute = recompute)
 
     # Get gdp_pc

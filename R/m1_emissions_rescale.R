@@ -8,6 +8,7 @@
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -20,7 +21,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                                saveOutput = T, map = F, mapIndivPol = F, anim = T, recompute = F){
 
@@ -64,32 +65,36 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::rename(`ISO 3`=subRegionAlt,
                     `FASST Region`=fasst_region)
 
-    # Load the rgcam project:
-    if (!is.null(db_path) & !is.null(db_name)) {
-      rlang::inform('Creating project ...')
-      conn <- rgcam::localDBConn(db_path,
-                                 db_name,migabble = FALSE)
-      prj <- rgcam::addScenario(conn,
-                                prj_name,
-                                scen_name,
-                                paste0(query_path,"/",queries),
-                                saveProj = F)
-      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+    # Load the rgcam project if prj not passed as a parameter:
+    if (is.null(prj)) {
+      if (!is.null(db_path) & !is.null(db_name)) {
+        rlang::inform('Creating project ...')
+        conn <- rgcam::localDBConn(db_path,
+                                   db_name,migabble = FALSE)
+        prj <- rgcam::addScenario(conn,
+                                  prj_name,
+                                  scen_name,
+                                  paste0(query_path,"/",queries),
+                                  saveProj = F)
+        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
 
-      rgcam::saveProject(prj, file = file.path('output',prj_name))
+        rgcam::saveProject(prj, file = file.path('output',prj_name))
 
-      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-    } else if (is.null(rdata_name)){
-      rlang::inform('Loading project ...')
-      prj <- rgcam::loadProject(prj_name)
+        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+      } else if (is.null(rdata_name)){
+        rlang::inform('Loading project ...')
+        prj <- rgcam::loadProject(prj_name)
 
-      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-    } else {
-      rlang::inform('Loading RData ...')
-      if (!exists('prj_rd')) {
-        prj_rd = get(load(rdata_name))
-        QUERY_LIST <- names(prj_rd)
+        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+      } else {
+        rlang::inform('Loading RData ...')
+        if (!exists('prj_rd')) {
+          prj_rd = get(load(rdata_name))
+          QUERY_LIST <- names(prj_rd)
+        }
       }
+    } else {
+      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
     rlang::inform('Computing emissions ...')
 

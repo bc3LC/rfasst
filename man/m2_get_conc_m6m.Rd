@@ -9,6 +9,7 @@ m2_get_conc_m6m(
   query_path = "./inst/extdata",
   db_name = NULL,
   prj_name,
+  prj = NULL,
   rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
