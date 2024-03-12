@@ -7,5 +7,5 @@
 \description{
 \itemize{
 \item Github: https://github.com/JGCRI/rfasst
-\item Webpage: https://jgcri.github.io/rfasst/}
+\item Webpage: https://bc3lc.github.io/rfasst/}
 }
