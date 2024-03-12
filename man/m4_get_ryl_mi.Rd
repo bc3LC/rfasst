@@ -8,7 +8,8 @@ m4_get_ryl_mi(
   db_path = NULL,
   query_path = "./inst/extdata",
   db_name = NULL,
-  prj_name,
+  prj_name = NULL,
+  prj = NULL,
   rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
@@ -27,6 +28,8 @@ m4_get_ryl_mi(
 \item{db_name}{Name of the GCAM database}
 
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
+
+\item{prj}{rgcam loaded project}
 
 \item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 

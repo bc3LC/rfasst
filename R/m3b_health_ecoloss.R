@@ -1,6 +1,5 @@
 #' m3_get_pm25_ecoloss_vsl
 #'
-#'
 #' Produce economic damages associated with premature mortality attributable to PM2.5 exposure based on the IER functions from Burnett et al (2014), consistent with the GBD 2016 study. The economic valuation takes as a base value the widely accepted Value of Statistical Life (VSL) of the OECD for 2005. This value, according to the literature ranges between US$1.8 and $4.5 million. The calculations for all regions are based on the  “unit value transfer approach” which adjusts the VSL according to their GDP and GDP growth rates. (Markandya et al 2018)
 #' @source Narain, U. and Sall, C., 2016. Methodology for Valuing the Health Impacts of Air Pollution//// Markandya, A., Sampedro, J., Smith, S.J., Van Dingenen, R., Pizarro-Irizar, C., Arto, I. and González-Eguino, M., 2018. Health co-benefits from air pollution and mitigation costs of the Paris Agreement: a modelling study. The Lancet Planetary Health, 2(3), pp.e126-e133.
 #' @keywords module_3, VSL ,premature mortality, PM2.5
@@ -9,6 +8,7 @@
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -24,7 +24,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                                    rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                    queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -32,6 +32,15 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
   if (!recompute & exists('m3_get_pm25_ecoloss_vsl.output')) {
     return(m3_get_pm25_ecoloss_vsl.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -56,7 +65,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("GBD", "GEMM", "FUSION"),
                           names_to = "model",
@@ -156,7 +165,6 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 
 #' m3_get_o3_ecoloss_vsl
 #'
-#'
 #' Produce economic damages associated with premature mortality attributable to O3 (M6M) exposure based on the IER functions from Jerret et al (2009), consistent with the GBD 2016 study. The economic valuation takes as a base value the widely accepted Value of Statistical Life (VSL) of the OECD for 2005. This value, according to the literature ranges between US$1.8 and $4.5 million. The calculations for all regions are based on the  “unit value transfer approach” which adjusts the VSL according to their GDP and GDP growth rates. (Markandya et al 2018)
 #' @source Jerrett, M., Burnett, R.T., Pope III, C.A., Ito, K., Thurston, G., Krewski, D., Shi, Y., Calle, E. and Thun, M., 2009. Long-term ozone exposure and mortality. New England Journal of Medicine, 360(11), pp.1085-1095.//// Markandya, A., Sampedro, J., Smith, S.J., Van Dingenen, R., Pizarro-Irizar, C., Arto, I. and González-Eguino, M., 2018. Health co-benefits from air pollution and mitigation costs of the Paris Agreement: a modelling study. The Lancet Planetary Health, 2(3), pp.e126-e133.
 #' @keywords module_3, VSL ,premature mortality, O3
@@ -165,6 +173,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -180,7 +189,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                                  rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                  mort_model = "Jerret2009",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                  queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -188,6 +197,14 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
   if (!recompute & exists('m3_get_o3_ecoloss_vsl.output')) {
     return(m3_get_o3_ecoloss_vsl.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -212,7 +229,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get Mortalities
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("Jerret2009", "GBD2016"),
                           names_to = "model",
@@ -312,7 +329,6 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 
 #' m3_get_pm25_ecoloss_hcl
 #'
-#'
 #' Produce economic damages associated with premature mortality attributable to PM2.5. The economic valuation is based on the Human Capital Loss approach
 #' @source Liu, G., Yang, Z., Chen, B. and Ulgiati, S., 2011. Monitoring trends of urban development and environmental impact of Beijing, 1999–2006. Science of the Total Environment, 409(18), pp.3295-3308.
 #' @keywords module_3, HCL ,premature mortality, PM2.5
@@ -321,6 +337,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -336,7 +353,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                                   rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                   mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -344,6 +361,14 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
   if (!recompute & exists('m3_get_pm25_ecoloss_hcl.output')) {
     return(m3_get_pm25_ecoloss_hcl.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -368,7 +393,7 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("GBD", "GEMM", "FUSION"),
                           names_to = "model",
@@ -452,7 +477,6 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
 
 #' m3_get_o3_ecoloss_hcl
 #'
-#'
 #' Produce economic damages associated with premature mortality attributable to O3. The economic valuation is based on the Human Capital Loss approach
 #' @source Liu, G., Yang, Z., Chen, B. and Ulgiati, S., 2011. Monitoring trends of urban development and environmental impact of Beijing, 1999–2006. Science of the Total Environment, 409(18), pp.3295-3308.
 #' @keywords module_3, HCL ,premature mortality, O3
@@ -461,6 +485,7 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -476,7 +501,7 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_o3_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_o3_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                                   rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                   mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
@@ -484,6 +509,14 @@ m3_get_o3_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", d
   if (!recompute & exists('m3_get_o3_ecoloss_hcl.output')) {
     return(m3_get_o3_ecoloss_hcl.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -508,7 +541,7 @@ m3_get_o3_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("Jerret2009", "GBD2016"),
                           names_to = "model",
