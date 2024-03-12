@@ -2,7 +2,7 @@ title: rfasst
 url: https://bc3lc.github.io/rfasst/
 template:
   params:
-    bootswatch: Yeti
+    bootswatch: flatly
 development:
   model: auto
 
