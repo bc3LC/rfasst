@@ -14,13 +14,13 @@ navbar:
     - text: "Guides"
       icon: fas fa-clipboard-list
       menu:
-      -  text: Module 1: Emissions
+      -  text: Module1:Emissions
          href: articles/Module1_emissions.html
-      -  text: Module 2: Concentration
+      -  text: Module2:Concentration
          href: articles/Module2_concentration.html
-      -  text: Module 3: Health impacts
+      -  text: Module3:Health impacts
          href: articles/Module3_health.html
-      -  text: Module 4: Agricultural impacts
+      -  text: Module4:Agricultural impacts
          href: articles/Module4_agriculture.html
     - icon: fa-file-code-o
       text: "Reference"
