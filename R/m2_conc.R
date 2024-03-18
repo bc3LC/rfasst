@@ -62,7 +62,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -604,7 +604,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -845,7 +845,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -1111,7 +1111,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -1544,7 +1544,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
