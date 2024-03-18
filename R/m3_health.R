@@ -150,7 +150,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -397,7 +397,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -574,7 +574,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -727,7 +727,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -873,7 +873,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
@@ -1025,7 +1025,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
       dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
       dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
