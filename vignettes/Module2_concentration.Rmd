@@ -42,6 +42,8 @@ library(magrittr)
  final_db_year <- "Final year in the GCAM database" # This allows to process databases with user-defined "stop periods"
  saveOutput <- T # Writes the files.By default = T
  map <- T # Produce the maps. By default = F
+ recompute <- F  # If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default = F
+
   
 
     m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, 
@@ -129,6 +131,7 @@ library(magrittr)
  final_db_year <- "Final year in the GCAM database" # This allows to process databases with user-defined "stop periods"
  saveOutput <- T # Writes the files.By default = T
  map <- T # Produce the maps. By default = F
+ recompute <- F  # If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default = F
  downscale <- T  # If set to T, produces gridded PM2.5 outputs and plots By default=F
  saveRaster_grid <- T # If set to T, writes the raster file with weighted PM25 By default=F
  agg_grid <- "NUTS3" # Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
