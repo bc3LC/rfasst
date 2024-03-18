@@ -52,12 +52,12 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
 
-    fasstSubset<-fasstSubset %>%
-      dplyr::mutate(subRegionAlt=as.character(subRegionAlt)) %>%
-      dplyr::left_join(rfasst::fasst_reg,by="subRegionAlt") %>%
+    fasstSubset<-as.data.frame(fasstSubset) %>%
+      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
+      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
       dplyr::select(-subRegion) %>%
-      dplyr::rename(subRegion=fasst_region) %>%
-      dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
+      dplyr::rename(subRegion = fasst_region) %>%
+      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Transform the loaded TM5-FASST regions
     FASST_reg<-rfasst::fasst_reg %>%
