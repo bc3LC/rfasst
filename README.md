@@ -116,6 +116,11 @@ In addition, the package includes some default input files (.Rda), that are read
 
 [Back to Contents](#Contents)
 
+- Sampedro, J., Markandya, A., Rodés-Bachs, C. and Van de Ven, D.J., 2023. Short-term health co-benefits of existing climate policies: the need for more ambitious and integrated policy action. The Lancet Planetary Health, 7(7), pp.e540-e541.
+
+- Moreno, J., Van de Ven, D.J., Sampedro, J., Gambhir, A., Woods, J. and Gonzalez-Eguino, M., 2023. Assessing synergies and trade-offs of diverging Paris-compliant mitigation strategies with long-term SDG objectives. Global Environmental Change, 78, p.102624.
+
+
 Previous to the development of this package, different studies have combined the use of GCAM and TM5-FASST:
 
 - Sampedro, J., Smith, S.J., Arto, I., González-Eguino, M., Markandya, A., Mulvaney, K.M., Pizarro-Irizar, C. and Van Dingenen, R., 2020. Health co-benefits and mitigation costs as per the Paris Agreement under different technological pathways for energy supply. Environment international, 136, p.105513.
