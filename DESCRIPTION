@@ -39,12 +39,10 @@ Imports:
     rmap,
     rpackageutils,
     gcamdata,
-    terra,
     sf,
     raster,
     rworldmap,
     assertthat,
-    tidyterra,
     countrycode
 Suggests: 
     rmarkdown,
