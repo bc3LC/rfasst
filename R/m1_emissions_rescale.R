@@ -32,7 +32,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     #----------------------------------------------------------------------
     # Assert that the parameters of the function are okay, or modify when necessary
 
-    if (!endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
+    #if (!endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
