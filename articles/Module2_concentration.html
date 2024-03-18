@@ -64,6 +64,9 @@
       <a href="../articles/Module3_health.html">Module3:Health impacts</a>
     </li>
     <li>
+      <a href="../articles/Module3b_health_eco.html">Module3b:Health impacts</a>
+    </li>
+    <li>
       <a href="../articles/Module4_agriculture.html">Module4:Agricultural impacts</a>
     </li>
   </ul>
@@ -146,23 +149,19 @@ levels:</p>
 <span> <span class="va">db_path</span><span class="op">&lt;-</span><span class="st">"path_to_your_gcam_database"</span></span>
 <span> <span class="va">query_path</span><span class="op">&lt;-</span><span class="st">"path_to_your_gcam_queries_file"</span></span>
 <span> <span class="va">db_name</span><span class="op">&lt;-</span><span class="st">"name of the database"</span></span>
-<span> <span class="va">prj_name</span><span class="op">&lt;-</span><span class="st">"name for a Project to add extracted results to"</span> <span class="co"># (any name should work, avoid spaces just in case) </span></span>
+<span> <span class="va">prj_name</span> <span class="op">&lt;-</span> <span class="st">"Name of the rgcam project"</span> <span class="co"># This can be an existing project, or, if not, this will be the name</span></span>
+<span> <span class="va">rdata_name</span> <span class="op">&lt;-</span> <span class="st">"Name of the RData file."</span> <span class="co">#It must contain the queries in a list</span></span>
 <span> <span class="va">scen_name</span><span class="op">&lt;-</span><span class="st">"name of the GCAM scenario"</span></span>
 <span> <span class="va">queries</span><span class="op">&lt;-</span><span class="st">"Name of the query file"</span> <span class="co"># (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")</span></span>
-<span> <span class="co"># saveOutput: Writes the files.By default = T</span></span>
-<span> <span class="co"># map: Produce the maps. By default = F</span></span>
-<span> <span class="co"># </span></span>
+<span> <span class="va">final_db_year</span> <span class="op">&lt;-</span> <span class="st">"Final year in the GCAM database"</span> <span class="co"># This allows to process databases with user-defined "stop periods"</span></span>
+<span> <span class="va">saveOutput</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># Writes the files.By default = T</span></span>
+<span> <span class="va">map</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># Produce the maps. By default = F</span></span>
+<span> <span class="va">recompute</span> <span class="op">&lt;-</span> <span class="cn">F</span>  <span class="co"># If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default = F</span></span>
 <span></span>
-<span>  <span class="co"># To write the csv files into the output folder:</span></span>
+<span>  </span>
 <span></span>
-<span>     <span class="fu"><a href="../reference/m2_get_conc_pm25.html">m2_get_conc_pm25</a></span><span class="op">(</span><span class="va">db_path</span>, <span class="va">query_path</span>, <span class="va">db_name</span>, <span class="va">prj_name</span>,</span>
-<span>                      <span class="va">scen_name</span>, <span class="va">queries</span>, saveOutput <span class="op">=</span> <span class="cn">T</span>, map <span class="op">=</span> <span class="cn">F</span>, anim <span class="op">=</span> <span class="cn">T</span>, recompute <span class="op">=</span> <span class="cn">F</span><span class="op">)</span> </span>
-<span></span>
-<span>  <span class="co"># To save as data frame pm2.5 concentration levels by TM5-FASST region in year 2050:</span></span>
-<span></span>
-<span>     <span class="va">pm25.conc.2050</span><span class="op">&lt;-</span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="fu"><a href="../reference/m2_get_conc_pm25.html">m2_get_conc_pm25</a></span><span class="op">(</span><span class="va">db_path</span>,<span class="va">query_path</span>,<span class="va">db_name</span>,<span class="va">prj_name</span>,<span class="va">scen_name</span>,<span class="va">queries</span>, saveOutput <span class="op">=</span> <span class="cn">F</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">year</span> <span class="op">==</span> <span class="fl">2050</span><span class="op">)</span> </span>
-<span>                         </span>
-<span>     <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">pm25.conc.2050</span><span class="op">)</span></span></code></pre></div>
+<span>    <span class="fu"><a href="../reference/m2_get_conc_pm25.html">m2_get_conc_pm25</a></span><span class="op">(</span><span class="va">db_path</span>, <span class="va">query_path</span>, <span class="va">db_name</span>, <span class="va">prj_name</span>, <span class="va">rdata_name</span>, <span class="va">scen_name</span>, <span class="va">queries</span>, </span>
+<span>                     saveOutput <span class="op">=</span> <span class="cn">F</span>, final_db_year <span class="op">=</span> <span class="va">final_db_year</span>, recompute <span class="op">=</span> <span class="va">recompute</span><span class="op">)</span> </span></code></pre></div>
 In addition, for all these functions, the package allows to produce
 different figures and/or animations, generated using the <a href="https://github.com/JGCRI/rmap" class="external-link">rmap</a> package documented in the
 following <a href="jgcri.github.io/rmap/">page</a>. To generate these
@@ -294,9 +293,18 @@ Likewise, the re-aggregated results can be written as a
 <span> <span class="va">db_path</span><span class="op">&lt;-</span><span class="st">"path_to_your_gcam_database"</span></span>
 <span> <span class="va">query_path</span><span class="op">&lt;-</span><span class="st">"path_to_your_gcam_queries_file"</span></span>
 <span> <span class="va">db_name</span><span class="op">&lt;-</span><span class="st">"name of the database"</span></span>
-<span> <span class="va">prj_name</span><span class="op">&lt;-</span><span class="st">"name for a Project to add extracted results to"</span> <span class="co"># (any name should work, avoid spaces just in case) </span></span>
+<span> <span class="va">prj_name</span> <span class="op">&lt;-</span> <span class="st">"Name of the rgcam project"</span> <span class="co"># This can be an existing project, or, if not, this will be the name</span></span>
+<span> <span class="va">rdata_name</span> <span class="op">&lt;-</span> <span class="st">"Name of the RData file."</span> <span class="co">#It must contain the queries in a list</span></span>
 <span> <span class="va">scen_name</span><span class="op">&lt;-</span><span class="st">"name of the GCAM scenario"</span></span>
 <span> <span class="va">queries</span><span class="op">&lt;-</span><span class="st">"Name of the query file"</span> <span class="co"># (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")</span></span>
+<span> <span class="va">final_db_year</span> <span class="op">&lt;-</span> <span class="st">"Final year in the GCAM database"</span> <span class="co"># This allows to process databases with user-defined "stop periods"</span></span>
+<span> <span class="va">saveOutput</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># Writes the files.By default = T</span></span>
+<span> <span class="va">map</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># Produce the maps. By default = F</span></span>
+<span> <span class="va">recompute</span> <span class="op">&lt;-</span> <span class="cn">F</span>  <span class="co"># If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default = F</span></span>
+<span> <span class="va">downscale</span> <span class="op">&lt;-</span> <span class="cn">T</span>  <span class="co"># If set to T, produces gridded PM2.5 outputs and plots By default=F</span></span>
+<span> <span class="va">saveRaster_grid</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># If set to T, writes the raster file with weighted PM25 By default=F</span></span>
+<span> <span class="va">agg_grid</span> <span class="op">&lt;-</span> <span class="st">"NUTS3"</span> <span class="co"># Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available</span></span>
+<span> <span class="va">save_AggGrid</span> <span class="op">&lt;-</span> <span class="cn">T</span> <span class="co"># If set to T, writes the raster file with the reaggregated PM25 By default=F</span></span>
 <span></span>
 <span>  <span class="co"># Produce downscaled/gridded outputs and save them as a raster file.</span></span>
 <span>  <span class="co"># Also, re-aggregate the gridded output to NUTS3 resolution (and save the re-aggrgeated dataframe into a csv file)</span></span>
