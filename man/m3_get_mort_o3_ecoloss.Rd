@@ -2,7 +2,7 @@
 % Please edit documentation in R/m3b_health_ecoloss.R
 \name{m3_get_mort_o3_ecoloss}
 \alias{m3_get_mort_o3_ecoloss}
-\title{m3_get_mort_o3_ecoloss}
+\title{m3_get_o3_ecoloss_vsl}
 \source{
 Jerrett, M., Burnett, R.T., Pope III, C.A., Ito, K., Thurston, G., Krewski, D., Shi, Y., Calle, E. and Thun, M., 2009. Long-term ozone exposure and mortality. New England Journal of Medicine, 360(11), pp.1085-1095.//// Markandya, A., Sampedro, J., Smith, S.J., Van Dingenen, R., Pizarro-Irizar, C., Arto, I. and González-Eguino, M., 2018. Health co-benefits from air pollution and mitigation costs of the Paris Agreement: a modelling study. The Lancet Planetary Health, 2(3), pp.e126-e133.
 }
@@ -14,10 +14,11 @@ m3_get_mort_o3_ecoloss(
   prj_name,
   rdata_name = NULL,
   scen_name,
-  final_db_year = 2100,
-  mort_param = "mort_o3_gbd2016_med",
-  Damage_vsl_range = "Damage_vsl_med",
   ssp = "SSP2",
+  final_db_year = 2100,
+  mort_model = "Jerret2009",
+  Damage_vsl_range = "VSL_med",
+  inc_elas_vsl = 0.8,
   queries = "queries_rfasst.xml",
   saveOutput = T,
   map = F,
@@ -38,13 +39,15 @@ m3_get_mort_o3_ecoloss(
 
 \item{scen_name}{Name of the GCAM scenario to be processed}
 
+\item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
+
 \item{final_db_year}{Final year in the GCAM database (this allows to process databases with user-defined "stop periods")}
 
-\item{mort_param}{Select the health function (GBD 2016 or Jerret et al 2009) and the Low/Med/High RR. By default = mort_o3_gbd2016_med}
+\item{mort_model}{Select the health function (GBD2016 or Jerret2009). By default = Jerret2009}
 
-\item{Damage_vsl_range}{Select the VSL to calculate the damages (Damage_vsl_med, Damage_vsl_low, or Damage_vsl_high)}
+\item{Damage_vsl_range}{Select the VSL to calculate the damages (VSL_med, VSL_low, or VSL_high). By default = VSL_med}
 
-\item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
+\item{inc_elas_vsl}{Select the VSL to calculate the damages (VSL_med, VSL_low, or VSL_high). By default = VSL_med}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
 
