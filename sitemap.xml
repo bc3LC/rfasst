@@ -211,9 +211,6 @@
     <loc>https://bc3lc.github.io/rfasst/reference/if_complex.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/inc_elas_vsl.html</loc>
-  </url>
-  <url>
     <loc>https://bc3lc.github.io/rfasst/reference/index.html</loc>
   </url>
   <url>
@@ -253,19 +250,13 @@
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_pm25.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_pm25_ecoloss.html</loc>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_pm25_ecoloss_vsl.html</loc>
   </url>
   <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_yll_o3.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_yll_o3_ecoloss.html</loc>
-  </url>
-  <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_yll_pm25.html</loc>
-  </url>
-  <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_yll_pm25_ecoloss.html</loc>
   </url>
   <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m4_get_prod_loss.html</loc>
@@ -539,11 +530,5 @@
   </url>
   <url>
     <loc>https://bc3lc.github.io/rfasst/reference/vsl_eu_2005_ub.html</loc>
-  </url>
-  <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/vsly_eu_2005.html</loc>
-  </url>
-  <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/vsly_eu_2014.html</loc>
   </url>
 </urlset>
