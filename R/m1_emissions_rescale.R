@@ -233,7 +233,9 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                     Year=year,
                     value=NewValue) %>%
       tidyr::spread(Pollutant,value) %>%
-      dplyr::mutate(CO2 = 0)
+      dplyr::mutate(CO2 = 0) %>%
+      # Avoid NAs. TODO: chekc the left join of this block, since they are produced by it
+      dplyr::mutate_if(is.numeric, function(x) ifelse(is.na(x), 0, x))
 
 
     if(length(levels(as.factor(FASST_reg$`FASST Region`))) != length(levels(as.factor(final_df_wide$Region)))){
