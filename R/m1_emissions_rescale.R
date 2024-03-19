@@ -101,7 +101,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                            prj_rd$`nonCO2 emissions by sector (excluding resource production)` %>%
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::arrange(ghg) %>%
-      dplyr::filter(ghg %in% unique(levels(as.factor(selected_pollutants)))) %>%
+      dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
       gcamdata::left_join_error_no_match(my_pol %>%
                                            dplyr::rename(ghg = Pollutant) %>%
@@ -118,7 +118,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                            prj_rd$`nonCO2 emissions by resource production` %>%
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::arrange(ghg) %>%
-      dplyr::filter(ghg %in% unique(levels(as.factor(selected_pollutants)))) %>%
+      dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       gcamdata::left_join_error_no_match(my_pol %>% dplyr::rename(ghg = Pollutant), by = dplyr::join_by(ghg)) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
       dplyr::select(-ghg) %>%
