@@ -146,6 +146,14 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::filter(ghg == "CO2") %>%
       dplyr::mutate(value = value * MTC_MTCO2)
 
+    if(nrow(co2) == 0){
+
+      co2 <- scen %>%
+        dplyr::filter(ghg == "CH4") %>%
+        dplyr::mutate(value = 0)
+
+    }
+
     scen<-scen %>%
       dplyr::filter(ghg %!in% c("OC","OC_AWB","CO2")) %>%
       dplyr::filter(scenario %in% scen_name,
@@ -186,7 +194,21 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       tidyr::spread(Pollutant, value) %>%
       dplyr::mutate(CH4=rep(0),
                     N2O=rep(0),
-                    NH3=rep(0)) %>%
+                    NH3=rep(0))
+
+    check_co2 <- as.data.frame(colnames(air)) %>%
+      dplyr::rename(ghg = `colnames(air)`) %>%
+      dplyr::filter(ghg == "CO2")
+
+    if(nrow(check_co2) == 0){
+
+      CO2 <- rep(0, nrow(air))
+
+      air <- air %>%
+        cbind(CO2)
+    }
+
+    air <- air %>%
       dplyr::select(Year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
     # Shipping:
@@ -211,7 +233,21 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       tidyr::spread(Pollutant,value) %>%
       dplyr::mutate(CH4=rep(0),
                     N2O=rep(0),
-                    NH3=rep(0)) %>%
+                    NH3=rep(0))
+
+    check_co2_ship <- as.data.frame(colnames(ship)) %>%
+      dplyr::rename(ghg = `colnames(ship)`) %>%
+      dplyr::filter(ghg == "CO2")
+
+    if(nrow(check_co2_ship) == 0){
+
+      CO2 <- rep(0, nrow(ship))
+
+      ship <- ship %>%
+        cbind(CO2)
+    }
+
+    ship <- ship %>%
       dplyr::select(Year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
     final_df_wide<-dplyr::left_join(Percen %>%
