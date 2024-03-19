@@ -47,6 +47,8 @@ m3_get_mort_pm25(
 \item{map}{Produce the maps. By default=F}
 
 \item{anim}{If set to T, produces multi-year animations. By default=T}
+
+\item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
 }
 \value{
 Premature mortality attributable to PM2.5 exposure for each TM5-FASST regions for all years (# mortalities).

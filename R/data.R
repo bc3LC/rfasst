@@ -1253,41 +1253,6 @@
 #'
 "vsl_eu_2005"
 
-#' inc_elas_vsl
-#'
-#' @description  Income elasticity for the Value of Statistical Life (VSL)
-#' @source Own assumptions
-#' \dontrun{
-#'  library(rfasst);
-#'  rfasst::inc_elas_vsl
-#' }
-#'
-#'
-"inc_elas_vsl"
-
-#' vsly_eu_2014
-#'
-#' @description  Base Value of Statistical Life Year (VSLY) in $2014
-#' @source Schlander, M., Schaefer, R. and Schwarz, O., 2017. Empirical studies on the economic value of a Statistical Life Year (VSLY) in Europe: what do they tell us?. Value in Health, 20(9), p.A666.
-#' \dontrun{
-#'  library(rfasst);
-#'  rfasst::vsly_eu_2014
-#' }
-#'
-#'
-"vsly_eu_2014"
-
-#' vsly_eu_2005
-#'
-#' @description  Base Value of Statistical Life Year (VSLY) in $2005
-#' @source Schlander, M., Schaefer, R. and Schwarz, O., 2017. Empirical studies on the economic value of a Statistical Life Year (VSLY) in Europe: what do they tell us?. Value in Health, 20(9), p.A666.
-#' \dontrun{
-#'  library(rfasst);
-#'  rfasst::vsly_eu_2005
-#' }
-#'
-#'
-"vsly_eu_2005"
 
 #' cf_o3
 #'
