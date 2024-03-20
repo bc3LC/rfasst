@@ -91,12 +91,28 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fill_queries</span><span class="op">(</span><span class="va">prj</span>, <span class="va">db_path</span>, <span class="va">db_name</span>, <span class="va">prj_name</span>, <span class="va">scenarios</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fill_queries</span><span class="op">(</span></span>
+<span>  <span class="va">prj</span>,</span>
+<span>  <span class="va">db_path</span>,</span>
+<span>  <span class="va">db_name</span>,</span>
+<span>  <span class="va">prj_name</span>,</span>
+<span>  <span class="va">scenarios</span>,</span>
+<span>  query_path <span class="op">=</span> <span class="st">"inst/extdata"</span>,</span>
+<span>  queries <span class="op">=</span> <span class="st">"queries_rfasst_nonCO2.xml"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
-    <dl><dt>prj:</dt>
+    <dl><dt>query_path</dt>
+<dd><p>Path to the query file</p></dd>
+
+
+<dt>queries</dt>
+<dd><p>Name of the GCAM query file. The file by default includes the queries required to run rfasst</p></dd>
+
+
+<dt>prj:</dt>
 <dd><p>current project</p></dd>
 
 
