@@ -74,7 +74,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                                 scen_name,
                                 paste0(query_path,"/",queries),
                                 saveProj = F)
-      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
 
       rgcam::saveProject(prj, file = file.path('output',prj_name))
 
