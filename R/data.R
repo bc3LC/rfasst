@@ -115,6 +115,68 @@
 
 #'GDP-SSP database
 #'
+#' @description GDP growth rates. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_growth.SSP1
+#' }
+"gdp_growth.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description GDP growth rates. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_growth.SSP2
+#' }
+"gdp_growth.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description GDP growth rates. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_growth.SSP3
+#' }
+"gdp_growth.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description GDP growth rates. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_growth.SSP4
+#' }
+"gdp_growth.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description GDP growth rates. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_growth.SSP5
+#' }
+"gdp_growth.SSP5"
+
+
+
+#'GDP-SSP database
+#'
 #' @description Filtered Population data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
 #' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
 #' @format .csv
