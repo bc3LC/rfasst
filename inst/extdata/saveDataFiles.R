@@ -350,6 +350,57 @@ usethis::use_data(gdp_pc.SSP4, overwrite = T)
 gdp_pc.SSP5 = calc_gdp_pc(ssp = 'SSP5')
 usethis::use_data(gdp_pc.SSP5, overwrite = T)
 
+# Annual ssp-specific GDP growth rates (for HCL)
+gdp_growth <- raw.gdp %>%
+  tidyr::pivot_longer(cols = starts_with("X"),
+                      names_to = "year",
+                      values_to = "value") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  # Add TM5-FASST regions
+  gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(REGION = subRegionAlt), by = dplyr::join_by(REGION)) %>%
+  dplyr::group_by(scenario = SCENARIO, fasst_region, year, unit = UNIT) %>%
+  dplyr::summarise(value = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(year = gsub("X", "", year),
+                scenario = dplyr::if_else(grepl("SSP1", scenario), "SSP1", scenario),
+                scenario = dplyr::if_else(grepl("SSP2", scenario), "SSP2", scenario),
+                scenario = dplyr::if_else(grepl("SSP3", scenario), "SSP3", scenario),
+                scenario = dplyr::if_else(grepl("SSP4", scenario), "SSP4", scenario),
+                scenario = dplyr::if_else(grepl("SSP5", scenario), "SSP5", scenario),
+                year = as.numeric(year)) %>%
+  tidyr::complete(tidyr::nesting(scenario, fasst_region, unit), year = seq(2010, 2100, by = 1)) %>%
+  dplyr::group_by(scenario, fasst_region, unit) %>%
+  dplyr::mutate(value = gcamdata::approx_fun(year, value, rule = 1),
+                value_lag = dplyr::lag(value)) %>%
+  dplyr::mutate(growth = value / value_lag) %>%
+  dplyr::filter(year %in% rfasst::all_years) %>%
+  dplyr::select(scenario, region = fasst_region, year, growth, unit) %>%
+  dplyr::mutate(growth = gcamdata::approx_fun(year, growth, rule = 2)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-unit)
+
+  # ADD RUE
+gdp_growth <- gdp_growth %>%
+  dplyr::bind_rows(gdp_growth %>%
+                     dplyr::filter(region == "RUS") %>%
+                     dplyr::mutate(region = "RUE"))
+
+gdp_growth.SSP1 <- gdp_growth %>% dplyr::filter(scenario == "SSP1")
+usethis::use_data(gdp_growth.SSP1, overwrite = T)
+
+gdp_growth.SSP2 <- gdp_growth %>% dplyr::filter(scenario == "SSP2")
+usethis::use_data(gdp_growth.SSP2, overwrite = T)
+
+gdp_growth.SSP3 <- gdp_growth %>% dplyr::filter(scenario == "SSP3")
+usethis::use_data(gdp_growth.SSP3, overwrite = T)
+
+gdp_growth.SSP4 <- gdp_growth %>% dplyr::filter(scenario == "SSP4")
+usethis::use_data(gdp_growth.SSP4, overwrite = T)
+
+gdp_growth.SSP5 <- gdp_growth %>% dplyr::filter(scenario == "SSP5")
+usethis::use_data(gdp_growth.SSP5, overwrite = T)
+
+
 
 #=========================================================
 # Module 2
