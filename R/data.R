@@ -1137,6 +1137,17 @@
 #=========================================================
 # Constants
 #=========================================================
+#' selected_pollutants
+#'
+#' @description  Pollutants to be considered
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::selected_pollutants
+#' }
+#'
+#'
+"selected_pollutants"
+
 #' all_years
 #'
 #' @description  Years to be analyzed: c('2005','2010','2020','2030','2040','2050','2060','2070','2080','2090','2100')

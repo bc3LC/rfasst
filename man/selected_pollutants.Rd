@@ -6,15 +6,25 @@
 \title{Selected pollutants}
 \format{
 vector
+
+An object of class \code{character} of length 30.
 }
 \source{
 -
 }
 \usage{
 selected_pollutants
+
+selected_pollutants
 }
 \description{
 Selected pollutants
+
+Pollutants to be considered
+\dontrun{
+ library(rfasst);
+ rfasst::selected_pollutants
+}
 }
 \examples{
 \dontrun{
