@@ -4,9 +4,21 @@
 \alias{fill_queries}
 \title{fill_queries}
 \usage{
-fill_queries(prj, db_path, db_name, prj_name, scenarios)
+fill_queries(
+  prj,
+  db_path,
+  db_name,
+  prj_name,
+  scenarios,
+  query_path = "inst/extdata",
+  queries = "queries_rfasst_nonCO2.xml"
+)
 }
 \arguments{
+\item{query_path}{Path to the query file}
+
+\item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
+
 \item{prj:}{current project}
 
 \item{db_path:}{path of the database}

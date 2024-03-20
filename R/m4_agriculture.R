@@ -46,33 +46,25 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    # Load the rgcam project if prj not passed as a parameter:
-    if (is.null(prj)) {
-      if (!is.null(db_path) & !is.null(db_name)) {
-        rlang::inform('Creating project ...')
-        conn <- rgcam::localDBConn(db_path,
-                                   db_name,migabble = FALSE)
-        prj <- rgcam::addScenario(conn,
-                                  prj_name,
-                                  scen_name,
-                                  paste0(query_path,"/",queries),
-                                  saveProj = F)
-        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
-
-        rgcam::saveProject(prj, file = file.path('output',prj_name))
-
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else if (is.null(rdata_name)){
-        rlang::inform('Loading project ...')
-        prj <- rgcam::loadProject(prj_name)
-
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
+    # Load the rgcam project:
+    if (!is.null(db_path) & !is.null(db_name)) {
+      print('creating prj')
+      conn <- rgcam::localDBConn(db_path,
+                                 db_name,migabble = FALSE)
+      prj <- rgcam::addScenario(conn,
+                                prj_name,
+                                scen_name,
+                                paste0(query_path,"/",queries),clobber = F)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
+    } else if (is.null(rdata_name)){
+      print('loading prj')
+      prj <- rgcam::loadProject(prj_name)
+    } else {
+      print('loading RData')
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
       }
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
@@ -197,33 +189,25 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    # Load the rgcam project if prj not passed as a parameter:
-    if (is.null(prj)) {
-      if (!is.null(db_path) & !is.null(db_name)) {
-        rlang::inform('Creating project ...')
-        conn <- rgcam::localDBConn(db_path,
-                                   db_name,migabble = FALSE)
-        prj <- rgcam::addScenario(conn,
-                                  prj_name,
-                                  scen_name,
-                                  paste0(query_path,"/",queries),
-                                  saveProj = F)
-        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
-
-        rgcam::saveProject(prj, file = file.path('output',prj_name))
-
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else if (is.null(rdata_name)){
-        rlang::inform('Loading project ...')
-        prj <- rgcam::loadProject(prj_name)
-
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
+    # Load the rgcam project:
+    if (!is.null(db_path) & !is.null(db_name)) {
+      print('creating prj')
+      conn <- rgcam::localDBConn(db_path,
+                                 db_name,migabble = FALSE)
+      prj <- rgcam::addScenario(conn,
+                                prj_name,
+                                scen_name,
+                                paste0(query_path,"/",queries),clobber = F)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
+    } else if (is.null(rdata_name)){
+      print('loading prj')
+      prj <- rgcam::loadProject(prj_name)
+    } else {
+      print('loading RData')
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
       }
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))

@@ -65,18 +65,18 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::rename(`ISO 3`=subRegionAlt,
                     `FASST Region`=fasst_region)
 
-    # Load the rgcam project if prj not passed as a parameter:
-    if (is.null(prj)) {
-      if (!is.null(db_path) & !is.null(db_name)) {
-        rlang::inform('Creating project ...')
-        conn <- rgcam::localDBConn(db_path,
-                                   db_name,migabble = FALSE)
-        prj <- rgcam::addScenario(conn,
-                                  prj_name,
-                                  scen_name,
-                                  paste0(query_path,"/",queries),
-                                  saveProj = F)
-        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+    # Load the rgcam project:
+    if (!is.null(db_path) & !is.null(db_name)) {
+      rlang::inform('Creating project ...')
+      conn <- rgcam::localDBConn(db_path,
+                                 db_name,migabble = FALSE)
+      prj <- rgcam::addScenario(conn,
+                                prj_name,
+                                scen_name,
+                                paste0(query_path,"/",queries),
+                                saveProj = F)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
 
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
