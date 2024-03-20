@@ -193,6 +193,21 @@
     <loc>https://bc3lc.github.io/rfasst/reference/gdp_eu_2005.html</loc>
   </url>
   <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/gdp_growth.SSP1.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/gdp_growth.SSP2.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/gdp_growth.SSP3.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/gdp_growth.SSP4.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/gdp_growth.SSP5.html</loc>
+  </url>
+  <url>
     <loc>https://bc3lc.github.io/rfasst/reference/gdp_pc.SSP1.html</loc>
   </url>
   <url>
@@ -244,10 +259,16 @@
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_o3.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_o3_ecoloss.html</loc>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_pm25.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_pm25.html</loc>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_o3_ecoloss_hcl.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_o3_ecoloss_vsl.html</loc>
+  </url>
+  <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_pm25_ecoloss_hcl.html</loc>
   </url>
   <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_pm25_ecoloss_vsl.html</loc>
