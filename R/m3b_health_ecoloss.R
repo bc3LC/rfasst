@@ -394,7 +394,7 @@ m3_get_pm25_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata",
       gcamdata::left_join_error_no_match(gdp_growth, by=c("region", "year")) %>%
       gcamdata::left_join_error_no_match(gdp_pc, by=c("region", "year")) %>%
       dplyr::mutate(elast = inc_elas_vsl) %>%
-      dplyr::mutate(damages = gdp_pc * gcamdata::gdp_deflator(2015, 2005) * ((1 + growth) / (1 + elast)) * mort_pm25 / 1E6,
+      dplyr::mutate(damages = gdp_pc * gcamdata::gdp_deflator(2015, 2005) * ((growth) / (1 + elast)) * mort_pm25 / 1E6,
                     unit = "Million$2015") %>%
       dplyr::select(region, year, damages, unit)
 
@@ -534,7 +534,7 @@ m3_get_o3_ecoloss_hcl<-function(db_path = NULL, query_path = "./inst/extdata", d
       gcamdata::left_join_error_no_match(gdp_growth, by=c("region", "year")) %>%
       gcamdata::left_join_error_no_match(gdp_pc, by=c("region", "year")) %>%
       dplyr::mutate(elast = inc_elas_vsl) %>%
-      dplyr::mutate(damages = gdp_pc * gcamdata::gdp_deflator(2015, 2005) * ((1 + growth) / (1 + elast)) * mort_o3 / 1E6,
+      dplyr::mutate(damages = gdp_pc * gcamdata::gdp_deflator(2015, 2005) * ((growth) / (1 + elast)) * mort_o3 / 1E6,
                     unit = "Million$2015") %>%
       dplyr::select(region, year, damages, unit)
 
