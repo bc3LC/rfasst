@@ -55,7 +55,8 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                                 prj_name,
                                 scen_name,
                                 paste0(query_path,"/",queries),clobber = F)
-      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
     } else if (is.null(rdata_name)){
       print('loading prj')
       prj <- rgcam::loadProject(prj_name)
@@ -194,7 +195,8 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                                 prj_name,
                                 scen_name,
                                 paste0(query_path,"/",queries),clobber = F)
-      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
+      prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
+                          query_path, queries = 'queries_rfasst_nonCO2.xml')
     } else if (is.null(rdata_name)){
       print('loading prj')
       prj <- rgcam::loadProject(prj_name)
