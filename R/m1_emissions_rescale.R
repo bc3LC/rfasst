@@ -66,8 +66,10 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                     `FASST Region`=fasst_region)
 
     # Load the rgcam project if prj not passed as a parameter:
-    if (is.null(prj)) {
-      if (!is.null(db_path) & !is.null(db_name)) {
+    if (!is.null(prj)) {
+      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+    }
+    else if (!is.null(db_path) & !is.null(db_name)) {
         rlang::inform('Creating project ...')
         conn <- rgcam::localDBConn(db_path,
                                    db_name,migabble = FALSE)
@@ -78,23 +80,20 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                                   saveProj = F)
         prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name)
 
-        rgcam::saveProject(prj, file = file.path('output',prj_name))
+      rgcam::saveProject(prj, file = file.path('output',prj_name))
 
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else if (is.null(rdata_name)){
-        rlang::inform('Loading project ...')
-        prj <- rgcam::loadProject(prj_name)
-
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
-      }
-    } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+    } else if (is.null(rdata_name)){
+      rlang::inform('Loading project ...')
+      prj <- rgcam::loadProject(prj_name)
+
+      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+    } else {
+      rlang::inform('Loading RData ...')
+      if (!exists('prj_rd')) {
+        prj_rd = get(load(rdata_name))
+        QUERY_LIST <- names(prj_rd)
+      }
     }
     rlang::inform('Computing emissions ...')
 
