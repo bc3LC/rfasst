@@ -285,6 +285,75 @@ test_that("m3 calculates O3-DALYs", {
 
 })
 
+test_that("m3b calculates damages for PM2.5 with VSL", {
+
+  `%!in%` = Negate(`%in%`)
+
+  pm25_vsl_reg<-dplyr::bind_rows(m3_get_pm25_ecoloss_vsl(db_path = NULL,
+                                                 query_path="./inst/extdata",
+                                                 db_name = NULL,
+                                                 prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                                                 scen_name = "Reference",
+                                                 queries ="queries_rfasst.xml",
+                                                 final_db_year = 2030,
+                                                 saveOutput = F)) %>%
+    dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
+
+  regions<-as.numeric(length(unique((pm25_vsl_reg$region))))
+
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+
+  testthat::expect_equal(regions,expectedResult)
+
+})
+
+test_that("m3b calculates damages for O3 with VSL", {
+
+  `%!in%` = Negate(`%in%`)
+
+  o3_vsl_reg<-dplyr::bind_rows(m3_get_o3_ecoloss_vsl(db_path = NULL,
+                                                         query_path="./inst/extdata",
+                                                         db_name = NULL,
+                                                         prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                                                         scen_name = "Reference",
+                                                         queries ="queries_rfasst.xml",
+                                                         final_db_year = 2030,
+                                                         saveOutput = F)) %>%
+    dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
+
+  regions<-as.numeric(length(unique((o3_vsl_reg$region))))
+
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+
+  testthat::expect_equal(regions,expectedResult)
+
+})
+
+test_that("m3b calculates damages for PM25 with Dong et al 2021", {
+
+  `%!in%` = Negate(`%in%`)
+
+  pm25_dong_reg<-dplyr::bind_rows(m3_get_pm25_ecoloss_gdpGrowth(db_path = NULL,
+                                                     query_path="./inst/extdata",
+                                                     db_name = NULL,
+                                                     prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                                                     scen_name = "Reference",
+                                                     queries ="queries_rfasst.xml",
+                                                     final_db_year = 2030,
+                                                     saveOutput = F)) %>%
+    dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
+
+  regions<-as.numeric(length(unique((pm25_dong_reg$region))))
+
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+
+  testthat::expect_equal(regions,expectedResult)
+
+})
+
 #------------------------------------------------------------------
 # Tests for module 4 functions.
 
