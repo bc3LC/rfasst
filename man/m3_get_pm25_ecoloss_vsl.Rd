@@ -47,7 +47,7 @@ m3_get_pm25_ecoloss_vsl(
 
 \item{Damage_vsl_range}{Select the VSL to calculate the damages (VSL_med, VSL_low, or VSL_high). By default = VSL_med}
 
-\item{inc_elas_vsl}{Select the VSL to calculate the damages (VSL_med, VSL_low, or VSL_high). By default = VSL_med}
+\item{inc_elas_vsl}{Select the income elasticity. Normally c(0.8, 1, 1.2). By default = 0.8}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
 
