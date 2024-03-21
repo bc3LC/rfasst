@@ -24,7 +24,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25_ecoloss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
+m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                                    rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                    queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
