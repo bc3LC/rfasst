@@ -14,7 +14,7 @@ m3_get_yll_o3(
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
-  mort_param = "mort_o3_gbd2016_med",
+  mort_param = "Jerret2009",
   ssp = "SSP2",
   saveOutput = T,
   map = F,

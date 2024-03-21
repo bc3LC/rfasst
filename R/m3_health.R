@@ -775,7 +775,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get PM2.5
-    m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
@@ -892,7 +892,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @export
 
 m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_o3.output')) {
@@ -930,8 +930,9 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
-      dplyr::select(region, year, disease, mort_param) %>%
+    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, all_of(mort_param)) %>%
       dplyr::rename(mort_o3 = mort_param)
 
     #------------------------------------------------------------------------------------
@@ -972,9 +973,8 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     o3.yll.fin<- tibble::as_tibble(o3.mort) %>%
       dplyr::filter(disease != "tot") %>%
       gcamdata::left_join_error_no_match(o3.yll, by = c("region", "disease", "year")) %>%
-      dplyr::mutate(yll_jerret2009 = Jerret2009 * YLL_ratio,
-                    yll_GBD2016 = GBD2016 * YLL_ratio) %>%
-      dplyr::select(region, year, disease, yll_jerret2009, yll_GBD2016)
+      dplyr::mutate(yll_o3 = mort_o3 * YLL_ratio) %>%
+      dplyr::select(region, year, disease, yll_o3)
 
 
     #------------------------------------------------------------------------------------
@@ -1002,8 +1002,8 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       o3.yll.map <- o3.yll.fin %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, yll_jerret2009) %>%
-        dplyr::rename(value = yll_jerret2009) %>%
+        dplyr::select(subRegion, year, yll_o3) %>%
+        dplyr::rename(value = yll_o3) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "YLLs")
 
