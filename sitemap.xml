@@ -103,6 +103,9 @@
     <loc>https://bc3lc.github.io/rfasst/reference/b.Mi_WHEAT.html</loc>
   </url>
   <url>
+    <loc>https://bc3lc.github.io/rfasst/reference/beta_dongetal2021.html</loc>
+  </url>
+  <url>
     <loc>https://bc3lc.github.io/rfasst/reference/calc_daly_o3.html</loc>
   </url>
   <url>
@@ -265,13 +268,10 @@
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_mort_pm25_ecoloss.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_o3_ecoloss_hcl.html</loc>
-  </url>
-  <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_o3_ecoloss_vsl.html</loc>
   </url>
   <url>
-    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_pm25_ecoloss_hcl.html</loc>
+    <loc>https://bc3lc.github.io/rfasst/reference/m3_get_pm25_ecoloss_gdpGrowth.html</loc>
   </url>
   <url>
     <loc>https://bc3lc.github.io/rfasst/reference/m3_get_yll_o3.html</loc>
