@@ -63,6 +63,8 @@ usethis::use_data(vsly_eu_2014, overwrite = T)
 vsly_eu_2005<-vsly_eu_2014*gcamdata::gdp_deflator(2005,base_year = 2014)
 usethis::use_data(vsly_eu_2005, overwrite = T)
 
+beta_dongetal2021 <- -0.02108
+usethis::use_data(beta_dongetal2021, overwrite = T)
 
 # Counterfactual threshold for ozone (Jerret et al 2009)
 cf_o3<-33.3

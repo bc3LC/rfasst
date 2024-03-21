@@ -1315,6 +1315,18 @@
 #'
 "vsl_eu_2005"
 
+#' beta_dongetal2021
+#'
+#' @description  Beta for damages in GDP growth based on Dong et al 2021
+#' @source OECD
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::beta_dongetal2021
+#' }
+#'
+#'
+"beta_dongetal2021"
+
 
 #' cf_o3
 #'
