@@ -115,6 +115,7 @@ calc_daly_o3<-function(){
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -127,13 +128,22 @@ calc_daly_o3<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                            rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -158,7 +168,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get PM2.5
-    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -362,6 +372,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -374,13 +385,22 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
+                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
     return(m3_get_yll_pm25.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -405,7 +425,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # Get years of life lost
@@ -538,6 +558,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -550,14 +571,23 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
                            ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
 
   if (!recompute & exists('m3_get_daly_pm25.output')) {
     return(m3_get_daly_pm25.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -585,7 +615,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     daly_calc_pm<-calc_daly_pm25()
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
@@ -692,6 +722,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -704,13 +735,22 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_o3.output')) {
     return(m3_get_mort_o3.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -735,7 +775,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get PM2.5
-    m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    m6m<-m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
@@ -837,6 +877,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -850,13 +891,21 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_o3.output')) {
     return(m3_get_yll_o3.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -881,8 +930,9 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
-                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    o3.mort<-m3_get_mort_o3(db_path, query_path, db_name, prj_name, prj, scen_name, queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+      dplyr::select(region, year, disease, mort_param) %>%
+      dplyr::rename(mort_o3 = mort_param)
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
@@ -990,6 +1040,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -1002,13 +1053,22 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
     return(m3_get_daly_o3.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -1036,7 +1096,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     daly_calc_o3<-calc_daly_o3()
 
     # Get pm.mort
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     #------------------------------------------------------------------------------------

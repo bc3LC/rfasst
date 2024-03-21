@@ -1,6 +1,5 @@
 #' m2_get_conc_pm25
 #'
-#'
 #' Produce fine particulate matter (PM2.5) concentration levels for TM5-FASST regions based on re-scaled emission pathways.
 #' @keywords module_2, concentration, PM2.5
 #' @return Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
@@ -8,6 +7,7 @@
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -23,7 +23,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                            rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                            saveOutput = T, map = F, anim = T, recompute = F,
                            downscale = F, saveRaster_grid = F,
@@ -42,6 +42,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     if(agg_grid == "NUTS3") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to NUTS3')
     if(save_AggGrid == T) assertthat::assert_that(agg_grid  == "NUTS3" & downscale == T,
                                                   msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` to save the aggregated raster grid')
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
 
     #----------------------------------------------------------------------
@@ -69,7 +70,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year, recompute = recompute)
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -561,7 +562,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 #' m2_get_conc_o3
 #'
-#'
 #' Produce ozone (O3) concentration levels based on re-scaled emission pathways.
 #' @keywords module_2, concentration, O3
 #' @return Produce ozone (O3) levels for each TM5-FASST regions for all years (ppb). The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
@@ -569,6 +569,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -581,13 +582,21 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, ch4_o3 = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m2_get_conc_o3.output')) {
     return(m2_get_conc_o3.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if (is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -810,6 +819,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -821,14 +831,21 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @importFrom magrittr %>%
 #' @export
 
-
-m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                           saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m2_get_conc_m6m.output')) {
     return(m2_get_conc_m6m.output)
   } else {
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -852,7 +869,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,rdata_name,scen_name,queries,saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,rdata_name,scen_name,queries,saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -1076,6 +1093,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -1088,13 +1106,22 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @export
 
 
-m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                             rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                             saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m2_get_conc_aot40.output')) {
     return(m2_get_conc_aot40.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -1118,7 +1145,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1509,6 +1536,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Name of the GCAM scenario to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
@@ -1520,14 +1548,22 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @importFrom magrittr %>%
 #' @export
 
-
-m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name,
+m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
                          saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m2_get_conc_mi.output')) {
     return(m2_get_conc_mi.output)
   } else {
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Assert that the parameters of the function are okay, or modify when necessary
+
+    if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
 
     all_years<-all_years[all_years <= final_db_year]
 
@@ -1551,7 +1587,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # First we load the base concentration and emissions, which are required for the calculations
 

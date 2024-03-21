@@ -11,7 +11,8 @@ calc_price_gcam(
   db_path = NULL,
   query_path = "./inst/extdata",
   db_name = NULL,
-  prj_name,
+  prj_name = NULL,
+  prj = NULL,
   rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
@@ -30,6 +31,8 @@ calc_price_gcam(
 \item{db_name}{Name of the GCAM database}
 
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
+
+\item{prj}{rgcam loaded project}
 
 \item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
