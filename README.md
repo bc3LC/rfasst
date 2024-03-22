@@ -1,7 +1,7 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![build](https://github.com/bc3LC/rfasst/actions/workflows/build.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/build.yml)
 [![docs](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml)
-[![codecov](https://codecov.io/gh/JGCRI/rfasst/branch/main/graph/badge.svg?token=2IBODRZKVF)](https://codecov.io/gh/JGCRI/rfasst)
+[![codecov](https://codecov.io/gh/bc3LC/rfasst/graph/badge.svg?token=k6DoPorqn9)](https://codecov.io/gh/bc3LC/rfasst)
 [![test_coverage](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml)
 [![DOI](https://zenodo.org/badge/344924589.svg)](https://zenodo.org/badge/latestdoi/344924589)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03820/status.svg)](https://doi.org/10.21105/joss.03820)
