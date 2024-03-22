@@ -78,7 +78,7 @@ data_query = function(type, db_path, db_name, prj_name, scenarios,
   qq <- xml2::xml_find_first(xml, paste0("//*[@title='", type, "']"))
 
   # retrive nonCO2 pollutants
-  emiss_list = unique(my_pol$Pollutant)
+  emiss_list = unique(rfasst::my_pol$Pollutant)
   emiss_list <- emiss_list[!(emiss_list %in% c('CO2', 'CO2_FUG'))]
   for (sc in scenarios) {
     while (length(emiss_list) > 0) {
