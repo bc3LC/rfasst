@@ -279,12 +279,13 @@ the tool only includes to re-aggregate gridded results to the <a href="https://w
 aggregation by the European Commission. In order to get additional
 resolutions, the user would need to load their shape file (as a
 SpatVector object) and make some changes in the corresponding code
-(Lines 493-527). Future model version will try to make this procedure
-more user-friendly, which is a challenge due to the large size of these
-shape files. The re-aggregation of the gridded data to new resolutions
-can be activated with the following boolean: <code>agg_grid = T</code>.
-Likewise, the re-aggregated results can be written as a
-<code>.csv</code> file by setting <code>save_AggGrid = T</code>.</p>
+(Lines 493-527, <code>m2_conc.R</code>). Future model version will try
+to make this procedure more user-friendly, which is a challenge due to
+the large size of these shape files. The re-aggregation of the gridded
+data to new resolutions can be activated with the following boolean:
+<code>agg_grid = T</code>. Likewise, the re-aggregated results can be
+written as a <code>.csv</code> file by setting
+<code>save_AggGrid = T</code>.</p>
 <p>An example is provided in the code below:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/bc3LC/rfasst" class="external-link">rfasst</a></span><span class="op">)</span></span>
