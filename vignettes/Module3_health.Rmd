@@ -21,7 +21,7 @@ library(magrittr)
  prj_name <- "Name of the rgcam project" # This can be an existing project, or, if not, this will be the name
  rdata_name <- "Name of the RData file." #It must contain the queries in a list
  scen_name<-"name of the GCAM scenario"
- queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the packae, "queries_rfasst.xml")
+ queries<-"Name of the query file" # (the package includes a default query file that includes all the queries required in every function in the package, "queries_rfasst.xml")
  final_db_year <- "Final year in the GCAM database" # This allows to process databases with user-defined "stop periods"
  saveOutput <- T # Writes the files.By default = T
  map <- T # Produce the maps. By default = F
