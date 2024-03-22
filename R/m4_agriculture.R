@@ -30,6 +30,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # Assert that the parameters of the function are okay, or modify when necessary
 
+    if(!is.null(prj_name) && !endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
     if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
     #----------------------------------------------------------------------
@@ -190,6 +191,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Assert that the parameters of the function are okay, or modify when necessary
 
+    if(!is.null(prj_name) && !endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
     if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
     #----------------------------------------------------------------------

@@ -33,7 +33,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     #----------------------------------------------------------------------
     # Assert that the parameters of the function are okay, or modify when necessary
 
-    if(!endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
+    if(!is.null(prj_name) && !endsWith(prj_name, '.dat')) prj_name = paste0(prj_name, '.dat')
     if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
     #----------------------------------------------------------------------
@@ -110,7 +110,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::arrange(ghg) %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
-      gcamdata::left_join_error_no_match(my_pol %>%
+      gcamdata::left_join_error_no_match(rfasst::my_pol %>%
                                            dplyr::rename(ghg = Pollutant) %>%
                                            tibble::as_tibble(), by = dplyr::join_by(ghg)) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
