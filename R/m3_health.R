@@ -204,11 +204,11 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       df_fin <- df %>%
         dplyr::rowwise() %>%
-        dplyr::left_join(GBD, dplyr::join_by(disease, age)) %>%
+        dplyr::left_join(GBD, by = c('disease', 'age')) %>%
         dplyr::filter(complete.cases(alpha)) %>%
         dplyr::mutate(GBD_rr = 1 + alpha * (1 - exp(-beta * max(0, value - zcf) ^ delta))) %>%
         dplyr::select(-alpha, -beta, -zcf, -delta) %>%
-        gcamdata::left_join_error_no_match(GEMM, dplyr::join_by(disease, age)) %>%
+        gcamdata::left_join_error_no_match(GEMM, by = c('disease', 'age')) %>%
         dplyr::rename(nu = un) %>%
         dplyr::mutate(theta = as.numeric(theta),
                       alpha = as.numeric(alpha),
@@ -230,12 +230,12 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.rr.fusion <- pm.rr.pre %>%
       dplyr::select(region, year, units, pm_conc, disease, age) %>%
       dplyr::mutate(z = round(pm_conc, 1)) %>%
-      #dplyr::left_join(raw.rr.fusion, by = dplyr::join_by(disease, age, z)) %>%
-      gcamdata::left_join_error_no_match(raw.rr.fusion, by = dplyr::join_by(disease, age, z)) %>%
+      #dplyr::left_join(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
+      gcamdata::left_join_error_no_match(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
       dplyr::select(region, year, units, pm_conc, disease, age, FUSION_rr = rr)
 
     pm.rr <- pm.rr.pre %>%
-      gcamdata::left_join_error_no_match(pm.rr.fusion,  by = dplyr::join_by(region, year, units, pm_conc, disease, age))
+      gcamdata::left_join_error_no_match(pm.rr.fusion,  by = c('region', 'year', 'units', 'pm_conc', 'disease', 'age'))
 
 
     #------------------------------------------------------------------------------------
@@ -269,8 +269,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.mort.str <- pm.mort.pre %>%
       dplyr::filter(disease %in% c("ihd", "stroke")) %>%
       dplyr::mutate(year = as.numeric(as.character(year))) %>%
-      gcamdata::left_join_error_no_match(mort.rates, by = dplyr::join_by(region, year, disease, age)) %>%
-      gcamdata::left_join_error_no_match(pop_fin_str, by = dplyr::join_by(region, year, age)) %>%
+      gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
+      gcamdata::left_join_error_no_match(pop_fin_str, by = c('region', 'year', 'age')) %>%
       dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                     mort = round(mort, 0)) %>%
       dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
@@ -281,8 +281,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.mort.allages <- pm.mort.pre %>%
       dplyr::filter(disease %!in% c("ihd", "stroke")) %>%
       dplyr::mutate(year = as.numeric(as.character(year))) %>%
-      gcamdata::left_join_error_no_match(mort.rates, by = dplyr::join_by(region, year, disease, age)) %>%
-      gcamdata::left_join_error_no_match(pop_fin_allages, by = dplyr::join_by(region, year)) %>%
+      gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
+      gcamdata::left_join_error_no_match(pop_fin_allages, by = c('region', 'year')) %>%
       dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                     mort = round(mort, 0)) %>%
       dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
