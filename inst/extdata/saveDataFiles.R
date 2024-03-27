@@ -359,7 +359,7 @@ gdp_growth <- raw.gdp %>%
                       values_to = "value") %>%
   dplyr::filter(complete.cases(.)) %>%
   # Add TM5-FASST regions
-  gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(REGION = subRegionAlt), by = dplyr::join_by(REGION)) %>%
+  gcamdata::left_join_error_no_match(fasst_reg %>% dplyr::rename(REGION = subRegionAlt), by = c('REGION')) %>%
   dplyr::group_by(scenario = SCENARIO, fasst_region, year, unit = UNIT) %>%
   dplyr::summarise(value = sum(value)) %>%
   dplyr::ungroup() %>%
