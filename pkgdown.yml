@@ -1,5 +1,5 @@
 pandoc: 3.1.11
-pkgdown: 2.0.7
+pkgdown: 2.0.8
 pkgdown_sha: ~
 articles:
   Module1_emissions: Module1_emissions.html
@@ -7,7 +7,7 @@ articles:
   Module3_health: Module3_health.html
   Module3b_health_eco: Module3b_health_eco.html
   Module4_agriculture: Module4_agriculture.html
-last_built: 2024-03-27T09:36Z
+last_built: 2024-04-11T08:48Z
 urls:
   reference: https://bc3lc.github.io/rfasst/reference
   article: https://bc3lc.github.io/rfasst/articles
