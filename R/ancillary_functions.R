@@ -335,7 +335,7 @@ calc_pop_str<-function(ssp = "SSP2"){
   pop<-tibble::as_tibble(ssp.data) %>%
     dplyr::filter(grepl("Population", variable)) %>%
     dplyr::mutate(variable = gsub("-", "and", variable)) %>%
-    dplyr::left_join(age_str_mapping, by = join_by(variable)) %>%
+    dplyr::left_join(age_str_mapping, by = 'variable') %>%
     dplyr::filter(complete.cases(age)) %>%
     dplyr::filter(!grepl("Edu", variable)) %>%
     dplyr::mutate(age = dplyr::if_else(age == "95-99" | age == "100", "95+", age)) %>%
