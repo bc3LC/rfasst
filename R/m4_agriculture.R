@@ -66,8 +66,16 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                                   scen_name,
                                   paste0(query_path,"/",queries),
                                   saveProj = F)
-        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
-                            query_path, queries = 'queries_rfasst_nonCO2.xml')
+        # add nonCO2 query manually (it is too big to use the usual method)
+        if (!'nonCO2 emissions by sector (excluding resource production)' %in% rgcam::listQueries(prj)) {
+          dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)',
+                               db_path, db_name, prj_name, scen_name,
+                               query_path, 'queries_rfasst_nonCO2.xml')
+          prj_tmp <- rgcam::addQueryTable(project = prj_name, qdata = dt_sec,
+                                          queryname = 'nonCO2 emissions by sector (excluding resource production)', clobber = FALSE)
+          prj <- rgcam::mergeProjects(prj_name, list(prj,prj_tmp), clobber = TRUE, saveProj = FALSE)
+          rm(prj_tmp); rm(dt_sec)
+        }
 
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
@@ -227,8 +235,17 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                                   scen_name,
                                   paste0(query_path,"/",queries),
                                   saveProj = F)
-        prj <- fill_queries(prj, db_path, db_name, prj_name, scen_name,
-                            query_path, queries = 'queries_rfasst_nonCO2.xml')
+
+        # add nonCO2 query manually (it is too big to use the usual method)
+        if (!'nonCO2 emissions by sector (excluding resource production)' %in% rgcam::listQueries(prj)) {
+          dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)',
+                               db_path, db_name, prj_name, scen_name,
+                               query_path, 'queries_rfasst_nonCO2.xml')
+          prj_tmp <- rgcam::addQueryTable(project = prj_name, qdata = dt_sec,
+                                          queryname = 'nonCO2 emissions by sector (excluding resource production)', clobber = FALSE)
+          prj <- rgcam::mergeProjects(prj_name, list(prj,prj_tmp), clobber = TRUE, saveProj = FALSE)
+          rm(prj_tmp); rm(dt_sec)
+        }
 
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
