@@ -425,7 +425,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Apply the function to all of the years.
     # This can be modified and write the data just for the desired years
-    m1_emissions_rescale.output <<- write_data()
+    m1_emissions_rescale.output <<- write_data() %>%
+      dplyr::rename(year = Year)
     return(invisible(m1_emissions_rescale.output))
   }
 
