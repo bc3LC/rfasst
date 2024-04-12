@@ -168,7 +168,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     }
 
-    scen<-scen %>%
+    scen <- scen %>%
       dplyr::filter(ghg %!in% c("OC","OC_AWB","CO2")) %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
@@ -178,7 +178,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::group_by(scenario,region,Units,ghg,year) %>%
       dplyr::summarise(value=sum(value))%>%
       dplyr::ungroup()%>%
-      dplyr::select(-scenario,-Units) %>%
+      dplyr::select(-Units) %>%
       dplyr::filter(year %in% all_years) %>%
       dplyr::rename(`GCAM Region` = region,
                     Pollutant = ghg) %>%
@@ -193,16 +193,15 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                         dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
-      dplyr::mutate(ghg=dplyr::if_else(grepl("SO2",ghg), "SO2", as.character(ghg))) %>%
-      dplyr::group_by(ghg,year) %>%
+      dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg), "SO2", as.character(ghg))) %>%
+      dplyr::group_by(scenario, ghg,year) %>%
       dplyr::summarise(value=sum(value)) %>%
       dplyr::ungroup() %>%
       # transform value to kg
       dplyr::mutate(value=value * TG_KG)  %>%
       dplyr::filter(year %in% all_years) %>%
       dplyr::mutate(ghg = as.factor(ghg)) %>%
-      dplyr::rename(Pollutant = ghg,
-                    Year = year) %>%
+      dplyr::rename(Pollutant = ghg) %>%
       dplyr::mutate(Pollutant = dplyr::if_else(Pollutant =="OC","POM", as.character(Pollutant)),
                     Pollutant = as.factor(Pollutant)) %>%
       tidyr::spread(Pollutant, value) %>%
@@ -223,7 +222,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     }
 
     air <- air %>%
-      dplyr::select(Year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
+      dplyr::select(scenario, year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
     # Shipping:
     ship <- if_complex(is.null(rdata_name),
@@ -233,15 +232,14 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg),"SO2", as.character(ghg))) %>%
-      dplyr::group_by(ghg,year) %>%
+      dplyr::group_by(scenario, ghg, year) %>%
       dplyr::summarise(value=sum(value)) %>%
       dplyr::ungroup() %>%
       # transform value to kg
       dplyr::mutate(value = value * TG_KG) %>%
       dplyr::filter(year %in% all_years) %>%
       dplyr::mutate(ghg = as.factor(ghg)) %>%
-      dplyr::rename(Pollutant = ghg,
-                    Year = year) %>%
+      dplyr::rename(Pollutant = ghg) %>%
       dplyr::mutate(Pollutant = dplyr::if_else(Pollutant =="OC","POM", as.character(Pollutant)),
                     Pollutant = as.factor(Pollutant))%>%
       tidyr::spread(Pollutant,value) %>%
@@ -262,17 +260,18 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     }
 
     ship <- ship %>%
-      dplyr::select(Year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
+      dplyr::select(scenario,year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
     final_df_wide<-dplyr::left_join(Percen %>%
-                                      dplyr::filter(year %in% all_years) %>%
+                                      dplyr::filter(year %in% all_years,
+                                                    Pollutant != "CO2") %>%
                                       dplyr::mutate(`GCAM Region`=as.factor(`GCAM Region`)),
                                     scen,
                                     by=c('GCAM Region','Pollutant','year')) %>%
       dplyr::mutate(NewValue = Percentage * value) %>%
       dplyr::left_join(FASST_reg, by = 'ISO 3') %>%
-      dplyr::group_by(`FASST Region`,year,Pollutant) %>%
-      dplyr::summarise(NewValue=sum(NewValue)) %>%
+      dplyr::group_by(scenario, `FASST Region`, year, Pollutant) %>%
+      dplyr::summarise(NewValue = sum(NewValue)) %>%
       dplyr::ungroup() %>%
       dplyr::rename(Region=`FASST Region`,
                     Year=year,
@@ -289,31 +288,29 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     #Write the data
     #Create the function to write the csv files
 
-    write_data <- function(year,save = saveOutput){
+    write_data <- function(save = saveOutput){
 
       a <- final_df_wide %>%
-        dplyr::filter(Year == year) %>%
-        dplyr::select(-Year) %>%
         dplyr::rename(COUNTRY = Region,
                       NOX = NOx,
                       OM = POM,
                       VOC = NMVOC) %>%
-        dplyr::select(COUNTRY,BC,CH4,CO2,CO,N2O,NH3,NOX,OM,SO2,VOC)
+        dplyr::select(scenario, Year, COUNTRY,BC,CH4,CO2,CO,N2O,NH3,NOX,OM,SO2,VOC)
 
 
       # Shipping and aviation
       vec_air<-air %>%
-        dplyr::filter(Year == year) %>%
+        dplyr::rename(Year = year) %>%
         dplyr::mutate(COUNTRY = "AIR") %>%
-        dplyr::select(COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOx, POM, SO2, NMVOC) %>%
+        dplyr::select(scenario, Year, COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOx, POM, SO2, NMVOC) %>%
         dplyr::rename(NOX = NOx,
                       OM = POM,
                       VOC = NMVOC)
 
       vec_ship<-ship %>%
-        dplyr::filter(Year == year) %>%
+        dplyr::rename(Year = year) %>%
         dplyr::mutate(COUNTRY = "SHIP") %>%
-        dplyr::select(COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOx, POM, SO2, NMVOC) %>%
+        dplyr::select(scenario, Year, COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOx, POM, SO2, NMVOC) %>%
         dplyr::rename(NOX = NOx,
                       OM = POM,
                       VOC = NMVOC)
@@ -322,13 +319,13 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       # Add RUE:
       rus<- a %>%
         dplyr::filter(COUNTRY == "RUS") %>%
-        tidyr::gather(Pollutant, value, -COUNTRY) %>%
+        tidyr::gather(Pollutant, value, -COUNTRY, -scenario, -Year) %>%
         dplyr::mutate(COUNTRY = as.character(COUNTRY),
                       Pollutant = as.character(Pollutant))
 
       rue <- a %>%
         dplyr::filter(COUNTRY == "RUS") %>%
-        tidyr::gather(Pollutant, value, -COUNTRY) %>%
+        tidyr::gather(Pollutant, value, -COUNTRY, -scenario, -Year) %>%
         dplyr::mutate(COUNTRY = "RUE") %>%
         dplyr::mutate(COUNTRY = as.character(COUNTRY),
                       Pollutant = as.character(Pollutant))
@@ -342,40 +339,40 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                          by=c("COUNTRY","Pollutant")) %>%
         dplyr::mutate(value = value * perc) %>%
         dplyr::select(-perc) %>%
-        tidyr::spread(Pollutant, value)
+        tidyr::spread(Pollutant, value) %>%
+        dplyr::mutate(Year = as.numeric(as.character(Year)))
 
 
       # Add aviation, shipping and Russia
-      a<- a %>%
+      a <- a %>%
+        dplyr::mutate(Year = as.numeric(as.character(Year))) %>%
         dplyr::filter(COUNTRY != "RUS") %>%
         dplyr::bind_rows(vec_air, vec_ship, rus_fin %>% dplyr::mutate(COUNTRY = as.character(COUNTRY)))
 
 
 
       # Total
-      tot<-a %>%
-        tidyr::gather(Pollutant, value, -COUNTRY) %>%
-        dplyr::group_by(Pollutant) %>%
+      tot <-a %>%
+        tidyr::gather(Pollutant, value, -COUNTRY, -scenario, -Year) %>%
+        dplyr::group_by(scenario, Year, Pollutant) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
-        tidyr::spread(Pollutant, value)%>%
+        tidyr::spread(Pollutant, value) %>%
         dplyr::mutate(COUNTRY = "*TOTAL*") %>%
-        dplyr::select(COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOX, OM, SO2, VOC)
+        dplyr::select(scenario, Year, COUNTRY, BC, CH4, CO2, CO, N2O, NH3, NOX, OM, SO2, VOC)
 
       # Add total and PM2.5
-      a<- a %>%
+      a <- a %>%
         dplyr::bind_rows(tot) %>%
         dplyr::mutate(PM25 = rep(-99900))
 
-      a<-a[c(59,55,56,1:45,57,58,46:54),]
 
       if(save == T){
-      write.csv(a, file = paste0("output/", "m1/", scen_name[1], '_', year, '.csv'),row.names = FALSE, quote = FALSE)
+      write.csv(a, file = paste0("output/m1/", "emissions", '.csv'),row.names = FALSE, quote = FALSE)
       }
 
       em <- a %>%
-        dplyr::mutate(year = year)%>%
-        tidyr::gather(pollutant, value, -COUNTRY, -year) %>%
+        tidyr::gather(pollutant, value, -COUNTRY, -scenario, -Year) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::filter(region != "*TOTAL*")
 
@@ -385,14 +382,14 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # If map=T, it produces a map with the calculated outcomes
 
-    final_df_wide.map<-final_df_wide %>%
-      tidyr::gather(pollutant, value, -Region, -Year) %>%
+    final_df_wide.map <- final_df_wide %>%
+      tidyr::gather(pollutant, value, -Region, -scenario, -Year) %>%
       dplyr::filter(pollutant %in% map_pol) %>%
       dplyr::rename(subRegion = Region)%>%
       dplyr::filter(subRegion != "RUE") %>%
-      dplyr::select(subRegion, Year, pollutant, value) %>%
-      dplyr::rename(class = pollutant,
-                    year = Year) %>%
+      dplyr::select(scenario, subRegion, Year, pollutant, value) %>%
+      dplyr::rename(year = Year) %>%
+      dplyr::rename(class = pollutant) %>%
       dplyr::mutate(year = as.numeric(as.character(year)),
                     value = value * 1E-6,
                     units = "Gg")
@@ -428,7 +425,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Apply the function to all of the years.
     # This can be modified and write the data just for the desired years
-    m1_emissions_rescale.output <<- lapply(all_years,write_data)
+    m1_emissions_rescale.output <<- write_data()
     return(invisible(m1_emissions_rescale.output))
   }
 
