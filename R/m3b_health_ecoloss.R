@@ -71,7 +71,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
                           names_to = "model",
                           values_to = "mort_pm25") %>%
       dplyr::filter(model == mort_model) %>%
-      dplyr::group_by(region, year) %>%
+      dplyr::group_by(region, year, scenario) %>%
       dplyr::summarise(mort_pm25 = sum(mort_pm25)) %>%
       dplyr::ungroup()
 
@@ -95,49 +95,73 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(unit = "Million$2005") %>%
       dplyr::mutate(year = as.numeric(year))
 
-    #------------------------------------------------------------------------------------
-    pm.mort.EcoLoss<-pm.mort %>%
-      gcamdata::left_join_error_no_match(vsl, by=c("region", "year")) %>%
-      dplyr::select(-scenario) %>%
-      # Calculate the median damages
-      dplyr::mutate(VSL_med = round(mort_pm25 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    VSL_low = round(mort_pm25 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    VSL_high = round(mort_pm25 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    unit = "Million$2015") %>%
-      dplyr::select(-vsl_med, -vsl_lb, -vsl_ub) %>%
-      tidyr::pivot_longer(cols = c("VSL_med", "VSL_low", "VSL_high"),
-                          names_to = "range",
-                          values_to = "damages") %>%
-      dplyr::filter(range == Damage_vsl_range) %>%
-      dplyr::select(region, year, range, damages, unit)
+
+    m3_get_pm25_ecoloss_vsl.output.list <- list()
+    for (sc in scen_name) {
+
+      #------------------------------------------------------------------------------------
+      pm.mort.EcoLoss<-pm.mort %>%
+        dplyr::filter(scenario == sc) %>%
+        dplyr::select(-scenario) %>%
+        gcamdata::left_join_error_no_match(vsl, by=c("region", "year")) %>%
+        dplyr::select(-scenario) %>%
+        # Calculate the median damages
+        dplyr::mutate(VSL_med = round(mort_pm25 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      VSL_low = round(mort_pm25 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      VSL_high = round(mort_pm25 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      unit = "Million$2015") %>%
+        dplyr::select(-vsl_med, -vsl_lb, -vsl_ub) %>%
+        tidyr::pivot_longer(cols = c("VSL_med", "VSL_low", "VSL_high"),
+                            names_to = "range",
+                            values_to = "damages") %>%
+        dplyr::filter(range == Damage_vsl_range) %>%
+        dplyr::select(region, year, range, damages, unit)
 
 
-    #------------------------------------------------------------------------------------
-    # Write the output
-    pm.mort.EcoLoss.list<-split(pm.mort.EcoLoss,pm.mort.EcoLoss$year)
+      #------------------------------------------------------------------------------------
+      # Write the output
+
+      pm.mort.EcoLoss.list<-pm.mort.EcoLoss %>%
+        dplyr::mutate(scenario = sc)
+      m3_get_pm25_ecoloss_vsl.output.list <- append(m3_get_pm25_ecoloss_vsl.output.list, list(pm.mort.EcoLoss.list))
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m3_get_pm25_ecoloss_vsl.output <<- dplyr::bind_rows(m3_get_pm25_ecoloss_vsl.output.list)
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
 
     pm.mort.EcoLoss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_VSL_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_VSL_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
 
     if(saveOutput == T){
 
+      pm.mort.EcoLoss.list<-split(m3_get_pm25_ecoloss_vsl.output,m3_get_pm25_ecoloss_vsl.output$year)
+
       lapply(pm.mort.EcoLoss.list, pm.mort.EcoLoss.write)
 
     }
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
 
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      pm.mort.EcoLoss.map <- pm.mort.EcoLoss %>%
+
+      pm.mort.EcoLoss.map <- m3_get_pm25_ecoloss_vsl.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, damages, unit) %>%
+        dplyr::select(subRegion, year, damages, unit, scenario) %>%
         dplyr::rename(value = damages,
                       units = unit) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
@@ -151,14 +175,13 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
-
     }
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
 
-    pm.mort.EcoLoss<-dplyr::bind_rows(pm.mort.EcoLoss.list)
-    m3_get_pm25_ecoloss_vsl.output <<- pm.mort.EcoLoss
-    return(invisible(pm.mort.EcoLoss))
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Return output
+
+    return(invisible(m3_get_pm25_ecoloss_vsl.output))
   }
 
 }
@@ -235,7 +258,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
                           names_to = "model",
                           values_to = "mort_o3") %>%
       dplyr::filter(model == mort_model) %>%
-      dplyr::group_by(region, year) %>%
+      dplyr::group_by(region, year, scenario) %>%
       dplyr::summarise(mort_o3 = sum(mort_o3)) %>%
       dplyr::ungroup()
 
@@ -260,34 +283,58 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(unit = "Million$2005") %>%
       dplyr::mutate(year = as.numeric(year))
 
-    #------------------------------------------------------------------------------------
-    o3.mort.EcoLoss<-o3.mort %>%
-      gcamdata::left_join_error_no_match(vsl, by = c("region","year")) %>%
-      dplyr::select(-scenario) %>%
-      # Calculate the median damages
-      dplyr::mutate(VSL_med = round(mort_o3 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    VSL_low = round(mort_o3 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    VSL_high = round(mort_o3 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
-                    unit = "Million$2015") %>%
-      dplyr::select(-vsl_med, -vsl_lb, -vsl_ub) %>%
-      tidyr::pivot_longer(cols = c("VSL_med", "VSL_low", "VSL_high"),
-                          names_to = "range",
-                          values_to = "damages") %>%
-      dplyr::filter(range == Damage_vsl_range) %>%
-      dplyr::select(region, year, range, damages, unit)
+
+    m3_get_o3_ecoloss_vsl.output.list <- list()
+    for (sc in scen_name) {
+
+      #------------------------------------------------------------------------------------
+      o3.mort.EcoLoss<-o3.mort %>%
+        dplyr::filter(scenario == sc) %>%
+        dplyr::select(-scenario) %>%
+        gcamdata::left_join_error_no_match(vsl, by = c("region","year")) %>%
+        dplyr::select(-scenario) %>%
+        # Calculate the median damages
+        dplyr::mutate(VSL_med = round(mort_o3 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      VSL_low = round(mort_o3 * vsl_lb * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      VSL_high = round(mort_o3 * vsl_ub * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
+                      unit = "Million$2015") %>%
+        dplyr::select(-vsl_med, -vsl_lb, -vsl_ub) %>%
+        tidyr::pivot_longer(cols = c("VSL_med", "VSL_low", "VSL_high"),
+                            names_to = "range",
+                            values_to = "damages") %>%
+        dplyr::filter(range == Damage_vsl_range) %>%
+        dplyr::select(region, year, range, damages, unit)
 
 
-    #------------------------------------------------------------------------------------
-    # Write the output
-    o3.mort.EcoLoss.list<-split(o3.mort.EcoLoss, o3.mort.EcoLoss$year)
+      #------------------------------------------------------------------------------------
+      # Write the output
+
+      o3.mort.EcoLoss.list<-o3.mort.EcoLoss %>%
+        dplyr::mutate(scenario = sc)
+      m3_get_o3_ecoloss_vsl.output.list <- append(m3_get_o3_ecoloss_vsl.output.list, list(o3.mort.EcoLoss.list))
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m3_get_o3_ecoloss_vsl.output <<- dplyr::bind_rows(m3_get_o3_ecoloss_vsl.output.list)
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
+
 
     o3.mort.EcoLoss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/","m3/","O3_MORT_ECOLOSS_VSL_",scen_name,"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m3/","O3_MORT_ECOLOSS_VSL_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
 
     if(saveOutput == T){
+
+      o3.mort.EcoLoss.list<-split(m3_get_o3_ecoloss_vsl.output, m3_get_o3_ecoloss_vsl.output$year)
 
       lapply(o3.mort.EcoLoss.list, o3.mort.EcoLoss.write)
 
@@ -299,10 +346,11 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      o3.mort.EcoLoss.map <- o3.mort.EcoLoss %>%
+
+      o3.mort.EcoLoss.map <- m3_get_o3_ecoloss_vsl.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, damages) %>%
+        dplyr::select(subRegion, year, damages, scenario) %>%
         dplyr::rename(value = damages) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "Trillion$2015",
@@ -319,10 +367,9 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
     }
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
+    # Return output
 
-    o3.mort.EcoLoss<-dplyr::bind_rows(o3.mort.EcoLoss.list)
-    m3_get_o3_ecoloss_vsl.output <<- o3.mort.EcoLoss
-    return(invisible(o3.mort.EcoLoss))
+    return(invisible(m3_get_o3_ecoloss_vsl.output))
   }
 
 }
@@ -423,43 +470,65 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
 
 
 
-    #------------------------------------------------------------------------------------
-    #------------------------------------------------------------------------------------
-    pm.mort.EcoLoss.gdpGrowth <- tibble::as_tibble(pm.conc) %>%
-      dplyr::mutate(year = as.numeric(as.character(year))) %>%
-      gcamdata::left_join_error_no_match(beta, by=c("region", "year")) %>%
-      dplyr::mutate(damages = beta * value,
-                    unit = "%") %>%
-      dplyr::select(region, year, damages, unit)
+    m3_get_pm25_ecoloss_gdpGrowth.output.list <- list()
+    for (sc in scen_name) {
+
+      #------------------------------------------------------------------------------------
+      #------------------------------------------------------------------------------------
+      pm.mort.EcoLoss.gdpGrowth <- tibble::as_tibble(pm.conc %>%
+                                                       dplyr::filter(scenario == sc)) %>%
+        dplyr::mutate(year = as.numeric(as.character(year))) %>%
+        gcamdata::left_join_error_no_match(beta, by=c("region", "year")) %>%
+        dplyr::mutate(damages = beta * value,
+                      unit = "%") %>%
+        dplyr::select(region, year, damages, unit)
 
 
 
-    #------------------------------------------------------------------------------------
-    # Write the output
-    pm.mort.EcoLoss.gdpGrowth.list<-split(pm.mort.EcoLoss.gdpGrowth,pm.mort.EcoLoss.gdpGrowth$year)
+      #------------------------------------------------------------------------------------
+      # Write the output
 
+      pm.mort.EcoLoss.gdpGrowth.list<-pm.mort.EcoLoss.gdpGrowth %>%
+        dplyr::mutate(scenario = sc)
+      m3_get_pm25_ecoloss_gdpGrowth.output.list <- append(m3_get_pm25_ecoloss_gdpGrowth.output.list, list(pm.mort.EcoLoss.gdpGrowth.list))
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m3_get_pm25_ecoloss_gdpGrowth.output <<- dplyr::bind_rows(m3_get_pm25_ecoloss_gdpGrowth.output.list)
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
     pm.mort.EcoLoss.gdpGrowth.write<-function(df){
       df <- as.data.frame(df)
-      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_GDPgrowth_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/","m3/","PM25_MORT_ECOLOSS_GDPgrowth_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
 
     if(saveOutput == T){
 
+      pm.mort.EcoLoss.gdpGrowth.list<-split(m3_get_pm25_ecoloss_gdpGrowth.output,m3_get_pm25_ecoloss_gdpGrowth.output$year)
+
       lapply(pm.mort.EcoLoss.gdpGrowth.list, pm.mort.EcoLoss.gdpGrowth.write)
 
     }
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
 
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      pm.mort.EcoLoss.map <- pm.mort.EcoLoss.gdpGrowth %>%
+
+      pm.mort.EcoLoss.map <- m3_get_pm25_ecoloss_gdpGrowth.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, damages, unit) %>%
+        dplyr::select(subRegion, year, damages, unit, scenario) %>%
         dplyr::rename(value = damages,
                       units = unit) %>%
         dplyr::mutate(year = as.numeric(as.character(year)))
@@ -475,10 +544,9 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
     }
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
+    # Return output
 
-    pm.mort.EcoLoss.gdpGrowth<-dplyr::bind_rows(pm.mort.EcoLoss.gdpGrowth.list)
-    m3_get_pm25_ecoloss_gdpGrowth.output <<- pm.mort.EcoLoss.gdpGrowth
-    return(invisible(pm.mort.EcoLoss.gdpGrowth))
+    return(invisible(m3_get_pm25_ecoloss_gdpGrowth.output))
   }
 
 }
