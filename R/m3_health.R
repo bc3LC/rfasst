@@ -171,6 +171,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries,
                              saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    str(pm.pre)
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -189,7 +190,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       rbind(c(">25", 0, 0, 0, 2.4, 0, "dm"))
 
 
-    m3_get_mort_pm25.output <- list()
+    m3_get_mort_pm25.output.list <- list()
     for (sc in scen_name) {
 
       #------------------------------------------------------------------------------------
@@ -203,12 +204,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                                              dplyr::filter(scenario == sc)) %>%
                            gcamdata::repeat_add_columns(tibble::tibble(disease = c('copd','lc', "dm", "lri"))) %>%
                            dplyr::mutate(age = ">25"))
-
       pm.list.dis<-split(pm, pm$disease)
 
       calc_rr<-function(df){
-
-        # colnames(df)<-c("region", "year", "units", "value", "disease", "age")
 
         df_fin <- df %>%
           dplyr::rowwise() %>%
@@ -313,7 +311,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       pm.mort<-pm.mort %>%
         dplyr::mutate(scenario = sc)
-      m3_get_mort_pm25.output <- append(m3_get_mort_pm25.output, list(pm.mort))
+      m3_get_mort_pm25.output.list <- append(m3_get_mort_pm25.output.list, list(pm.mort))
 
     }
 
@@ -321,7 +319,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_mort_pm25.output <- dplyr::bind_rows(m3_get_mort_pm25.output)
+    m3_get_mort_pm25.output <- dplyr::bind_rows(m3_get_mort_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -461,7 +459,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
 
 
-    m3_get_yll_pm25.output <- list()
+    m3_get_yll_pm25.output.list <- list()
     for (sc in scen_name) {
 
       # Get years of life lost
@@ -521,7 +519,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
       pm.yll.fin<-pm.yll %>%
         dplyr::mutate(scenario = sc)
-      m3_get_yll_pm25.output <- append(m3_get_yll_pm25.output, list(pm.yll.fin))
+      m3_get_yll_pm25.output.list <- append(m3_get_yll_pm25.output.list, list(pm.yll.fin))
 
     }
 
@@ -529,7 +527,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_pm25.output <<- dplyr::bind_rows(m3_get_yll_pm25.output)
+    m3_get_yll_pm25.output <<- dplyr::bind_rows(m3_get_yll_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -678,7 +676,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
 
-    m3_get_daly_pm25.output <- list()
+    m3_get_daly_pm25.output.list <- list()
     for (sc in scen_name) {
 
       #------------------------------------------------------------------------------------
@@ -713,7 +711,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       pm.daly.list<-pm.daly %>%
         dplyr::mutate(scenario = sc)
-      m3_get_daly_pm25.output <- append(m3_get_daly_pm25.output, list(pm.daly.list))
+      m3_get_daly_pm25.output.list <- append(m3_get_daly_pm25.output.list, list(pm.daly.list))
 
     }
 
@@ -721,7 +719,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_pm25.output <<- dplyr::bind_rows(m3_get_daly_pm25.output)
+    m3_get_daly_pm25.output <<- dplyr::bind_rows(m3_get_daly_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -874,7 +872,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::distinct()
 
 
-    m3_get_mort_o3.output <- list()
+    m3_get_mort_o3.output.list <- list()
     for (sc in scen_name) {
 
       #------------------------------------------------------------------------------------
@@ -909,14 +907,14 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
       o3.mort.list<-o3.mort %>%
         dplyr::mutate(scenario = sc)
-      m3_get_mort_o3.output <- append(m3_get_mort_o3.output, list(o3.mort.list))
+      m3_get_mort_o3.output.list <- append(m3_get_mort_o3.output.list, list(o3.mort.list))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_mort_o3.output <<- dplyr::bind_rows(m3_get_mort_o3.output)
+    m3_get_mort_o3.output <<- dplyr::bind_rows(m3_get_mort_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1032,7 +1030,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    m3_get_yll_o3.output <- list()
+    m3_get_yll_o3.output.list <- list()
     for (sc in scen_name) {
 
       #------------------------------------------------------------------------------------
@@ -1086,14 +1084,14 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
       o3.yll.fin.list<-o3.yll.fin %>%
         dplyr::mutate(scenario = sc)
-      m3_get_yll_o3.output <- append(m3_get_yll_o3.output, list(o3.yll.fin.list))
+      m3_get_yll_o3.output.list <- append(m3_get_yll_o3.output.list, list(o3.yll.fin.list))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_o3.output <<- dplyr::bind_rows(m3_get_yll_o3.output)
+    m3_get_yll_o3.output <<- dplyr::bind_rows(m3_get_yll_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1215,7 +1213,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    m3_get_daly_o3.output <- list()
+    m3_get_daly_o3.output.list <- list()
     for (sc in scen_name) {
 
       #------------------------------------------------------------------------------------
@@ -1252,14 +1250,14 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
       o3.daly.list<-o3.daly %>%
         dplyr::mutate(scenario = sc)
-      m3_get_daly_o3.output <- append(m3_get_daly_o3.output, list(o3.daly.list))
+      m3_get_daly_o3.output.list <- append(m3_get_daly_o3.output.list, list(o3.daly.list))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_o3.output <<- dplyr::bind_rows(m3_get_daly_o3.output)
+    m3_get_daly_o3.output <<- dplyr::bind_rows(m3_get_daly_o3.output.list)
 
 
     #----------------------------------------------------------------------

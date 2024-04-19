@@ -124,8 +124,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     nh4_nh3<-src.nh4_nh3
 
 
-    m2_get_conc_pm25.output <- list()
-    m2_nat_prim_sec_pm25.output <- NULL
+    m2_get_conc_pm25.output.list <- list()
+    m2_nat_prim_sec_pm25.output.list <- NULL
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -505,11 +505,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #----------------------------------------------------------------------
       pm<-dplyr::bind_rows(pm25.agg.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_pm25.output <- append(m2_get_conc_pm25.output, list(pm))
+      m2_get_conc_pm25.output.list <- append(m2_get_conc_pm25.output.list, list(pm))
 
-      m2_nat_prim_sec_pm25.output <- rbind(m2_nat_prim_sec_pm25.output,
-                                           pm25_pr_sec_wide %>%
-                                             dplyr::mutate(scenario = sc))
+      m2_nat_prim_sec_pm25.output.list <- rbind(m2_nat_prim_sec_pm25.output.list,
+                                                pm25_pr_sec_wide %>%
+                                                  dplyr::mutate(scenario = sc))
 
     }
 
@@ -518,7 +518,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m2_get_conc_pm25.output <<- dplyr::bind_rows(m2_get_conc_pm25.output)
+    m2_get_conc_pm25.output <<- dplyr::bind_rows(m2_get_conc_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -547,7 +547,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
 
     if(saveOutput==T) {
-      pm25.list<-split(m2_nat_prim_sec_pm25.output,m2_nat_prim_sec_pm25.output$year)
+      pm25.list<-split(m2_nat_prim_sec_pm25.output.list,m2_nat_prim_sec_pm25.output.list$year)
 
       pm25.write<-function(df){
         df<-as.data.frame(dplyr::bind_rows(df))
@@ -662,7 +662,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                     year = "base")
 
 
-    m2_get_conc_o3.output <- list()
+    m2_get_conc_o3.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -793,13 +793,13 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       o3.list<-split(conc_o3,conc_o3$year)
       o3<-dplyr::bind_rows(o3.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_o3.output <- append(m2_get_conc_o3.output, list(o3))
+      m2_get_conc_o3.output.list <- append(m2_get_conc_o3.output.list, list(o3))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
-    m2_get_conc_o3.output <<- dplyr::bind_rows(m2_get_conc_o3.output)
+    m2_get_conc_o3.output <<- dplyr::bind_rows(m2_get_conc_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -921,7 +921,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(units = "kt",
                     year = "base")
 
-    m2_get_conc_m6m.output <- list()
+    m2_get_conc_m6m.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -1083,13 +1083,13 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       m6m.list<-split(m6m,m6m$year)
       m6m <- dplyr::bind_rows(m6m.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_m6m.output <- append(m2_get_conc_m6m.output, list(m6m))
+      m2_get_conc_m6m.output.list <- append(m2_get_conc_m6m.output.list, list(m6m))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
-    m2_get_conc_m6m.output <<- dplyr::bind_rows(m2_get_conc_m6m.output)
+    m2_get_conc_m6m.output <<- dplyr::bind_rows(m2_get_conc_m6m.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1131,6 +1131,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
+
     return(invisible(m2_get_conc_m6m.output))
   }
 
@@ -1214,7 +1215,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
                     year = "base")
 
 
-    m2_get_conc_aot40.output <- list()
+    m2_get_conc_aot40.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -1575,14 +1576,14 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
       aot40<-dplyr::bind_rows(aot.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_aot40.output <- append(m2_get_conc_aot40.output, list(aot40))
+      m2_get_conc_aot40.output.list <- append(m2_get_conc_aot40.output.list, list(aot40))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results and return
 
-    m2_get_conc_aot40.output <<- dplyr::bind_rows(m2_get_conc_aot40.output)
+    m2_get_conc_aot40.output <<- dplyr::bind_rows(m2_get_conc_aot40.output.list)
     return(invisible(m2_get_conc_aot40.output))
   }
 
@@ -1666,7 +1667,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(units = "kt",
                     year = "base")
 
-    m2_get_conc_mi.output <- list()
+    m2_get_conc_mi.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -2025,14 +2026,14 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
       mi<-dplyr::bind_rows(mi.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_mi.output <- append(m2_get_conc_mi.output, list(mi))
+      m2_get_conc_mi.output.list <- append(m2_get_conc_mi.output.list, list(mi))
     }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
 
-    m2_get_conc_mi.output <<- dplyr::bind_rows(m2_get_conc_mi.output)
+    m2_get_conc_mi.output <<- dplyr::bind_rows(m2_get_conc_mi.output.list)
     return(invisible(m2_get_conc_mi.output))
   }
 
