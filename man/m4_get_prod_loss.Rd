@@ -33,7 +33,7 @@ m4_get_prod_loss(
 
 \item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
-\item{scen_name}{Name of the GCAM scenario to be processed}
+\item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
 
