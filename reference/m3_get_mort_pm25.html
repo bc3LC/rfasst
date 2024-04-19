@@ -101,6 +101,7 @@
 <span>  <span class="va">scen_name</span>,</span>
 <span>  queries <span class="op">=</span> <span class="st">"queries_rfasst.xml"</span>,</span>
 <span>  final_db_year <span class="op">=</span> <span class="fl">2100</span>,</span>
+<span>  mort_param <span class="op">=</span> <span class="st">"GBD"</span>,</span>
 <span>  ssp <span class="op">=</span> <span class="st">"SSP2"</span>,</span>
 <span>  saveOutput <span class="op">=</span> <span class="cn">T</span>,</span>
 <span>  map <span class="op">=</span> <span class="cn">F</span>,</span>
@@ -140,7 +141,7 @@
 
 
 <dt>scen_name</dt>
-<dd><p>Name of the GCAM scenario to be processed</p></dd>
+<dd><p>Vector names of the GCAM scenarios to be processed</p></dd>
 
 
 <dt>queries</dt>
@@ -149,6 +150,10 @@
 
 <dt>final_db_year</dt>
 <dd><p>Final year in the GCAM database (this allows to process databases with user-defined "stop periods")</p></dd>
+
+
+<dt>mort_param</dt>
+<dd><p>Method to compute the premature mortality estimates used in the plotting: GBD, GEMM, or FUSION</p></dd>
 
 
 <dt>ssp</dt>
