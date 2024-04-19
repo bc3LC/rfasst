@@ -9,7 +9,7 @@
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the files.By default=T
@@ -520,7 +520,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output)
+    m2_get_conc_pm25.output <<- dplyr::bind_rows(m2_get_conc_pm25.output)
 
 
     #----------------------------------------------------------------------
@@ -593,7 +593,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the emission files.By default=T
@@ -798,7 +798,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-    # Bind results
+    # Bind the results
     m2_get_conc_o3.output <<- dplyr::bind_rows(m2_get_conc_o3.output)
 
 
@@ -858,7 +858,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the emission files.By default=T
@@ -1147,7 +1147,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the emission files.By default=T
@@ -1576,6 +1576,10 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       m2_get_conc_aot40.output <- append(m2_get_conc_aot40.output, list(aot40))
     }
 
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results and return
+
     m2_get_conc_aot40.output <<- dplyr::bind_rows(m2_get_conc_aot40.output)
     return(invisible(m2_get_conc_aot40.output))
   }
@@ -1596,7 +1600,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the emission files.By default=T
@@ -2021,6 +2025,10 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         dplyr::mutate(scenario = sc)
       m2_get_conc_mi.output <- append(m2_get_conc_mi.output, list(mi))
     }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
 
     m2_get_conc_mi.output <<- dplyr::bind_rows(m2_get_conc_mi.output)
     return(invisible(m2_get_conc_mi.output))

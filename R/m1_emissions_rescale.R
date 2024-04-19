@@ -10,7 +10,7 @@
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
 #' @param rdata_name Name of the RData file. It must contain the queries in a list
-#' @param scen_name Name of the GCAM scenario to be processed
+#' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
 #' @param saveOutput Writes the emission files. By default=T
