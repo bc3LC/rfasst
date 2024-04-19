@@ -17,6 +17,7 @@ m3_get_mort_pm25(
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
+  mort_param = "GBD",
   ssp = "SSP2",
   saveOutput = T,
   map = F,
@@ -37,11 +38,13 @@ m3_get_mort_pm25(
 
 \item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
-\item{scen_name}{Name of the GCAM scenario to be processed}
+\item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
 
 \item{final_db_year}{Final year in the GCAM database (this allows to process databases with user-defined "stop periods")}
+
+\item{mort_param}{Method to compute the premature mortality estimates used in the plotting: GBD, GEMM, or FUSION}
 
 \item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
 
