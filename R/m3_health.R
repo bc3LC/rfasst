@@ -120,6 +120,7 @@ calc_daly_o3<-function(){
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
+#' @param mort_param Method to compute the premature mortality estimates used in the plotting: GBD, GEMM, or FUSION
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -129,7 +130,7 @@ calc_daly_o3<-function(){
 #' @export
 
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
@@ -168,7 +169,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get PM2.5
-    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries,
+                             saveOutput = F, final_db_year = final_db_year, recompute = recompute)
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -355,6 +357,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If map=T, it produces a map with the calculated outcomes
 
     if(map==T){
+
       pm.mort.agg <- m3_get_mort_pm25.output %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(FUSION = sum(FUSION),
@@ -365,8 +368,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.mort.map<-pm.mort.agg %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(-GEMM, -FUSION) %>%
-        dplyr::rename(value = GBD) %>%
+        dplyr::select(subRegion, year, all_of(mort_param), scenario) %>%
+        dplyr::rename(value = all_of(mort_param)) %>%
         dplyr::mutate(units = "Mortalities",
                       year = as.numeric(as.character(year)))
 
@@ -404,6 +407,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
+#' @param mort_param Method to compute the premature mortality estimates used in the plotting: GBD, GEMM, or FUSION
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -574,8 +578,8 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       pm.yll.fin.map<-pm.yll.tot %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, disease, yll_GBD, scenario) %>%
-        dplyr::rename(value = yll_GBD,
+        dplyr::select(subRegion, year, disease, all_of(paste0('yll_',mort_param)), scenario) %>%
+        dplyr::rename(value = all_of(paste0('yll_',mort_param)),
                       class = disease) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "YLLs")
@@ -617,6 +621,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
+#' @param mort_param Method to compute the premature mortality estimates used in the plotting: GBD, GEMM, or FUSION
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -626,7 +631,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @export
 
 m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD2016_medium",
+                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
 
@@ -765,8 +770,8 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.daly.tot.fin.map<-pm.daly.tot %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, disease, daly_GBD, scenario) %>%
-        dplyr::rename(value = daly_GBD,
+        dplyr::select(subRegion, year, disease, all_of(paste0('daly_',mort_param)), scenario) %>%
+        dplyr::rename(value = all_of(paste0('daly_',mort_param)),
                       class = disease) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "DALYs")
@@ -808,6 +813,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
+#' @param mort_param Method to compute the premature mortality estimates used in the plotting: Jerret2009, GBD2016
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -817,7 +823,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @export
 
 m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_o3.output')) {
@@ -935,8 +941,8 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       o3.mort.map<-m3_get_mort_o3.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
-        dplyr::select(subRegion, year, Jerret2009, scenario) %>%
-        dplyr::rename(value = Jerret2009) %>%
+        dplyr::select(subRegion, year, all_of(mort_param), scenario) %>%
+        dplyr::rename(value = all_of(mort_param)) %>%
         dplyr::mutate(year = as.numeric(as.character(year)),
                       units = "Mortalities")
 
@@ -1152,6 +1158,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
+#' @param mort_param Method to compute the premature mortality estimates used in the plotting: Jerret2009, GBD2016
 #' @param saveOutput Writes the emission files.By default=T
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
@@ -1161,7 +1168,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @export
 
 m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "mort_o3_gbd2016_med",
+                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
