@@ -79,12 +79,12 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+        QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
       } else if (is.null(rdata_name)){
         rlang::inform('Loading project ...')
         prj <- rgcam::loadProject(prj_name)
 
-        QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+        QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
       } else {
         rlang::inform('Loading RData ...')
         if (!exists('prj_rd')) {
@@ -93,7 +93,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         }
       }
     } else {
-      QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
+      QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
     }
     rlang::inform('Computing ...')
 
@@ -386,10 +386,10 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
 
     # Get prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     # Get price
-    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     #------------------------------------------------------------------------------------
 
@@ -506,44 +506,65 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     rlang::inform('Computing relative yield losses with AOT40 method ...')
 
-    aot40.list<-split(aot40, aot40$year)
-    #------------------------------------------------------------------------------------
-    # Set a dataframe with the AOT damage coefficients from Mills et al 2007:
-    ryl.coef.aot40<-data.frame(pollutant = c("AOT_MAIZE", "AOT_RICE", "AOT_SOY", "AOT_WHEAT"),
-                               coef = c(coef.AOT_MAIZE, coef.AOT_RICE, coef.AOT_SOY, coef.AOT_WHEAT))
+    m4_get_ryl_aot40.output.list <- list()
+    for (sc in scen_name) {
 
-    # Create the function to process the data:
-    calc.aot40<- function(df){
-      df<-tibble::as_tibble(as.data.frame(df)) %>%
-        gcamdata::left_join_error_no_match(ryl.coef.aot40, by = "pollutant") %>%
-        dplyr::mutate(ryl_aot = value * coef)
+      aot40.tmp <- aot40 %>%
+        dplyr::filter(scenario == sc)
+      aot40.list<-split(aot40.tmp, aot40.tmp$year)
+      #------------------------------------------------------------------------------------
+      # Set a dataframe with the AOT damage coefficients from Mills et al 2007:
+      ryl.coef.aot40<-data.frame(pollutant = c("AOT_MAIZE", "AOT_RICE", "AOT_SOY", "AOT_WHEAT"),
+                                 coef = c(coef.AOT_MAIZE, coef.AOT_RICE, coef.AOT_SOY, coef.AOT_WHEAT))
 
-      invisible(df)
+      # Create the function to process the data:
+      calc.aot40<- function(df){
+        df<-tibble::as_tibble(as.data.frame(df)) %>%
+          gcamdata::left_join_error_no_match(ryl.coef.aot40, by = "pollutant") %>%
+          dplyr::mutate(ryl_aot = value * coef)
+
+        invisible(df)
+      }
+
+      ryl.aot40.list.fin<-lapply(aot40.list,calc.aot40)
+      #------------------------------------------------------------------------------------
+      ryl.aot.40.fin<-dplyr::bind_rows(ryl.aot40.list.fin) %>%
+        dplyr::select(-value, -coef) %>%
+        dplyr::rename(value = ryl_aot) %>%
+        dplyr::mutate(unit = "%")
+
+
+      #------------------------------------------------------------------------------------
+      # Write the outputs
+
+      ryl.aot.40.fin.list<-ryl.aot.40.fin %>%
+        dplyr::mutate(scenario = sc)
+      m4_get_ryl_aot40.output.list <- append(m4_get_ryl_aot40.output.list, list(ryl.aot.40.fin.list))
     }
 
-    ryl.aot40.list.fin<-lapply(aot40.list,calc.aot40)
-    #------------------------------------------------------------------------------------
-    ryl.aot.40.fin<-dplyr::bind_rows(ryl.aot40.list.fin) %>%
-      dplyr::select(-value, -coef) %>%
-      dplyr::rename(value = ryl_aot) %>%
-      dplyr::mutate(unit = "%")
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m4_get_ryl_aot40.output <<- dplyr::bind_rows(m4_get_ryl_aot40.output.list)
 
 
-    #------------------------------------------------------------------------------------
-    # Write the outputs
-
-    ryl.aot.40.fin.outlist<-split(ryl.aot.40.fin, ryl.aot.40.fin$year)
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
     ryl.aot.write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant, value)
-      write.csv(df, paste0("output/m4/","RYL_AOT40_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","RYL_AOT40_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
+
+      ryl.aot.40.fin.outlist<-split(m4_get_ryl_aot40.output, m4_get_ryl_aot40.output$year)
 
       lapply(ryl.aot.40.fin.outlist, ryl.aot.write)
 
@@ -555,7 +576,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      ryl.aot.40.fin.map<-ryl.aot.40.fin %>%
+      ryl.aot.40.fin.map<-m4_get_ryl_aot40.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
         dplyr::select(-unit) %>%
@@ -577,8 +598,11 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     }
 
-    m4_get_ryl_aot40.output <<- ryl.aot.40.fin
-    return(invisible(ryl.aot.40.fin))
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Return output
+
+    return(invisible(m4_get_ryl_aot40.output))
   }
 
 }
@@ -644,47 +668,71 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     rlang::inform('Computing relative yield losses with Mi method ...')
 
-    mi.list<-split(mi, mi$year)
-    #------------------------------------------------------------------------------------
-    # Set a dataframe with the AOT damage coefficients from Wang and Mauzerall 2004:
+    m4_get_ryl_mi.output.list <- list()
+    for (sc in scen_name) {
 
-    ryl.coef.mi<-data.frame(pollutant = c("M_MAIZE", "M_RICE", "M_SOY", "M_WHEAT"),
-                            coef = c(coef.Mi_MAIZE, coef.Mi_RICE, coef.Mi_SOY, coef.Mi_WHEAT),
-                            a = c(a.Mi_MAIZE, a.Mi_RICE, a.Mi_SOY, a.Mi_WHEAT),
-                            b = c(b.Mi_MAIZE, b.Mi_RICE, b.Mi_SOY, b.Mi_WHEAT))
+      mi.tmp <- mi %>%
+        dplyr::filter(scenario == sc)
+      mi.list<-split(mi.tmp, mi.tmp$year)
 
-    # Create the function to process the data:
-    calc.mi<- function(df){
-      df<-tibble::as_tibble(as.data.frame(df)) %>%
-        gcamdata::left_join_error_no_match(ryl.coef.mi, by = "pollutant") %>%
-        dplyr::mutate(ryl_mi = 1-exp(-((value / a) ^ b))/exp(-((coef / a) ^ b)),
-                      ryl_mi = dplyr::if_else(ryl_mi < 0, 0, ryl_mi))
+      #------------------------------------------------------------------------------------
+      # Set a dataframe with the AOT damage coefficients from Wang and Mauzerall 2004:
 
-      return(df)
+      ryl.coef.mi<-data.frame(pollutant = c("M_MAIZE", "M_RICE", "M_SOY", "M_WHEAT"),
+                              coef = c(coef.Mi_MAIZE, coef.Mi_RICE, coef.Mi_SOY, coef.Mi_WHEAT),
+                              a = c(a.Mi_MAIZE, a.Mi_RICE, a.Mi_SOY, a.Mi_WHEAT),
+                              b = c(b.Mi_MAIZE, b.Mi_RICE, b.Mi_SOY, b.Mi_WHEAT))
+
+      # Create the function to process the data:
+      calc.mi<- function(df){
+        df<-tibble::as_tibble(as.data.frame(df)) %>%
+          gcamdata::left_join_error_no_match(ryl.coef.mi, by = "pollutant") %>%
+          dplyr::mutate(ryl_mi = 1-exp(-((value / a) ^ b))/exp(-((coef / a) ^ b)),
+                        ryl_mi = dplyr::if_else(ryl_mi < 0, 0, ryl_mi))
+
+        return(df)
+      }
+
+      ryl.mi.list.fin<-lapply(mi.list,calc.mi)
+
+      #------------------------------------------------------------------------------------
+      ryl.mi.fin<-dplyr::bind_rows(ryl.mi.list.fin) %>%
+        dplyr::select(-value, -coef, -a, -b) %>%
+        dplyr::rename(value = ryl_mi) %>%
+        dplyr::mutate(unit = "%")
+
+      #------------------------------------------------------------------------------------
+      # Write the outputs
+
+      ryl.mi.fin.list<-ryl.mi.fin %>%
+        dplyr::mutate(scenario = sc)
+      m4_get_ryl_mi.output.list <- append(m4_get_ryl_mi.output.list, list(ryl.mi.fin.list))
     }
 
-    ryl.mi.list.fin<-lapply(mi.list,calc.mi)
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
 
-    #------------------------------------------------------------------------------------
-    ryl.mi.fin<-dplyr::bind_rows(ryl.mi.list.fin) %>%
-      dplyr::select(-value, -coef, -a, -b) %>%
-      dplyr::rename(value = ryl_mi) %>%
-      dplyr::mutate(unit = "%")
+    m4_get_ryl_mi.output <<- dplyr::bind_rows(m4_get_ryl_mi.output.list)
 
-    #------------------------------------------------------------------------------------
-    # Write the outputs
-    ryl.mi.fin.outlist<-split(ryl.mi.fin, ryl.mi.fin$year)
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
+
 
     ryl.mi.write<-function(df){
       df<-as.data.frame(df) %>% tidyr::spread(pollutant,value)
-      write.csv(df, paste0("output/m4/","RYL_Mi_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","RYL_Mi_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"), row.names = F)
     }
 
     if(saveOutput == T){
+
+      ryl.mi.fin.outlist<-split(m4_get_ryl_mi.output, m4_get_ryl_mi.output$year)
 
       lapply(ryl.mi.fin.outlist, ryl.mi.write)
 
@@ -692,11 +740,11 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      ryl.mi.fin.map<-ryl.mi.fin %>%
+
+      ryl.mi.fin.map<-m4_get_ryl_mi.output %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
         dplyr::select(-unit) %>%
@@ -717,8 +765,11 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     }
 
-    m4_get_ryl_mi.output <<- ryl.mi.fin
-    return(invisible(ryl.mi.fin))
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Return output
+
+    return(invisible(m4_get_ryl_mi.output))
   }
 }
 
@@ -782,140 +833,165 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     # Get Prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     rlang::inform('Computing agricultural production losses ...')
 
+
+    m4_get_prod_loss.output.list <- list()
+    for (sc in scen_name) {
+
       #------------------------------------------------------------------------------------
-    ryl.fin<-ryl.aot.40.fin %>%
-      dplyr::rename(ryl_aot40 = value,
-                    crop = pollutant) %>%
-      dplyr::mutate(crop = dplyr::if_else(crop == "AOT_MAIZE", "maize", crop),
-                    crop = dplyr::if_else(crop == "AOT_RICE", "rice", crop),
-                    crop = dplyr::if_else(crop == "AOT_SOY", "soybean", crop),
-                    crop = dplyr::if_else(crop == "AOT_WHEAT", "wheat", crop)) %>%
-      gcamdata::left_join_error_no_match(ryl.mi.fin %>%
-                                           dplyr::rename(ryl_mi = value,
-                                                         crop = pollutant) %>%
-                                          dplyr::mutate(crop = dplyr::if_else(crop == "M_MAIZE", "maize", crop),
-                                                        crop = dplyr::if_else(crop == "M_RICE", "rice", crop),
-                                                        crop = dplyr::if_else(crop == "M_SOY", "soybean", crop),
-                                                        crop = dplyr::if_else(crop == "M_WHEAT", "wheat", crop)),
-                                         by = c("region", "year", "crop")) %>%
-      dplyr::select(-unit.x, -unit.y)
+      ryl.fin<-ryl.aot.40.fin %>%
+        dplyr::filter(scenario == sc) %>%
+        dplyr::rename(ryl_aot40 = value,
+                      crop = pollutant) %>%
+        dplyr::mutate(crop = dplyr::if_else(crop == "AOT_MAIZE", "maize", crop),
+                      crop = dplyr::if_else(crop == "AOT_RICE", "rice", crop),
+                      crop = dplyr::if_else(crop == "AOT_SOY", "soybean", crop),
+                      crop = dplyr::if_else(crop == "AOT_WHEAT", "wheat", crop)) %>%
+        gcamdata::left_join_error_no_match(ryl.mi.fin %>%
+                                             dplyr::filter(scenario == sc) %>%
+                                             dplyr::rename(ryl_mi = value,
+                                                           crop = pollutant) %>%
+                                            dplyr::mutate(crop = dplyr::if_else(crop == "M_MAIZE", "maize", crop),
+                                                          crop = dplyr::if_else(crop == "M_RICE", "rice", crop),
+                                                          crop = dplyr::if_else(crop == "M_SOY", "soybean", crop),
+                                                          crop = dplyr::if_else(crop == "M_WHEAT", "wheat", crop)),
+                                           by = c("region", "year", "crop")) %>%
+        dplyr::select(-unit.x, -unit.y)
 
-    #------------------------------------------------------------------------------------
-    #  downscale the values to country level
-    harv<-tibble::as_tibble(d.ha) %>%
-      dplyr::left_join(Regions %>%
-                         dplyr::rename(iso = ISO3) %>%
-                         dplyr::mutate(iso = tolower(iso)),
-                       by = "iso") %>%
-      dplyr::filter(complete.cases(.)) %>%
-      dplyr::rename(`GCAM region` = `GCAM Region`) %>%
-      dplyr::select(crop, iso, harvested.area, `FASST region`, `GCAM region`) %>%
-      dplyr:: mutate(harvested.area = as.numeric(harvested.area)) %>%
-      dplyr::rename(CROP = crop)
+      #------------------------------------------------------------------------------------
+      #  downscale the values to country level
+      harv<-tibble::as_tibble(d.ha) %>%
+        dplyr::left_join(Regions %>%
+                           dplyr::rename(iso = ISO3) %>%
+                           dplyr::mutate(iso = tolower(iso)),
+                         by = "iso") %>%
+        dplyr::filter(complete.cases(.)) %>%
+        dplyr::rename(`GCAM region` = `GCAM Region`) %>%
+        dplyr::select(crop, iso, harvested.area, `FASST region`, `GCAM region`) %>%
+        dplyr:: mutate(harvested.area = as.numeric(harvested.area)) %>%
+        dplyr::rename(CROP = crop)
 
-    # Percentages within GCAM regions
-    perc_GCAM<-harv %>%
-      dplyr::group_by(CROP, `GCAM region`) %>%
-      dplyr::summarise(harvested.area = sum(harvested.area)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(tot_area_GCAM = harvested.area)
+      # Percentages within GCAM regions
+      perc_GCAM<-harv %>%
+        dplyr::group_by(CROP, `GCAM region`) %>%
+        dplyr::summarise(harvested.area = sum(harvested.area)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(tot_area_GCAM = harvested.area)
 
-    # Percentages within TM5-FASST regions
-    perc_FASST<-harv %>%
-      dplyr::group_by(CROP, `FASST region`) %>%
-      dplyr::summarise(harvested.area = sum(harvested.area)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(tot_area_FASST = harvested.area)
+      # Percentages within TM5-FASST regions
+      perc_FASST<-harv %>%
+        dplyr::group_by(CROP, `FASST region`) %>%
+        dplyr::summarise(harvested.area = sum(harvested.area)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(tot_area_FASST = harvested.area)
 
-    #------------------------------------------------------------------------------------
-    dam<- tibble::as_tibble(harv) %>%
-      gcamdata::left_join_error_no_match(perc_GCAM, by = c("CROP","GCAM region")) %>%
-      gcamdata::left_join_error_no_match(perc_FASST, by = c("CROP","FASST region")) %>%
-      dplyr::mutate(perc_GCAM = harvested.area / tot_area_GCAM,
-                    perc_FASST = harvested.area / tot_area_FASST ) %>%
-      dplyr::arrange(`FASST region`) %>%
-      dplyr::filter(CROP %in% c("maize", "rice", "soybean", "wheat")) %>%
-      dplyr::select(-tot_area_FASST, -tot_area_GCAM) %>%
-      gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-      dplyr::rename(crop = CROP) %>%
-      gcamdata::left_join_error_no_match(ryl.fin %>%
-                                           dplyr::rename(`FASST region` = region) %>%
-                                           dplyr::mutate(year = as.character(year)),
-                                         by=c("FASST region", "year", "crop")) %>%
-      dplyr::mutate(country_ryl_aot40 = ryl_aot40,
-                    country_ryl_mi = ryl_mi) %>%
-      dplyr::mutate(adj_country_ryl_aot40 = country_ryl_aot40 * perc_GCAM,
-                    adj_country_ryl_mi = country_ryl_mi * perc_GCAM) %>%
-      dplyr::group_by(crop, `GCAM region`, year) %>%
-      dplyr::summarise(ryl_aot40 = sum(adj_country_ryl_aot40),
-                      ryl_mi = sum(adj_country_ryl_mi)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-      dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
-      dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
-                    ryl_mi = ryl_mi * weight) %>%
-      dplyr::select(-crop, -weight) %>%
-      dplyr::group_by(GCAM_region_name, GCAM_commod, year) %>%
-      dplyr::summarise(ryl_aot40 = sum(ryl_aot40, na.rm = T),
-                       ryl_mi = sum(ryl_mi, na.rm = T),) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(GCAM_commod=dplyr::if_else(GCAM_commod == "Root_Tuber", "RootTuber", as.character(GCAM_commod))) %>%
-      dplyr::filter(GCAM_commod %in% CROP_ANALYSIS)
-
-
-
-    #------------------------------------------------------------------------------------
-    # Production and revenue losses
-    # The number of rows in the damage data.frame (dam) and the production and revenues dataframes (prod and rev) do not match.
-    # This is because there are some places where production is cero but there is a damage coefficient associated
-
-    no_prod_test<-dplyr::anti_join(dam %>%
-                                     dplyr::select(GCAM_region_name, GCAM_commod,year) %>%
-                                     dplyr::rename(region = GCAM_region_name,
-                                     sector = GCAM_commod) %>%
-                                     dplyr::mutate(year = as.numeric(year)),
-                                   prod %>%
-                                     dplyr::select(region, sector, year),
-                                   by = c("region", "sector", "year"))
-
-    #------------------------------------------------------------------------------------
-
-    #-----------------------------------------------------
-    # Production losses:
-    prod.loss<- prod %>%
-      # Using left_join because of the places with no production
-      dplyr::left_join(dam %>%
-                         dplyr::rename(region = GCAM_region_name, sector = GCAM_commod) %>%
-                         dplyr::mutate(year = as.numeric(year)),
-                       by = c("region", "sector", "year")) %>%
-      dplyr::mutate(prod_loss_aot40 = prod * ryl_aot40,
-                    prod_loss_mi = prod * ryl_mi) %>%
-      dplyr::select(scenario, region, sector, year, prod_loss_aot40, prod_loss_mi, unit) %>%
-      dplyr::rename(crop = sector)
+      #------------------------------------------------------------------------------------
+      dam<- tibble::as_tibble(harv) %>%
+        gcamdata::left_join_error_no_match(perc_GCAM, by = c("CROP","GCAM region")) %>%
+        gcamdata::left_join_error_no_match(perc_FASST, by = c("CROP","FASST region")) %>%
+        dplyr::mutate(perc_GCAM = harvested.area / tot_area_GCAM,
+                      perc_FASST = harvested.area / tot_area_FASST ) %>%
+        dplyr::arrange(`FASST region`) %>%
+        dplyr::filter(CROP %in% c("maize", "rice", "soybean", "wheat")) %>%
+        dplyr::select(-tot_area_FASST, -tot_area_GCAM) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
+        dplyr::rename(crop = CROP) %>%
+        gcamdata::left_join_error_no_match(ryl.fin %>%
+                                             dplyr::rename(`FASST region` = region) %>%
+                                             dplyr::mutate(year = as.character(year)),
+                                           by=c("FASST region", "year", "crop")) %>%
+        dplyr::mutate(country_ryl_aot40 = ryl_aot40,
+                      country_ryl_mi = ryl_mi) %>%
+        dplyr::mutate(adj_country_ryl_aot40 = country_ryl_aot40 * perc_GCAM,
+                      adj_country_ryl_mi = country_ryl_mi * perc_GCAM) %>%
+        dplyr::group_by(crop, `GCAM region`, year) %>%
+        dplyr::summarise(ryl_aot40 = sum(adj_country_ryl_aot40),
+                        ryl_mi = sum(adj_country_ryl_mi)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(GCAM_region_name = `GCAM region`) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
+                      ryl_mi = ryl_mi * weight) %>%
+        dplyr::select(-crop, -weight) %>%
+        dplyr::group_by(GCAM_region_name, GCAM_commod, year) %>%
+        dplyr::summarise(ryl_aot40 = sum(ryl_aot40, na.rm = T),
+                         ryl_mi = sum(ryl_mi, na.rm = T),) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(GCAM_commod=dplyr::if_else(GCAM_commod == "Root_Tuber", "RootTuber", as.character(GCAM_commod))) %>%
+        dplyr::filter(GCAM_commod %in% CROP_ANALYSIS)
 
 
-    # Write the output
-    prod.loss.list<-split(prod.loss,prod.loss$year)
+
+      #------------------------------------------------------------------------------------
+      # Production and revenue losses
+      # The number of rows in the damage data.frame (dam) and the production and revenues dataframes (prod and rev) do not match.
+      # This is because there are some places where production is cero but there is a damage coefficient associated
+
+      no_prod_test<-dplyr::anti_join(dam %>%
+                                       dplyr::select(GCAM_region_name, GCAM_commod,year) %>%
+                                       dplyr::rename(region = GCAM_region_name,
+                                       sector = GCAM_commod) %>%
+                                       dplyr::mutate(year = as.numeric(year)),
+                                     prod %>%
+                                       dplyr::select(region, sector, year),
+                                     by = c("region", "sector", "year"))
+
+      #------------------------------------------------------------------------------------
+
+      #-----------------------------------------------------
+      # Production losses:
+      prod.loss<- prod %>%
+        # Using left_join because of the places with no production
+        dplyr::left_join(dam %>%
+                           dplyr::rename(region = GCAM_region_name, sector = GCAM_commod) %>%
+                           dplyr::mutate(year = as.numeric(year)),
+                         by = c("region", "sector", "year")) %>%
+        dplyr::mutate(prod_loss_aot40 = prod * ryl_aot40,
+                      prod_loss_mi = prod * ryl_mi) %>%
+        dplyr::select(scenario, region, sector, year, prod_loss_aot40, prod_loss_mi, unit) %>%
+        dplyr::rename(crop = sector)
 
 
+      #------------------------------------------------------------------------------------
+      # Write the output
+
+      prod.loss.list<-prod.loss %>%
+        dplyr::mutate(scenario = sc)
+      m4_get_prod_loss.output.list <- append(m4_get_prod_loss.output.list, list(prod.loss.list))
+
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m4_get_prod_loss.output <<- dplyr::bind_rows(m4_get_prod_loss.output.list)
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
     prod.loss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/m4/","PROD_LOSS_",scen_name[1],"_",unique(df$year),".csv"),row.names = F)
+      write.csv(df,paste0("output/m4/","PROD_LOSS_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
     if(saveOutput == T){
-    lapply(prod.loss.list, prod.loss.write)
+
+      prod.loss.list<-split(m4_get_prod_loss.output,m4_get_prod_loss.output$year)
+
+      lapply(prod.loss.list, prod.loss.write)
+
     }
 
     #----------------------------------------------------------------------
@@ -924,7 +1000,8 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      prod.loss.map<-prod.loss %>%
+
+      prod.loss.map<-m4_get_prod_loss.output %>%
         dplyr::mutate(value = (prod_loss_aot40 + prod_loss_mi) / 2) %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::select(-prod_loss_aot40, -prod_loss_mi, -unit) %>%
@@ -941,13 +1018,13 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 background  = T,
                 animate = anim)
 
-
     }
+
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
-    prod.loss<-dplyr::bind_rows(prod.loss.list)
-    m4_get_prod_loss.output <<- prod.loss
-    return(invisible(prod.loss))
+    # Return output
+
+    return(invisible(m4_get_prod_loss.output))
   }
 
 }
@@ -1014,151 +1091,179 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
 
     # Get Revenue: re-calculate to consider C4 categories
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+
+    # Get Price
+    price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
 
     rlang::inform('Computing agricultural revenue losses ...')
 
-    price<-prod %>%
-      dplyr::select(-prod, -unit) %>%
-      tidyr::separate(sector, c("sector", "adj"), sep = "_") %>%
-      gcamdata::left_join_error_no_match(calc_price_gcam(db_path, query_path, db_name, prj_name,
-                                                         scen_name, queries, final_db_year = final_db_year, saveOutput = F)
-                                         , by = c("scenario", "region", "sector", "year")) %>%
-      dplyr::mutate(sector = dplyr::if_else(!is.na(adj), paste0(sector, "_", adj), sector)) %>%
-      dplyr::select(-adj)
+    m4_get_rev_loss.output.list <- list()
+    for (sc in scen_name) {
+
+      price<-prod %>%
+        dplyr::filter(scenario == sc) %>%
+        dplyr::select(-prod, -unit) %>%
+        tidyr::separate(sector, c("sector", "adj"), sep = "_") %>%
+        gcamdata::left_join_error_no_match(price_base %>%
+                                             dplyr::filter(scenario == sc),
+                                           by = c("scenario", "region", "sector", "year")) %>%
+        dplyr::mutate(sector = dplyr::if_else(!is.na(adj), paste0(sector, "_", adj), sector)) %>%
+        dplyr::select(-adj)
 
 
-    # Revenue (production*price)
-    rev<-prod %>%
-      gcamdata::left_join_error_no_match(price, by = c("scenario","region","sector","year")) %>%
-      # $/kg * million_tonnes = $/kg * billion_kg = billion$ (convert to 2010$)
-      dplyr::mutate(revenue_bil_2010usd = ((prod * price) * CONV_1975_2010)) %>%
-      dplyr::select(-prod, -price) %>%
-      dplyr::mutate(unit = "bil_2010usd") %>%
-      dplyr::arrange(scenario, region, sector, year)
+      # Revenue (production*price)
+      rev<-prod %>%
+        dplyr::filter(scenario == sc) %>%
+        gcamdata::left_join_error_no_match(price, by = c("scenario","region","sector","year")) %>%
+        # $/kg * million_tonnes = $/kg * billion_kg = billion$ (convert to 2010$)
+        dplyr::mutate(revenue_bil_2010usd = ((prod * price) * CONV_1975_2010)) %>%
+        dplyr::select(-prod, -price) %>%
+        dplyr::mutate(unit = "bil_2010usd") %>%
+        dplyr::arrange(scenario, region, sector, year)
 
 
-    #------------------------------------------------------------------------------------
-    ryl.fin<-ryl.aot.40.fin %>%
-      dplyr::rename(ryl_aot40 = value,
-                    crop = pollutant) %>%
-      dplyr::mutate(crop = dplyr::if_else(crop == "AOT_MAIZE", "maize", crop),
-                    crop = dplyr::if_else(crop == "AOT_RICE", "rice", crop),
-                    crop = dplyr::if_else(crop == "AOT_SOY", "soybean", crop),
-                    crop = dplyr::if_else(crop == "AOT_WHEAT", "wheat", crop)) %>%
-      gcamdata::left_join_error_no_match(ryl.mi.fin %>%
-                                           dplyr::rename(ryl_mi = value,
-                                                         crop = pollutant) %>%
-                                           dplyr::mutate(crop = dplyr::if_else(crop == "M_MAIZE", "maize", crop),
-                                                         crop = dplyr::if_else(crop == "M_RICE", "rice", crop),
-                                                         crop = dplyr::if_else(crop == "M_SOY", "soybean", crop),
-                                                         crop = dplyr::if_else(crop == "M_WHEAT", "wheat", crop)),
-                                         by = c("region", "year", "crop")) %>%
-      dplyr::select(-unit.x, -unit.y)
+      #------------------------------------------------------------------------------------
+      ryl.fin<-ryl.aot.40.fin %>%
+        dplyr::filter(scenario == sc) %>%
+        dplyr::rename(ryl_aot40 = value,
+                      crop = pollutant) %>%
+        dplyr::mutate(crop = dplyr::if_else(crop == "AOT_MAIZE", "maize", crop),
+                      crop = dplyr::if_else(crop == "AOT_RICE", "rice", crop),
+                      crop = dplyr::if_else(crop == "AOT_SOY", "soybean", crop),
+                      crop = dplyr::if_else(crop == "AOT_WHEAT", "wheat", crop)) %>%
+        gcamdata::left_join_error_no_match(ryl.mi.fin %>%
+                                             dplyr::filter(scenario == sc) %>%
+                                             dplyr::rename(ryl_mi = value,
+                                                           crop = pollutant) %>%
+                                             dplyr::mutate(crop = dplyr::if_else(crop == "M_MAIZE", "maize", crop),
+                                                           crop = dplyr::if_else(crop == "M_RICE", "rice", crop),
+                                                           crop = dplyr::if_else(crop == "M_SOY", "soybean", crop),
+                                                           crop = dplyr::if_else(crop == "M_WHEAT", "wheat", crop)),
+                                           by = c("region", "year", "crop", "scenario")) %>%
+        dplyr::select(-unit.x, -unit.y)
 
-    #------------------------------------------------------------------------------------
-    #  downscale the values to country level
-    harv<-tibble::as_tibble(d.ha) %>%
-      dplyr::left_join(Regions %>%
-                         dplyr::rename(iso = ISO3) %>%
-                         dplyr::mutate(iso = tolower(iso))
-                       , by = "iso") %>%
-      dplyr::filter(complete.cases(.)) %>%
-      dplyr::rename(`GCAM region` = `GCAM Region`) %>%
-      dplyr::select(crop, iso, harvested.area, `FASST region`, `GCAM region`) %>%
-      dplyr:: mutate(harvested.area = as.numeric(harvested.area)) %>%
-      dplyr::rename(CROP = crop)
+      #------------------------------------------------------------------------------------
+      #  downscale the values to country level
+      harv<-tibble::as_tibble(d.ha) %>%
+        dplyr::left_join(Regions %>%
+                           dplyr::rename(iso = ISO3) %>%
+                           dplyr::mutate(iso = tolower(iso))
+                         , by = "iso") %>%
+        dplyr::filter(complete.cases(.)) %>%
+        dplyr::rename(`GCAM region` = `GCAM Region`) %>%
+        dplyr::select(crop, iso, harvested.area, `FASST region`, `GCAM region`) %>%
+        dplyr:: mutate(harvested.area = as.numeric(harvested.area)) %>%
+        dplyr::rename(CROP = crop)
 
-    # Percentages within GCAM regions
-    perc_GCAM<-harv %>%
-      dplyr::group_by(CROP, `GCAM region`) %>%
-      dplyr::summarise(harvested.area = sum(harvested.area)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(tot_area_GCAM = harvested.area)
+      # Percentages within GCAM regions
+      perc_GCAM<-harv %>%
+        dplyr::group_by(CROP, `GCAM region`) %>%
+        dplyr::summarise(harvested.area = sum(harvested.area)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(tot_area_GCAM = harvested.area)
 
-    # Percentages within TM5-FASST regions
-    perc_FASST<-harv %>%
-      dplyr::group_by(CROP, `FASST region`) %>%
-      dplyr::summarise(harvested.area = sum(harvested.area)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(tot_area_FASST = harvested.area)
+      # Percentages within TM5-FASST regions
+      perc_FASST<-harv %>%
+        dplyr::group_by(CROP, `FASST region`) %>%
+        dplyr::summarise(harvested.area = sum(harvested.area)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(tot_area_FASST = harvested.area)
 
-    #------------------------------------------------------------------------------------
-    dam<- tibble::as_tibble (harv) %>%
-      gcamdata::left_join_error_no_match(perc_GCAM, by = c("CROP", "GCAM region")) %>%
-      gcamdata::left_join_error_no_match(perc_FASST, by = c("CROP", "FASST region")) %>%
-      dplyr::mutate(perc_GCAM = harvested.area / tot_area_GCAM,
-                    perc_FASST = harvested.area / tot_area_FASST ) %>%
-      dplyr::arrange(`FASST region`) %>%
-      dplyr::filter(CROP %in% c("maize", "rice", "soybean", "wheat")) %>%
-      dplyr::select(-tot_area_FASST, -tot_area_GCAM) %>%
-      gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-      dplyr::rename(crop = CROP) %>%
-      gcamdata::left_join_error_no_match(ryl.fin %>%
-                                           dplyr::rename(`FASST region` = region) %>%
-                                           dplyr::mutate(year = as.character(year)),
-                                         by=c("FASST region", "year", "crop")) %>%
-      dplyr::mutate(country_ryl_aot40 = ryl_aot40,
-                    country_ryl_mi = ryl_mi) %>%
-      dplyr::mutate(adj_country_ryl_aot40 = country_ryl_aot40 * perc_GCAM,
-                    adj_country_ryl_mi = country_ryl_mi * perc_GCAM) %>%
-      dplyr::group_by(crop, `GCAM region`, year) %>%
-      dplyr::summarise(ryl_aot40 = sum(adj_country_ryl_aot40),
-                       ryl_mi = sum(adj_country_ryl_mi)) %>%
-      dplyr::ungroup() %>%
-      dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-      dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
-      dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
-                    ryl_mi = ryl_mi * weight) %>%
-      dplyr::select(-crop,-weight) %>%
-      dplyr::group_by(GCAM_region_name, GCAM_commod, year) %>%
-      dplyr::summarise(ryl_aot40 = sum(ryl_aot40, na.rm = T),
-                       ryl_mi = sum(ryl_mi, na.rm = T),) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(GCAM_commod=dplyr::if_else(GCAM_commod == "Root_Tuber", "RootTuber", as.character(GCAM_commod))) %>%
-      dplyr::filter(GCAM_commod %in% CROP_ANALYSIS)
+      #------------------------------------------------------------------------------------
+      dam<- tibble::as_tibble (harv) %>%
+        gcamdata::left_join_error_no_match(perc_GCAM, by = c("CROP", "GCAM region")) %>%
+        gcamdata::left_join_error_no_match(perc_FASST, by = c("CROP", "FASST region")) %>%
+        dplyr::mutate(perc_GCAM = harvested.area / tot_area_GCAM,
+                      perc_FASST = harvested.area / tot_area_FASST ) %>%
+        dplyr::arrange(`FASST region`) %>%
+        dplyr::filter(CROP %in% c("maize", "rice", "soybean", "wheat")) %>%
+        dplyr::select(-tot_area_FASST, -tot_area_GCAM) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
+        dplyr::rename(crop = CROP) %>%
+        gcamdata::left_join_error_no_match(ryl.fin %>%
+                                             dplyr::rename(`FASST region` = region) %>%
+                                             dplyr::mutate(year = as.character(year)),
+                                           by=c("FASST region", "year", "crop")) %>%
+        dplyr::mutate(country_ryl_aot40 = ryl_aot40,
+                      country_ryl_mi = ryl_mi) %>%
+        dplyr::mutate(adj_country_ryl_aot40 = country_ryl_aot40 * perc_GCAM,
+                      adj_country_ryl_mi = country_ryl_mi * perc_GCAM) %>%
+        dplyr::group_by(crop, `GCAM region`, year) %>%
+        dplyr::summarise(ryl_aot40 = sum(adj_country_ryl_aot40),
+                         ryl_mi = sum(adj_country_ryl_mi)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(GCAM_region_name = `GCAM region`) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
+                      ryl_mi = ryl_mi * weight) %>%
+        dplyr::select(-crop,-weight) %>%
+        dplyr::group_by(GCAM_region_name, GCAM_commod, year) %>%
+        dplyr::summarise(ryl_aot40 = sum(ryl_aot40, na.rm = T),
+                         ryl_mi = sum(ryl_mi, na.rm = T),) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(GCAM_commod=dplyr::if_else(GCAM_commod == "Root_Tuber", "RootTuber", as.character(GCAM_commod))) %>%
+        dplyr::filter(GCAM_commod %in% CROP_ANALYSIS)
 
-    #------------------------------------------------------------------------------------
-    # Revenue losses:
-    rev.loss<- rev %>%
-      # Using left_join because of the places with no production
-      dplyr::left_join(dam %>% dplyr::rename(region = GCAM_region_name, sector = GCAM_commod) %>%
-                         dplyr::mutate(year = as.numeric(year)),
-                       by = c("region", "sector", "year")) %>%
-      dplyr::rename(revenue = revenue_bil_2010usd) %>%
-      dplyr::mutate(rev_loss_aot40 = revenue * ryl_aot40,
-                    rev_loss_mi = revenue * ryl_mi) %>%
-      dplyr::select(scenario, region, sector, year, rev_loss_aot40, rev_loss_mi, unit) %>%
-      dplyr::rename(crop = sector)
+      #------------------------------------------------------------------------------------
+      # Revenue losses:
+      rev.loss<- rev %>%
+        # Using left_join because of the places with no production
+        dplyr::left_join(dam %>% dplyr::rename(region = GCAM_region_name, sector = GCAM_commod) %>%
+                           dplyr::mutate(year = as.numeric(year)),
+                         by = c("region", "sector", "year")) %>%
+        dplyr::rename(revenue = revenue_bil_2010usd) %>%
+        dplyr::mutate(rev_loss_aot40 = revenue * ryl_aot40,
+                      rev_loss_mi = revenue * ryl_mi) %>%
+        dplyr::select(scenario, region, sector, year, rev_loss_aot40, rev_loss_mi, unit) %>%
+        dplyr::rename(crop = sector)
 
 
-    # Write the output
-    rev.loss.list<-split(rev.loss, rev.loss$year)
+      #------------------------------------------------------------------------------------
+      # Write the output
 
+      m4_get_rev_loss.output.list <- append(m4_get_rev_loss.output.list, list(rev.loss))
+    }
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Bind the results
+
+    m4_get_rev_loss.output <<- dplyr::bind_rows(m4_get_rev_loss.output.list)
+
+
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
     rev.loss.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df, paste0("output/m4/","REV_LOSS_",scen_name[1],"_",unique(df$year),".csv"), row.names = F)
+      write.csv(df, paste0("output/m4/","REV_LOSS_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"), row.names = F)
     }
 
 
     if(saveOutput == T){
+
+      rev.loss.list<-split(m4_get_rev_loss.output, m4_get_rev_loss.output$year)
+
       lapply(rev.loss.list, rev.loss.write)
+
     }
 
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
 
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
     if(map == T){
-      rev.loss.map<-rev.loss %>%
+
+      rev.loss.map<-m4_get_rev_loss.output %>%
         dplyr::mutate(value = (rev_loss_aot40 + rev_loss_mi) / 2) %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::select(-rev_loss_aot40, -rev_loss_mi, -unit) %>%
@@ -1177,9 +1282,11 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     }
 
-    rev.loss<-dplyr::bind_rows(rev.loss.list)
-    m4_get_rev_loss.output <<- rev.loss
-    return(invisible(rev.loss))
+    #----------------------------------------------------------------------
+    #----------------------------------------------------------------------
+    # Return output
+
+    return(invisible(m4_get_rev_loss.output))
   }
 
 }
