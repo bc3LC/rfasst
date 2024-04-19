@@ -923,14 +923,15 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
-    o3.mort.list<-split(m3_get_mort_o3.output,o3.mort$year)
-
     o3.mort.write<-function(df){
       df<-as.data.frame(df)
       write.csv(df,paste0("output/","m3/","O3_MORT_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
-    if(saveOutput == T) lapply(o3.mort.list,o3.mort.write)
+    if(saveOutput == T) {
+      o3.mort.list<-split(m3_get_mort_o3.output,o3.mort$year)
+      lapply(o3.mort.list,o3.mort.write)
+    }
 
 
     #----------------------------------------------------------------------
@@ -1099,15 +1100,16 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
-    o3.yll.list<-split(m3_get_yll_o3.output, o3.yll.fin$year)
-
     o3.yll.write<-function(df){
       df<-as.data.frame(df)
       write.csv(df,paste0("output/","m3/","O3_YLL_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
     }
 
 
-    if(saveOutput == T) lapply(o3.yll.list,o3.yll.write)
+    if(saveOutput == T) {
+      o3.yll.list<-split(m3_get_yll_o3.output, o3.yll.fin$year)
+      lapply(o3.yll.list,o3.yll.write)
+    }
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------

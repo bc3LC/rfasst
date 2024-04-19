@@ -501,8 +501,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       }
 
 
-
-
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
       pm<-dplyr::bind_rows(pm25.agg.list) %>%
@@ -548,29 +546,31 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
 
-    pm25.list<-split(m2_nat_prim_sec_pm25.output,m2_nat_prim_sec_pm25.output$year)
+    if(saveOutput==T) {
+      pm25.list<-split(m2_nat_prim_sec_pm25.output,m2_nat_prim_sec_pm25.output$year)
 
-    pm25.write<-function(df){
-      df<-as.data.frame(dplyr::bind_rows(df))
-      write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      pm25.write<-function(df){
+        df<-as.data.frame(dplyr::bind_rows(df))
+        write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      }
+
+      lapply(pm25.list,pm25.write)
     }
-
-    if(saveOutput==T) lapply(pm25.list,pm25.write)
-
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
-    pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
+    if(saveOutput==T) {
+      pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
 
-    pm25.agg.write<-function(df){
-      df<-as.data.frame(dplyr::bind_rows(df))
-      write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      pm25.agg.write<-function(df){
+        df<-as.data.frame(dplyr::bind_rows(df))
+        write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      }
+
+      lapply(pm25.agg.list,pm25.agg.write)
     }
-
-    if(saveOutput==T) lapply(pm25.agg.list,pm25.agg.write)
-
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -805,16 +805,17 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # If saveOutput=T, write the values
-    o3.list<-split(m2_get_conc_o3.output,m2_get_conc_o3.output$year)
 
-    o3.write<-function(df){
-      df<-as.data.frame(df) %>% dplyr::select(-pollutant)
-      write.csv(df,paste0("output/","m2/","O3_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+    if(saveOutput==T) {
+      o3.list<-split(m2_get_conc_o3.output,m2_get_conc_o3.output$year)
+
+      o3.write<-function(df){
+        df<-as.data.frame(df) %>% dplyr::select(-pollutant)
+        write.csv(df,paste0("output/","m2/","O3_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      }
+
+      lapply(o3.list,o3.write)
     }
-
-
-    if(saveOutput==T) lapply(o3.list,o3.write)
-
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -1094,16 +1095,17 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Write the values
-    m6m.list<-split(m2_get_conc_m6m.output,m2_get_conc_m6m.output$year)
 
-    m6m.write<-function(df){
-      df<-as.data.frame(df) %>% dplyr::select(-pollutant)
-      write.csv(df,paste0("output/","m2/","M6M_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+    if(saveOutput==T) {
+      m6m.list<-split(m2_get_conc_m6m.output,m2_get_conc_m6m.output$year)
+
+      m6m.write<-function(df){
+        df<-as.data.frame(df) %>% dplyr::select(-pollutant)
+        write.csv(df,paste0("output/","m2/","M6M_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+      }
+
+      lapply(m6m.list,m6m.write)
     }
-
-
-    if(saveOutput==T) lapply(m6m.list,m6m.write)
-
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
