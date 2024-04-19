@@ -40,7 +40,7 @@ m3_get_o3_ecoloss_vsl(
 
 \item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
-\item{scen_name}{Name of the GCAM scenario to be processed}
+\item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
 \item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
 
