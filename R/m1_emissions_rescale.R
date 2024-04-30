@@ -133,7 +133,10 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                            prj_rd$`nonCO2 emissions by resource production` %>%
                              dplyr::filter(scenario %in% scen_name)) %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
-      gcamdata::left_join_error_no_match(rfasst::my_pol %>% dplyr::rename(ghg = Pollutant), by = 'ghg') %>%
+      tibble::as_tibble() %>%
+      gcamdata::left_join_error_no_match(rfasst::my_pol %>%
+                                           dplyr::rename(ghg = Pollutant) %>%
+                                           tibble::as_tibble(), by = 'ghg') %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2", ghg), "SO2", ghg)) %>%
       dplyr::select(-ghg) %>%
       dplyr::rename(ghg = My_Pollutant) %>%
