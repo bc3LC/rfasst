@@ -41,7 +41,3 @@ inst/doc
 
 # sys files
 .DS_Store
-
-# mapping files
-inst/extdata/mapping
-/output
