@@ -384,7 +384,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-
+    m3_get_mort_pm25.output <<- m3_get_mort_pm25.output
     return(invisible(m3_get_mort_pm25.output))
 
   }
