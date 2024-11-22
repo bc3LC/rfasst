@@ -116,7 +116,6 @@ calc_daly_o3<-function(){
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -129,8 +128,8 @@ calc_daly_o3<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
@@ -169,7 +168,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get PM2.5
-    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries,
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries,
                              saveOutput = F, final_db_year = final_db_year, recompute = recompute)
     str(pm.pre)
     #----------------------------------------------------------------------
@@ -401,7 +400,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -414,8 +412,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
@@ -454,7 +452,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
 
@@ -615,7 +613,6 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -628,8 +625,8 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
 
@@ -672,7 +669,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     daly_calc_pm<-calc_daly_pm25()
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
 
@@ -807,7 +804,6 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -820,8 +816,8 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_mort_o3.output')) {
@@ -860,7 +856,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get M6M
-    m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj,  scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
@@ -975,7 +971,6 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -988,8 +983,8 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                        scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_yll_o3.output')) {
@@ -1027,7 +1022,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     m3_get_yll_o3.output.list <- list()
@@ -1154,7 +1149,6 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1167,8 +1161,8 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
@@ -1210,7 +1204,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     daly_calc_o3<-calc_daly_o3()
 
     # Get pm.mort
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     m3_get_daly_o3.output.list <- list()

@@ -9,7 +9,6 @@
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -24,8 +23,8 @@
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                                   rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
+m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                                   scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                    queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
 
@@ -65,7 +64,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("GBD", "GEMM", "FUSION"),
                           names_to = "model",
@@ -197,7 +196,6 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -212,8 +210,8 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                                 rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
+m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                                 scen_name, ssp = "SSP2", final_db_year = 2100,
                                  mort_model = "Jerret2009",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
                                  queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
 
@@ -252,7 +250,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get Mortalities
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
       tidyr::pivot_longer(cols = c("Jerret2009", "GBD2016"),
                           names_to = "model",
@@ -386,7 +384,6 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -401,7 +398,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @export
 
 m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
-                                  rdata_name = NULL, scen_name, ssp = "SSP2", final_db_year = 2100,
+                                  scen_name, ssp = "SSP2", final_db_year = 2100,
                                   mort_model = "GBD", inc_elas = 0.8,
                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
 
@@ -440,7 +437,7 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.conc <- m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj = prj, rdata_name, scen_name, queries, saveOutput = F,
+    pm.conc <- m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj = prj, scen_name, queries, saveOutput = F,
                              final_db_year = final_db_year, recompute = recompute)
 
     # Get gdp_pc

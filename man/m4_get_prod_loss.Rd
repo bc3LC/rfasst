@@ -8,9 +8,8 @@ m4_get_prod_loss(
   db_path = NULL,
   query_path = "./inst/extdata",
   db_name = NULL,
-  prj_name = NULL,
+  prj_name,
   prj = NULL,
-  rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
@@ -30,8 +29,6 @@ m4_get_prod_loss(
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
 
 \item{prj}{rgcam loaded project}
-
-\item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
 \item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
