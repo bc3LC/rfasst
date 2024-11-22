@@ -41,3 +41,6 @@ inst/doc
 
 # sys files
 .DS_Store
+
+# output items
+output/
