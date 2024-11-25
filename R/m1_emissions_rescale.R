@@ -17,12 +17,13 @@
 #' @param mapIndivPol If set to T, it produces the maps for individual pollutants. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                               saveOutput = T, map = F, mapIndivPol = F, anim = T, recompute = F){
+                               saveOutput = T, map = F, mapIndivPol = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m1_emissions_rescale.output')) {
     return(m1_emissions_rescale.output)
@@ -49,6 +50,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
+    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -246,7 +248,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     ship <- ship %>%
       dplyr::select(scenario,year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
-    final_df_wide<-dplyr::left_join(Percen %>%
+    final_df_wide<-dplyr::left_join(get(paste0('Percen',EUR), envir = asNamespace("rfasst")) %>%
                                       dplyr::filter(year %in% all_years,
                                                     Pollutant != "CO2") %>%
                                       dplyr::mutate(`GCAM Region`=as.factor(`GCAM Region`)),

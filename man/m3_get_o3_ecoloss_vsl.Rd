@@ -23,7 +23,8 @@ m3_get_o3_ecoloss_vsl(
   saveOutput = T,
   map = F,
   anim = T,
-  recompute = F
+  recompute = F,
+  gcam_eur = F
 )
 }
 \arguments{
@@ -58,6 +59,8 @@ m3_get_o3_ecoloss_vsl(
 \item{anim}{If set to T, produces multi-year animations. By default=T}
 
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
+
+\item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
 }
 \value{
 Economic damages associated with mortality attributable to O3 (M6M) exposure for each TM5-FASST regions for all years (Million$2015). The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
