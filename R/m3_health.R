@@ -383,7 +383,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-    m3_get_mort_pm25.output <<- m3_get_mort_pm25.output
+    m3_get_mort_pm25.output <- m3_get_mort_pm25.output
     return(invisible(m3_get_mort_pm25.output))
 
   }
@@ -525,7 +525,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_pm25.output <<- dplyr::bind_rows(m3_get_yll_pm25.output.list)
+    m3_get_yll_pm25.output <- dplyr::bind_rows(m3_get_yll_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -716,7 +716,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_pm25.output <<- dplyr::bind_rows(m3_get_daly_pm25.output.list)
+    m3_get_daly_pm25.output <- dplyr::bind_rows(m3_get_daly_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -910,7 +910,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_mort_o3.output <<- dplyr::bind_rows(m3_get_mort_o3.output.list)
+    m3_get_mort_o3.output <- dplyr::bind_rows(m3_get_mort_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1086,7 +1086,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_o3.output <<- dplyr::bind_rows(m3_get_yll_o3.output.list)
+    m3_get_yll_o3.output <- dplyr::bind_rows(m3_get_yll_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1251,7 +1251,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_o3.output <<- dplyr::bind_rows(m3_get_daly_o3.output.list)
+    m3_get_daly_o3.output <- dplyr::bind_rows(m3_get_daly_o3.output.list)
 
 
     #----------------------------------------------------------------------
