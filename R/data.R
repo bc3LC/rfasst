@@ -1086,6 +1086,17 @@
 #' }
 "GCAM_reg"
 
+#' GCAM_reg_EUR
+#'
+#' @description  Mapping of countries to GCAM-Europe regions
+#' @source GCAM
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::GCAM_reg_EUR
+#' }
+"GCAM_reg_EUR"
+
 #' country_iso
 #'
 #' @description  Mapping of countries to iso3 codes
@@ -1108,7 +1119,7 @@
 "adj_rus"
 #'
 #'
-#' #' Percen
+#' Percen
 #'
 #' @description  Percentages to downscale GCAM emissions to country-level
 #' @source For GHGs: European Commission, Joint Research Centre (EC-JRC)/Netherlands Environmental Assessment Agency (PBL) (EDGARv7.0_GHG website (https://edgar.jrc.ec.europa.eu/dataset_ghg70)).
@@ -1125,6 +1136,24 @@
 #'
 #'
 "Percen"
+
+#' Percen_EUR
+#'
+#' @description  Percentages to downscale GCAM-Europe emissions to country-level
+#' @source For GHGs: European Commission, Joint Research Centre (EC-JRC)/Netherlands Environmental Assessment Agency (PBL) (EDGARv7.0_GHG website (https://edgar.jrc.ec.europa.eu/dataset_ghg70)).
+#' Emissions Database for Global Atmospheric Research (EDGAR), release EDGAR v7.0_GHG (1970 - 2021) of September 2022. For the energy related sectors the activity data are mainly based on IEA data from IEA (2021) World Energy Balances, www.iea.org/statistics,
+#' Crippa, M., Guizzardi, D., Banja, M., Solazzo, E., Muntean, M., Schaaf, E., Pagani, F., Monforti-Ferrario, F., Olivier, J., Quadrelli, R., Risquez Martin, A., Taghavi-Moharamli, P., Grassi, G., Rossi, S., Jacome Felix Oom, D., Branco, A., San-Miguel-Ayanz, J. and Vignati, E., CO2 emissions of all world countries - 2022 Report, EUR 31182 EN, Publications Office of the European Union, Luxembourg, 2022, doi:10.2760/730164, JRC130363
+#' Crippa, M., Guizzardi, D., Solazzo, E., Muntean, M., Schaaf, E., Monforti-Ferrario, F., Banja, M., Olivier, J.G.J., Grassi, G., Rossi, S., Vignati, E.,GHG emissions of all world countries - 2021 Report, EUR 30831 EN, Publications Office of the European Union, Luxembourg, 2021, ISBN 978-92-76-41547-3, doi:10.2760/173513, JRC126363
+#' For APs: https://zenodo.org/record/3754964#.Y3O_lXbMKUk (CEDS-GBD)
+#'
+#'
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Percen_EUR
+#' }
+#'
+#'
+"Percen_EUR"
 
 #' #' my_pol
 #'
@@ -1148,6 +1177,17 @@
 #'
 #'
 "d.iso"
+
+#' d.iso_EUR
+#'
+#' @description  Countries to GCAM-Europe regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.iso_EUR
+#' }
+#'
+#'
+"d.iso_EUR"
 
 #' d.gcam.commod.o3
 #'
@@ -1175,7 +1215,7 @@
 
 #' Regions
 #'
-#' @description  Combined regions
+#' @description  Combined GCAM regions
 #' \dontrun{
 #'  library(rfasst);
 #'  rfasst::Regions
@@ -1183,6 +1223,17 @@
 #'
 #'
 "Regions"
+
+#' Regions_EUR
+#'
+#' @description  Combined GCAM-Europe regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Regions_EUR
+#' }
+#'
+#'
+"Regions_EUR"
 
 #' d.weight.gcam
 #'
@@ -1195,6 +1246,18 @@
 #'
 #'
 "d.weight.gcam"
+
+#' d.weight.gcam_EUR
+#'
+#' @description  O3 to GCAM-Europe commodities (based on their carbon fixation pathways; C3 and C4 categories)
+#' @source Own assumptions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.weight.gcam_EUR
+#' }
+#'
+#'
+"d.weight.gcam_EUR"
 
 #=========================================================
 # Constants

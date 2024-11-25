@@ -16,11 +16,12 @@
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, map = F, anim = T, recompute = F){
+                         saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_prod_gcam.output')) {
     return(calc_prod_gcam.output)
@@ -174,12 +175,13 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_price_gcam.output')) {
     return(calc_price_gcam.output)
@@ -324,12 +326,13 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                        saveOutput = T, map = F, anim = T, recompute = F){
+                        saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_rev_gcam.output')) {
     return(calc_rev_gcam.output)
@@ -365,10 +368,10 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
 
     # Get prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get price
-    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     #------------------------------------------------------------------------------------
 
@@ -442,12 +445,13 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F){
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
 
   if (!recompute & exists('m4_get_ryl_aot40.output')) {
@@ -484,7 +488,8 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
+                             final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     rlang::inform('Computing relative yield losses with AOT40 method ...')
 
@@ -604,12 +609,13 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                        saveOutput = T, map = F, anim = T, recompute = F){
+                        saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_ryl_mi.output')) {
     return(m4_get_ryl_mi.output)
@@ -645,7 +651,8 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
+                       final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     rlang::inform('Computing relative yield losses with Mi method ...')
 
@@ -767,12 +774,13 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F){
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_prod_loss.output')) {
     return(m4_get_prod_loss.output)
@@ -797,6 +805,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
+    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -809,13 +818,13 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     rlang::inform('Computing agricultural production losses ...')
 
@@ -846,7 +855,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       #  downscale the values to country level
       harv<-tibble::as_tibble(d.ha) %>%
-        dplyr::left_join(Regions %>%
+        dplyr::left_join(get(paste0('Regions',EUR), envir = asNamespace("rfasst")) %>%
                            dplyr::rename(iso = ISO3) %>%
                            dplyr::mutate(iso = tolower(iso)),
                          by = "iso") %>%
@@ -894,7 +903,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(get(paste0('d.weight.gcam',EUR), envir = asNamespace("rfasst")), by = c("GCAM_region_name", "crop")) %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop, -weight) %>%
@@ -1024,12 +1033,13 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_rev_loss.output')) {
     return(m4_get_rev_loss.output)
@@ -1054,6 +1064,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
+    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -1066,13 +1077,13 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Revenue: re-calculate to consider C4 categories
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Price
     price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
@@ -1127,7 +1138,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       #------------------------------------------------------------------------------------
       #  downscale the values to country level
       harv<-tibble::as_tibble(d.ha) %>%
-        dplyr::left_join(Regions %>%
+        dplyr::left_join(get(paste0('Regions',EUR), envir = asNamespace("rfasst")) %>%
                            dplyr::rename(iso = ISO3) %>%
                            dplyr::mutate(iso = tolower(iso))
                          , by = "iso") %>%
@@ -1175,7 +1186,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                          ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(get(paste0('d.weight.gcam',EUR), envir = asNamespace("rfasst")), by = c("GCAM_region_name", "crop")) %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop,-weight) %>%

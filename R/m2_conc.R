@@ -19,12 +19,13 @@
 #' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
 #' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
 #' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F,
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
@@ -69,7 +70,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F, final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -599,12 +601,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, ch4_o3 = T, map = F, anim = T, recompute = F){
+                         saveOutput = T, ch4_o3 = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_o3.output')) {
     return(m2_get_conc_o3.output)
@@ -640,7 +643,8 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -863,12 +867,13 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_m6m.output')) {
     return(m2_get_conc_m6m.output)
@@ -904,7 +909,8 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,scen_name,queries,saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,scen_name,queries,saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -1153,13 +1159,14 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 
 m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                             scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                            saveOutput = T, map = F, anim = T, recompute = F){
+                            saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_aot40.output')) {
     return(m2_get_conc_aot40.output)
@@ -1196,7 +1203,8 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1605,12 +1613,13 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, map = F, anim = T, recompute = F){
+                         saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_mi.output')) {
     return(m2_get_conc_mi.output)
@@ -1647,7 +1656,8 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     # First we load the base concentration and emissions, which are required for the calculations
 

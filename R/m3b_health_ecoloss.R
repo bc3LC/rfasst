@@ -20,13 +20,14 @@
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                    scen_name, ssp = "SSP2", final_db_year = 2100,
                                    mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
-                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
+                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_pm25_ecoloss_vsl.output')) {
     return(m3_get_pm25_ecoloss_vsl.output)
@@ -65,7 +66,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 
     # Get Mortalities
     pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
-                              queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+                              queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur) %>%
       tidyr::pivot_longer(cols = c("GBD", "GEMM", "FUSION"),
                           names_to = "model",
                           values_to = "mort_pm25") %>%
@@ -207,13 +208,14 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                  scen_name, ssp = "SSP2", final_db_year = 2100,
                                  mort_model = "Jerret2009",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
-                                 queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
+                                 queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_o3_ecoloss_vsl.output')) {
     return(m3_get_o3_ecoloss_vsl.output)
@@ -251,7 +253,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 
     # Get Mortalities
     o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
-                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute) %>%
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur) %>%
       tidyr::pivot_longer(cols = c("Jerret2009", "GBD2016"),
                           names_to = "model",
                           values_to = "mort_o3") %>%
@@ -394,13 +396,14 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                                   scen_name, ssp = "SSP2", final_db_year = 2100,
                                   mort_model = "GBD", inc_elas = 0.8,
-                                  queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F){
+                                  queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_pm25_ecoloss_gdpGrowth.output')) {
     return(m3_get_pm25_ecoloss_gdpGrowth.output)
@@ -438,7 +441,7 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
 
     # Get Mortalities
     pm.conc <- m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj = prj, scen_name, queries, saveOutput = F,
-                             final_db_year = final_db_year, recompute = recompute)
+                             final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))
