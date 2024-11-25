@@ -517,7 +517,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m2_get_conc_pm25.output <<- dplyr::bind_rows(m2_get_conc_pm25.output.list)
+    m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -797,7 +797,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
-    m2_get_conc_o3.output <<- dplyr::bind_rows(m2_get_conc_o3.output.list)
+    m2_get_conc_o3.output <- dplyr::bind_rows(m2_get_conc_o3.output.list)
 
 
     #----------------------------------------------------------------------

@@ -129,7 +129,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_pm25_ecoloss_vsl.output <<- dplyr::bind_rows(m3_get_pm25_ecoloss_vsl.output.list)
+    m3_get_pm25_ecoloss_vsl.output <- dplyr::bind_rows(m3_get_pm25_ecoloss_vsl.output.list)
 
 
     #----------------------------------------------------------------------
@@ -316,7 +316,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_o3_ecoloss_vsl.output <<- dplyr::bind_rows(m3_get_o3_ecoloss_vsl.output.list)
+    m3_get_o3_ecoloss_vsl.output <- dplyr::bind_rows(m3_get_o3_ecoloss_vsl.output.list)
 
 
     #----------------------------------------------------------------------
@@ -495,7 +495,7 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_pm25_ecoloss_gdpGrowth.output <<- dplyr::bind_rows(m3_get_pm25_ecoloss_gdpGrowth.output.list)
+    m3_get_pm25_ecoloss_gdpGrowth.output <- dplyr::bind_rows(m3_get_pm25_ecoloss_gdpGrowth.output.list)
 
 
     #----------------------------------------------------------------------

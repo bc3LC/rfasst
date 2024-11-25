@@ -149,7 +149,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     }
 
-    calc_prod_gcam.output <<- prod
+    calc_prod_gcam.output <- prod
     return(invisible(prod))
   }
 
@@ -299,7 +299,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     }
 
-    calc_price_gcam.output <<- price
+    calc_price_gcam.output <- price
     return(invisible(price))
   }
 
@@ -418,7 +418,7 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     }
 
-    calc_rev_gcam.output <<- rev
+    calc_rev_gcam.output <- rev
     return(invisible(rev))
   }
 
@@ -528,7 +528,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_ryl_aot40.output <<- dplyr::bind_rows(m4_get_ryl_aot40.output.list)
+    m4_get_ryl_aot40.output <- dplyr::bind_rows(m4_get_ryl_aot40.output.list)
 
 
     #----------------------------------------------------------------------
@@ -694,7 +694,7 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_ryl_mi.output <<- dplyr::bind_rows(m4_get_ryl_mi.output.list)
+    m4_get_ryl_mi.output <- dplyr::bind_rows(m4_get_ryl_mi.output.list)
 
 
     #----------------------------------------------------------------------
@@ -950,7 +950,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_prod_loss.output <<- dplyr::bind_rows(m4_get_prod_loss.output.list)
+    m4_get_prod_loss.output <- dplyr::bind_rows(m4_get_prod_loss.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1210,7 +1210,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_rev_loss.output <<- dplyr::bind_rows(m4_get_rev_loss.output.list)
+    m4_get_rev_loss.output <- dplyr::bind_rows(m4_get_rev_loss.output.list)
 
 
     #----------------------------------------------------------------------
