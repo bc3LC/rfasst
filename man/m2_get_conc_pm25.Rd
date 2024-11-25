@@ -17,6 +17,7 @@ m2_get_conc_pm25(
   map = F,
   anim = T,
   recompute = F,
+  gcam_eur = F,
   downscale = F,
   saveRaster_grid = F,
   agg_grid = F,
@@ -47,6 +48,8 @@ m2_get_conc_pm25(
 \item{anim}{If set to T, produces multi-year animations. By default=T}
 
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
+
+\item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
 
 \item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
 
