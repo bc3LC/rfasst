@@ -404,11 +404,15 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           dplyr::select(-n) %>%
           dplyr::arrange(ISO3V10)
 
+        # Create a list with the outputs by year
+        pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
+
         # Load pm2.5 grid to country weights
         pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
 
         # Create a function
         generate_gridded_output <- function(df){
+          df = df[[1]]
 
           # Add iso and rasterize the output
           ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10", verbose = F)
@@ -416,9 +420,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           # Rasterize the output
           out <- raster::rasterize(ssPDF_pm25_agg_fin_grid, out, field = 'rfasst_pm25')
-
-          # create a list with the outputs by year
-          pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
 
           # Compute calculations
           out_rast <- as(out, "SpatRaster")

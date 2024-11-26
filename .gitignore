@@ -45,3 +45,4 @@ inst/doc
 # mapping files
 inst/extdata/mapping
 /output
+/ineq
