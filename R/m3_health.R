@@ -26,8 +26,6 @@ calc_mort_rates<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-
-
 calc_daly_pm25<-function(){
 
   daly_calc_pm<-tibble::as_tibble(raw.daly) %>%
@@ -71,7 +69,6 @@ calc_daly_pm25<-function(){
 #' @return DALY-to-Mortality ratios for TM5-FASST regions for all years and O3-related causes (respiratory disease).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
 #' @importFrom magrittr %>%
 #' @export
-
 
 calc_daly_o3<-function(){
 
@@ -171,7 +168,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                              final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
-    str(pm.pre)
+
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -236,7 +233,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.rr.fusion <- pm.rr.pre %>%
         dplyr::select(region, year, units, pm_conc, disease, age) %>%
         dplyr::mutate(z = round(pm_conc, 1)) %>%
-        #dplyr::left_join(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
         gcamdata::left_join_error_no_match(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
         dplyr::select(region, year, units, pm_conc, disease, age, FUSION_rr = rr)
 
