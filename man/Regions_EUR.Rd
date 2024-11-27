@@ -5,7 +5,7 @@
 \alias{Regions_EUR}
 \title{Regions_EUR}
 \format{
-An object of class \code{data.frame} with 258 rows and 4 columns.
+An object of class \code{data.frame} with 259 rows and 4 columns.
 }
 \usage{
 Regions_EUR
