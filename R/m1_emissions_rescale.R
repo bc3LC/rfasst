@@ -39,8 +39,6 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m1")) dir.create("output/m1")
@@ -102,6 +100,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
     rlang::inform('Computing emissions ...')
 
 

@@ -48,8 +48,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m2")) dir.create("output/m2")
@@ -72,6 +70,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(em.list$year))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -622,8 +623,6 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m2")) dir.create("output/m2")
@@ -646,6 +645,9 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(em.list$year))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -888,8 +890,6 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m2")) dir.create("output/m2")
@@ -912,6 +912,9 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,scen_name,queries,saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(em.list$year))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -1182,8 +1185,6 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m2")) dir.create("output/m2")
@@ -1206,6 +1207,9 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(em.list$year))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1635,8 +1639,6 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m2")) dir.create("output/m2")
@@ -1659,6 +1661,9 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(em.list$year))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
