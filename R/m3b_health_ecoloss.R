@@ -42,8 +42,6 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m3")) dir.create("output/m3")
@@ -74,6 +72,9 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::group_by(region, year, scenario) %>%
       dplyr::summarise(mort_pm25 = sum(mort_pm25)) %>%
       dplyr::ungroup()
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(pm.mort$year))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))
@@ -229,8 +230,6 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m3")) dir.create("output/m3")
@@ -262,6 +261,8 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::summarise(mort_o3 = sum(mort_o3)) %>%
       dplyr::ungroup()
 
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(o3.mort$year))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))
@@ -417,8 +418,6 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m3")) dir.create("output/m3")
@@ -442,6 +441,9 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
     # Get Mortalities
     pm.conc <- m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj = prj, scen_name, queries, saveOutput = F,
                              final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(pm.conc$year))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))

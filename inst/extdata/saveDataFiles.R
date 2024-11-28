@@ -997,6 +997,35 @@ raw.mort.rates.plus <- dplyr::bind_rows(
 usethis::use_data(raw.mort.rates.plus, overwrite = T)
 
 
+# TODO start --------------------------------------------------
+# raw.mort.rates.nuts3
+# mapping for nuts3 and iso3 codes
+nuts3_data <- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+  tibble::as_tibble() %>%
+  dplyr::filter(LEVL_CODE == 3) %>%
+  dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
+                                "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
+  dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
+  dplyr::left_join(jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
+                     dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code), by = 'ISO2') %>%
+  # fix Greece (EL = GR) and United Kingdom (UK = GB)
+  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'EL','GRC',ISO3)) %>%
+  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'UK','GBR',ISO3)) %>%
+  dplyr::distinct()
+
+GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
+  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
+  dplyr::select(-ISO2, region = `FASST region`, COUNTRY, `GCAM Region`, ISO3, NUTS3)
+
+# expand raw.mort.rates to NUTS3
+raw.mort.rates.nuts <- raw.mort.rates %>%
+  dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
+
+
+# raw.mort.rates.grid
+
+# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling
