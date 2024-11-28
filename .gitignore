@@ -46,3 +46,8 @@ inst/doc
 inst/extdata/mapping
 /output
 /ineq
+/inst/extdata/IHME-GBD_2021_DATA
+/inst/extdata/mr*.csv
+R/try.R
+*.zip
+tests/testthat/prova_eur.dat
