@@ -36,8 +36,6 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -89,6 +87,9 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
     }
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
+
     rlang::inform('Computing ...')
 
     prod <- rgcam::getQuery(prj,"ag production by subsector (land use region)") %>%
@@ -196,8 +197,6 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -250,6 +249,8 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
     rlang::inform('Computing ...')
 
     price <- rgcam::getQuery(prj,"Ag Commodity Prices") %>%
@@ -346,8 +347,6 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -372,6 +371,9 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     # Get price
     price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(prod$year))))]
 
     #------------------------------------------------------------------------------------
 
@@ -466,8 +468,6 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -490,6 +490,9 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
                              final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(aot40$year))))]
 
     rlang::inform('Computing relative yield losses with AOT40 method ...')
 
@@ -629,8 +632,6 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -653,6 +654,9 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
                        final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(mi$year))))]
 
     rlang::inform('Computing relative yield losses with Mi method ...')
 
@@ -794,8 +798,6 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -825,6 +827,9 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get Prod
     prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(ryl.aot.40.fin$year))))]
 
     rlang::inform('Computing agricultural production losses ...')
 
@@ -1053,8 +1058,6 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m4")) dir.create("output/m4")
@@ -1087,6 +1090,9 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     # Get Price
     price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(ryl.aot.40.fin$year))))]
 
     rlang::inform('Computing agricultural revenue losses ...')
 

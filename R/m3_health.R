@@ -143,8 +143,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m3")) dir.create("output/m3")
@@ -168,6 +166,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                              final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.numeric(unique(pm.pre$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -406,12 +407,13 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
     return(m3_get_yll_pm25.output)
@@ -425,8 +427,6 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -452,6 +452,8 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(pm.mort$year))))]
 
 
     m3_get_yll_pm25.output.list <- list()
@@ -619,12 +621,13 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+                           ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
 
   if (!recompute & exists('m3_get_daly_pm25.output')) {
@@ -639,8 +642,6 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -669,6 +670,8 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(pm.mort$year))))]
 
     m3_get_daly_pm25.output.list <- list()
     for (sc in scen_name) {
@@ -831,8 +834,6 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m3")) dir.create("output/m3")
@@ -856,6 +857,9 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Get M6M
     m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj,  scen_name, queries, saveOutput = F,
                            final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(m6m$year))))]
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
@@ -979,12 +983,13 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
-                        ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+                        ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_yll_o3.output')) {
     return(m3_get_yll_o3.output)
@@ -997,8 +1002,6 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1023,6 +1026,9 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     # Get pm.mort
     o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(o3.mort$year))))]
 
     m3_get_yll_o3.output.list <- list()
     for (sc in scen_name) {
@@ -1157,12 +1163,13 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
-                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = G){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
     return(m3_get_daly_o3.output)
@@ -1176,8 +1183,6 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1204,7 +1209,10 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     # Get pm.mort
     o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
-                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(unique(o3.mort$year))))]
 
     m3_get_daly_o3.output.list <- list()
     for (sc in scen_name) {
