@@ -353,7 +353,7 @@ Regions<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `F
 usethis::use_data(Regions, overwrite = T)
 
 Regions_EUR<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
-                          , GCAM_reg, by="ISO 3") %>%
+                          , GCAM_reg_EUR, by="ISO 3") %>%
   dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
   dplyr::select(-`ISO 3`) %>%
   dplyr::rename(COUNTRY = Country)
@@ -883,8 +883,123 @@ raw.mort.rates <- dplyr::bind_rows(
 usethis::use_data(raw.mort.rates, overwrite = T)
 
 
+
+# Function to read all CSVs in a single ZIP
+read_csvs_from_zip <- function(zip_file) {
+  print(zip_file)
+  # Get a temporary directory
+  temp_dir <- tempdir()
+  unlink(temp_dir, recursive = TRUE)
+  dir.create(temp_dir)
+  # Unzip files into the temporary directory
+  unzip(zip_file, exdir = temp_dir)
+  # Get all CSV file paths in the extracted folder
+  csv_files <- list.files(temp_dir, pattern = "\\.csv$", full.names = TRUE)
+  # Read all CSV files into a list of data frames
+  csv_data <- lapply(csv_files, read.csv)
+  # Optionally combine into a single data frame (if they share structure)
+  combined_data <- dplyr::bind_rows(csv_data, .id = "source_file")
+
+  return(combined_data)
+}
+
+
+ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
+ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
+                                                    pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
+
+iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
+  read.csv("inst/extdata/mapping/ihme_localtions.csv") %>% tibble::as_tibble(),
+  read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv") %>% tibble::as_tibble(),
+  by = "country_name") %>% gcamdata::left_join_error_no_match(
+    Regions_EUR %>%
+      dplyr::rename(iso = ISO3, GCAM_region_name = `GCAM Region`) %>%
+      dplyr::mutate(iso = tolower(iso)),
+    by = c('iso','GCAM_region_name'))
+
+mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
+  gcamdata::left_join_error_no_match(iso_ihme_rfasst,
+                                     by = "location_id")
+
+raw.mort.rates.plus1 <- mort.rates.country %>%
+  dplyr::filter(cause_name != 'Ischemic stroke') %>% # remove not accounted cause_name (general stroke considered)
+  dplyr::mutate(age_name = gsub(" years", "", age_name),
+                age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::filter(metric_name == 'Rate', measure_name == 'Deaths') %>% # select only rate values from deaths
+  dplyr::mutate(cause_name = tolower(cause_name),
+                year = as.numeric(year)) %>%
+  dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
+  ) %>%
+  # ALRI only affects children < 5 years old, the rest of illnesses, >=25 years old
+  dplyr::filter(dplyr::if_else(cause_name == 'lri',
+                               age_name == '<5',
+                               age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                               "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                               "95+","All Ages"))) %>%
+  # select only years multiple of 5 and >= 1990
+  dplyr::filter(year %% 5 == 0, year >= 1990) %>%
+  # compute the regional rate
+  gcamdata::left_join_error_no_match(ihme.population %>%
+                                       dplyr::select(pop = val, location_id, sex_id, sex_name, age_id, year),
+                                     by = c('location_id', 'sex_id', 'sex_name', 'age_id', 'year')) %>%
+  dplyr::mutate(val = val * pop) %>%
+  dplyr::group_by(region = `FASST region`, year, age = age_name, sex = sex_name, disease = cause_name) %>%
+  dplyr::summarise(pop = sum(pop),
+                   val = sum(val),
+                   rate = val / pop) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-pop, -val)
+
+
+# Expand to future years using the previous regression
+
+# 1. 5-year step rate fluctuation by rfasst region
+raw.mort.rates.fluctuation <- raw.mort.rates %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::arrange(year, .by_group = TRUE) %>%
+  dplyr::mutate(fluc = (rate - dplyr::lag(rate)) / dplyr::lag(rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-rate) %>%
+  dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
+  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1)) %>%
+  dplyr::filter(dplyr::if_else(disease != 'lri', age != '<5', TRUE),
+                dplyr::if_else(disease == 'lri', age == '<5', TRUE))
+
+# 2. add this fluctuations into raw.mort.rates.plus
+raw.mort.rates.plus2 <- raw.mort.rates.plus1 %>%
+  tidyr::complete(tidyr::nesting(region, age, sex, disease), year = seq(1990, 2100, by = 5), fill = list('rate')) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
+                                      max(rate[year == 2020], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  gcamdata::left_join_error_no_match(raw.mort.rates.fluctuation,
+                                     by = c('region','age','disease','year')) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
+                                      max(rate[year == 2040], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-fluc)
+
+# 3. Consider lri <5 years old as All Ages for this disease in the study
+raw.mort.rates.plus <- dplyr::bind_rows(
+  raw.mort.rates.plus2,
+  raw.mort.rates.plus2 %>%
+    dplyr::filter(disease == 'lri') %>%
+    dplyr::mutate(age = "All Ages")
+)
+
+usethis::use_data(raw.mort.rates.plus, overwrite = T)
+
+
+
 #=========================================================
-# Downscalling
+# Downscaling
 #=========================================================
 countries <- rworldmap::countryExData %>%
   dplyr::select(subRegionAlt = ISO3V10) %>%

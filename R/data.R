@@ -990,6 +990,18 @@
 #' }
 "raw.mort.rates"
 
+#' raw.mort.rates.plus
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.plus
+#' }
+"raw.mort.rates.plus"
+
 #' raw.rr.fusion
 #'
 #' @description  Relative risk of death attributable to a change in population-weighted mean pollutant concentration using the FUSION model. From Burnett, R.T., Spadaro, J.V., Garcia, G.R. and Pope, C.A., 2022. Designing health impact functions to assess marginal changes in outdoor fine particulate matter. Environmental Research, 204, p.112245.
