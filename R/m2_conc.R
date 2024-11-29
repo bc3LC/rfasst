@@ -76,7 +76,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                                   final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(em.list$year))))]
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -685,7 +685,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(em.list$year))))]
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -952,7 +952,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(em.list$year))))]
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -1247,7 +1247,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(em.list$year))))]
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1701,7 +1701,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(em.list$year))))]
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
