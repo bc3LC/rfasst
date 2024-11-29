@@ -235,6 +235,66 @@
 #' }
 "pop.all.SSP5"
 
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP1 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP1
+#' }
+"pop.all.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP2 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP2
+#' }
+"pop.all.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP3 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP3
+#' }
+"pop.all.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP4 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP4
+#' }
+"pop.all.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP5
+#' }
+"pop.all.str.SSP5"
+
 #=========================================================
 # Module 2
 #=========================================================

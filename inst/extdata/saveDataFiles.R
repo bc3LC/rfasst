@@ -427,6 +427,17 @@ usethis::use_data(pop.all.SSP4, overwrite = T)
 pop.all.SSP5 = calc_pop(ssp = 'SSP5')
 usethis::use_data(pop.all.SSP5, overwrite = T)
 
+pop.all.str.SSP1 = calc_pop_str(ssp = 'SSP1')
+usethis::use_data(pop.all.str.SSP1, overwrite = T)
+pop.all.str.SSP2 = calc_pop_str(ssp = 'SSP2')
+usethis::use_data(pop.all.str.SSP2, overwrite = T)
+pop.all.str.SSP3 = calc_pop_str(ssp = 'SSP3')
+usethis::use_data(pop.all.str.SSP3, overwrite = T)
+pop.all.str.SSP4 = calc_pop_str(ssp = 'SSP4')
+usethis::use_data(pop.all.str.SSP4, overwrite = T)
+pop.all.str.SSP5 = calc_pop_str(ssp = 'SSP5')
+usethis::use_data(pop.all.str.SSP5, overwrite = T)
+
 # ssp gdp
 gdp_pc.SSP1 = calc_gdp_pc(ssp = 'SSP1')
 usethis::use_data(gdp_pc.SSP1, overwrite = T)
@@ -922,7 +933,7 @@ mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
                                      by = "location_id")
 
 raw.mort.rates.plus1 <- mort.rates.country %>%
-  dplyr::filter(cause_name != 'Ischemic stroke') %>% # remove not accounted cause_name (general stroke considered)
+  dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
   dplyr::mutate(age_name = gsub(" years", "", age_name),
                 age_name = gsub(" to ", "-", age_name),
                 age_name = gsub(" plus", "+", age_name)) %>%
@@ -932,6 +943,7 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
   dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic stroke','stroke',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
@@ -940,7 +952,7 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
                                age_name == '<5',
                                age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
-                                               "95+","All Ages"))) %>%
+                                               "95+","All Ages","All ages"))) %>%
   # select only years multiple of 5 and >= 1990
   dplyr::filter(year %% 5 == 0, year >= 1990) %>%
   # compute the regional rate
@@ -986,46 +998,17 @@ raw.mort.rates.plus2 <- raw.mort.rates.plus1 %>%
   dplyr::ungroup() %>%
   dplyr::select(-fluc)
 
-# 3. Consider lri <5 years old as All Ages for this disease in the study
+raw.mort.rates.plus.rue <- raw.mort.rates.plus2 %>%
+  dplyr::filter(region == 'RUS') %>%
+  dplyr::mutate(region = 'RUE')
+
 raw.mort.rates.plus <- dplyr::bind_rows(
   raw.mort.rates.plus2,
-  raw.mort.rates.plus2 %>%
-    dplyr::filter(disease == 'lri') %>%
-    dplyr::mutate(age = "All Ages")
+  raw.mort.rates.plus.rue
 )
 
 usethis::use_data(raw.mort.rates.plus, overwrite = T)
 
-
-# TODO start --------------------------------------------------
-# raw.mort.rates.nuts3
-# mapping for nuts3 and iso3 codes
-nuts3_data <- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
-  tibble::as_tibble() %>%
-  dplyr::filter(LEVL_CODE == 3) %>%
-  dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
-                                "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
-  dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
-  dplyr::left_join(jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
-                     dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code), by = 'ISO2') %>%
-  # fix Greece (EL = GR) and United Kingdom (UK = GB)
-  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'EL','GRC',ISO3)) %>%
-  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'UK','GBR',ISO3)) %>%
-  dplyr::distinct()
-
-GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
-  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
-  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
-  dplyr::select(-ISO2, region = `FASST region`, COUNTRY, `GCAM Region`, ISO3, NUTS3)
-
-# expand raw.mort.rates to NUTS3
-raw.mort.rates.nuts <- raw.mort.rates %>%
-  dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
-
-
-# raw.mort.rates.grid
-
-# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling
