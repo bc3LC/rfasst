@@ -8,7 +8,7 @@
 #' @export
 
 calc_mort_rates<-function(){
-  mort.rates <- raw.mort.rates %>%
+  mort.rates <- raw.mort.rates.plus %>%
     dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
 
   invisible(mort.rates)
@@ -179,7 +179,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pop.all.str<-get(paste0('pop.all.str.',ssp))
     # Get baseline mortality rates
     mort.rates<-calc_mort_rates() %>%
-      dplyr::mutate(age = dplyr::if_else(age == "All Ages", ">25", age))
+      dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
 
 
     # Get relative risk parameters
@@ -252,7 +252,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::select(-scenario, -unit, -value)
 
       pop_fin_allages <- pop.all.str %>%
-        dplyr::group_by(region, year) %>%
+        dplyr::group_by(region, year, sex) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
         dplyr::mutate(pop_1K = value * 1E3,
@@ -273,11 +273,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.mort.str <- pm.mort.pre %>%
         dplyr::filter(disease %in% c("ihd", "stroke")) %>%
         dplyr::mutate(year = as.numeric(as.character(year))) %>%
-        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_str, by = c('region', 'year', 'age')) %>%
+        # add sex columns
+        tidyr::uncount(weights = 3) %>%
+        dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
+        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
+        gcamdata::left_join_error_no_match(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>%
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
         tidyr::pivot_wider(names_from = rr,
                            values_from = pm_mort)
@@ -285,11 +288,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.mort.allages <- pm.mort.pre %>%
         dplyr::filter(disease %!in% c("ihd", "stroke")) %>%
         dplyr::mutate(year = as.numeric(as.character(year))) %>%
-        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_allages, by = c('region', 'year')) %>%
+        # add sex columns
+        tidyr::uncount(weights = 3) %>%
+        dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
+        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
+        gcamdata::left_join_error_no_match(pop_fin_allages, by = c('region', 'year', 'sex')) %>%
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
         # adjust missing value for dm in the GEMM model
         dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0)) %>%
@@ -338,6 +344,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       lapply(split(m3_get_mort_pm25.output, pm.mort$year),pm.mort.write)
 
       pm.mort.agg <- m3_get_mort_pm25.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(FUSION = sum(FUSION),
                          GBD = sum(GBD),
@@ -354,6 +361,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     if(map==T){
 
       pm.mort.agg <- m3_get_mort_pm25.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(FUSION = sum(FUSION),
                          GBD = sum(GBD),
