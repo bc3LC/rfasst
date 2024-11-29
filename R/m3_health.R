@@ -168,7 +168,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                              final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(as.numeric(unique(pm.pre$year)))))]
+                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -461,7 +461,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(pm.mort$year))))]
+                                          max(as.numeric(as.character(unique(pm.mort$year)))))]
 
 
     m3_get_yll_pm25.output.list <- list()
@@ -679,7 +679,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(pm.mort$year))))]
+                                          max(as.numeric(as.character(unique(pm.mort$year)))))]
 
     m3_get_daly_pm25.output.list <- list()
     for (sc in scen_name) {
@@ -867,7 +867,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                            final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(m6m$year))))]
+                                          max(as.numeric(as.character(unique(m6m$year)))))]
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
@@ -1036,7 +1036,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(o3.mort$year))))]
+                                          max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_yll_o3.output.list <- list()
     for (sc in scen_name) {
@@ -1220,7 +1220,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(o3.mort$year))))]
+                                          max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_daly_o3.output.list <- list()
     for (sc in scen_name) {

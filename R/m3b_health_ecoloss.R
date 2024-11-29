@@ -74,7 +74,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::ungroup()
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(pm.mort$year))))]
+                                          max(as.numeric(as.character(unique(pm.mort$year)))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))
@@ -262,7 +262,7 @@ m3_get_o3_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::ungroup()
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(o3.mort$year))))]
+                                          max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))
@@ -443,7 +443,7 @@ m3_get_pm25_ecoloss_gdpGrowth<-function(db_path = NULL, query_path = "./inst/ext
                              final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(pm.conc$year))))]
+                                          max(as.numeric(as.character(unique(pm.conc$year)))))]
 
     # Get gdp_pc
     gdp_pc<-get(paste0('gdp_pc.',ssp))

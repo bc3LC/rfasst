@@ -373,7 +373,7 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(prod$year))))]
+                                          max(as.numeric(as.character(unique(prod$year)))))]
 
     #------------------------------------------------------------------------------------
 
@@ -492,7 +492,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                              final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(aot40$year))))]
+                                          max(as.numeric(as.character(unique(aot40$year)))))]
 
     rlang::inform('Computing relative yield losses with AOT40 method ...')
 
@@ -656,7 +656,7 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
                        final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(mi$year))))]
+                                          max(as.numeric(as.character(unique(mi$year)))))]
 
     rlang::inform('Computing relative yield losses with Mi method ...')
 
@@ -829,7 +829,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(ryl.aot.40.fin$year))))]
+                                          max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
     rlang::inform('Computing agricultural production losses ...')
 
@@ -1092,7 +1092,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
 
     all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(unique(ryl.aot.40.fin$year))))]
+                                          max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
     rlang::inform('Computing agricultural revenue losses ...')
 
