@@ -210,7 +210,7 @@ calc_pop<-function(ssp = "SSP2"){
                            "Population|Female|Aged25-29","Population|Male|Aged25-29")) %>%
     dplyr::group_by(model, scenario, region, year, unit) %>%
     dplyr::summarise(value = sum(value)) %>%
-    dplyr::ungroup()%>%
+    dplyr::ungroup() %>%
     dplyr::rename(pop_other = value) %>%
     #add FASST regions and add the values to those categories:
     gcamdata::left_join_error_no_match(rfasst::fasst_reg %>% dplyr::rename(region = subRegionAlt),
@@ -311,8 +311,13 @@ calc_pop_str<-function(ssp = "SSP2"){
     dplyr::filter(complete.cases(age)) %>%
     dplyr::filter(!grepl("Edu", variable)) %>%
     dplyr::mutate(age = dplyr::if_else(age == "95-99" | age == "100", "95+", age)) %>%
+    dplyr::mutate(sex = dplyr::case_when(
+      stringr::str_detect(variable, "\\|Female\\|") ~ "Female",
+      stringr::str_detect(variable, "\\|Male\\|") ~ "Male",
+      TRUE ~ "Both"
+    )) %>%
     dplyr::select(-variable) %>%
-    dplyr::group_by(model, scenario, region, age, unit, year) %>%
+    dplyr::group_by(model, scenario, region, age, sex, unit, year) %>%
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup() %>%
     #add FASST regions and aggregate the values to those categories:
@@ -320,7 +325,7 @@ calc_pop_str<-function(ssp = "SSP2"){
                                        by = "region") %>%
     dplyr::select(-region) %>%
     dplyr::rename(region = fasst_region) %>%
-    dplyr::group_by(model, scenario, region, age, year, unit) %>%
+    dplyr::group_by(model, scenario, region, age, sex, year, unit) %>%
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup()
 
@@ -333,7 +338,7 @@ calc_pop_str<-function(ssp = "SSP2"){
     dplyr::mutate(pop_tot = sum(value)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(share = value / pop_tot) %>%
-    dplyr::select(model, scenario, age, year, share)
+    dplyr::select(model, scenario, age, sex, year, share)
 
   twn.pop<-tibble::as_tibble(raw.twn.pop) %>%
     tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
@@ -353,12 +358,13 @@ calc_pop_str<-function(ssp = "SSP2"){
     dplyr::ungroup() %>%
     dplyr::select(-model) %>%
     dplyr::mutate(scenario = ssp) %>%
-    gcamdata::repeat_add_columns(tibble(age = unique(perc.china.str$age))) %>%
-    gcamdata::left_join_error_no_match(perc.china.str %>% dplyr::select(-scenario), by = c("year", "age")) %>%
+    gcamdata::repeat_add_columns(tibble::tibble(age = unique(perc.china.str$age))) %>%
+    gcamdata::repeat_add_columns(tibble::tibble(sex = unique(perc.china.str$sex))) %>%
+    gcamdata::left_join_error_no_match(perc.china.str %>% dplyr::select(-scenario), by = c("year", "age", "sex")) %>%
     dplyr::mutate(value = pop_tot * share,
                   model = "IIASA-WiC POP",
                   scenario = "SSP2_v9_130115") %>%
-    dplyr::select(model, scenario, region, age, year, unit, value)
+    dplyr::select(model, scenario, region, age, sex, year, unit, value)
 
   # We add twn to the database
   pop <-dplyr::bind_rows(pop, twn.pop)
@@ -371,12 +377,24 @@ calc_pop_str<-function(ssp = "SSP2"){
   pop_rue.str<-pop %>% dplyr::filter(region == "RUS") %>% dplyr::mutate(region = "RUE") %>% dplyr::mutate(value = value * perc_pop_rue)
 
   # We add rus and rue to the database
-  pop <- pop %>%
+  pop.tot <- pop %>%
     dplyr::filter(region != "RUS") %>%
     dplyr::bind_rows(pop_rus.str) %>%
     dplyr::bind_rows(pop_rue.str) %>%
     dplyr::mutate(scenario = ssp) %>%
-    dplyr::select(scenario, region, year, age, unit, value)
+    dplyr::select(scenario, region, year, age, sex, unit, value)
+
+  # Compute total pop (sex = Both)
+  pop.both <- pop.tot %>%
+    dplyr::group_by(scenario, region, year, age, unit) %>%
+    dplyr::summarise(value = sum(value),
+                     sex = 'Both') %>%
+    dplyr::ungroup()
+
+  pop <- dplyr::bind_rows(
+    pop.tot,
+    pop.both
+  )
 
   invisible(pop)
 
