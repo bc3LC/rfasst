@@ -295,6 +295,82 @@
 #' }
 "pop.all.str.SSP5"
 
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP1
+#' }
+"pop.all.ctry_nuts3.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP2
+#' }
+"pop.all.ctry_nuts3.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP3
+#' }
+"pop.all.ctry_nuts3.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP4
+#' }
+"pop.all.ctry_nuts3.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP5
+#' }
+"pop.all.ctry_nuts3.str.SSP5"
+
+#'ctry_nuts3_codes
+#'
+#' @description A mapping table that links ISO2, ISO3, and NUTS3 codes. For regions outside Europe, the NUTS3 code corresponds to the ISO3 code.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::ctry_nuts3_codes
+#' }
+"ctry_nuts3_codes"
+
 #=========================================================
 # Module 2
 #=========================================================

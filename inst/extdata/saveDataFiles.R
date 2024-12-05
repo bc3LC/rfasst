@@ -359,6 +359,13 @@ Regions_EUR<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt
   dplyr::rename(COUNTRY = Country)
 usethis::use_data(Regions_EUR, overwrite = T)
 
+Regions_ctry_NUTS3<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                          , GCAM_reg_EUR, by="ISO 3") %>%
+  dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
+  dplyr::select(-`ISO 3`) %>%
+  dplyr::rename(COUNTRY = Country)
+usethis::use_data(Regions_ctry_NUTS3, overwrite = T)
+
 
 # Weights for O3 crops
 d.weight.gcam <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
@@ -427,16 +434,27 @@ usethis::use_data(pop.all.SSP4, overwrite = T)
 pop.all.SSP5 = calc_pop(ssp = 'SSP5')
 usethis::use_data(pop.all.SSP5, overwrite = T)
 
-pop.all.str.SSP1 = calc_pop_str(ssp = 'SSP1')
+pop.all.str.SSP1 = calc_pop_rfasst_reg_str(ssp = 'SSP1')
 usethis::use_data(pop.all.str.SSP1, overwrite = T)
-pop.all.str.SSP2 = calc_pop_str(ssp = 'SSP2')
+pop.all.str.SSP2 = calc_pop_rfasst_reg_str(ssp = 'SSP2')
 usethis::use_data(pop.all.str.SSP2, overwrite = T)
-pop.all.str.SSP3 = calc_pop_str(ssp = 'SSP3')
+pop.all.str.SSP3 = calc_pop_rfasst_reg_str(ssp = 'SSP3')
 usethis::use_data(pop.all.str.SSP3, overwrite = T)
-pop.all.str.SSP4 = calc_pop_str(ssp = 'SSP4')
+pop.all.str.SSP4 = calc_pop_rfasst_reg_str(ssp = 'SSP4')
 usethis::use_data(pop.all.str.SSP4, overwrite = T)
-pop.all.str.SSP5 = calc_pop_str(ssp = 'SSP5')
+pop.all.str.SSP5 = calc_pop_rfasst_reg_str(ssp = 'SSP5')
 usethis::use_data(pop.all.str.SSP5, overwrite = T)
+
+pop.all.ctry_nuts3.str.SSP1 = calc_pop_ctry_nuts3_str(ssp = 'SSP1')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP1, overwrite = T)
+pop.all.ctry_nuts3.str.SSP2 = calc_pop_ctry_nuts3_str(ssp = 'SSP2')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP2, overwrite = T)
+pop.all.ctry_nuts3.str.SSP3 = calc_pop_ctry_nuts3_str(ssp = 'SSP3')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP3, overwrite = T)
+pop.all.ctry_nuts3.str.SSP4 = calc_pop_ctry_nuts3_str(ssp = 'SSP4')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP4, overwrite = T)
+pop.all.ctry_nuts3.str.SSP5 = calc_pop_ctry_nuts3_str(ssp = 'SSP5')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP5, overwrite = T)
 
 # ssp gdp
 gdp_pc.SSP1 = calc_gdp_pc(ssp = 'SSP1')
@@ -1008,6 +1026,27 @@ raw.mort.rates.plus <- dplyr::bind_rows(
 )
 
 usethis::use_data(raw.mort.rates.plus, overwrite = T)
+
+
+# ctry_nuts3_codes contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
+ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
+  dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code) %>%
+  dplyr::left_join(
+    sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+      tibble::as_tibble() %>%
+      dplyr::filter(LEVL_CODE == 3) %>%
+      dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
+                                    "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
+      dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
+      # fix Greece (EL = GR) and United Kingdom (UK = GB)
+      dplyr::mutate(NUTS3 = dplyr::if_else(ISO2 == 'EL',gsub('EL','GR',NUTS3), NUTS3),
+                    ISO2 = dplyr::if_else(ISO2 == 'EL',gsub('EL','GR',ISO2), ISO2),
+                    NUTS3 = dplyr::if_else(ISO2 == 'UK',gsub('UK','GB',NUTS3), NUTS3),
+                    ISO2 = dplyr::if_else(ISO2 == 'UK',gsub('UK','GB',ISO2), ISO2)),
+    by = 'ISO2') %>%
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
+  dplyr::distinct()
+usethis::use_data(ctry_nuts3_codes, overwrite = T)
 
 
 #=========================================================
