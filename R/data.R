@@ -440,7 +440,7 @@
 #------------------------------------------------------------
 #' ctry_nuts_sf
 #'
-#' @description sf object for the entire World containing the NUTS3 region if avilable (Europe) or the country area otherwise
+#' @description sf object for the entire World containing the NUTS3 region code if avilable (Europe) or the country ISO3 code otherwise
 #' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
 #' @format sf
 #' @examples
@@ -449,6 +449,30 @@
 #'  rfasst::ctry_nuts_sf
 #' }
 "ctry_nuts_sf"
+
+#' nuts_sf
+#'
+#' @description sf object for Europe containing the NUTS3 region code
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::nuts_sf
+#' }
+"nuts_sf"
+
+#' nuts_europe_sf
+#'
+#' @description sf object for Europe containing the NUTS3 region code of European continent regions (no overseas)
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::nuts_europe_sf
+#' }
+"nuts_europe_sf"
 
 #------------------------------------------------------------
 # PM2.5

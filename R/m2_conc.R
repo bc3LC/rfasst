@@ -482,7 +482,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.pdf"), plot_nuts3,
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_CTRY-NUTS3_pm25_avg.pdf"), plot_nuts3,
                               width = 500, height = 400, units = 'mm')
 
             }
@@ -503,7 +503,26 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             }
 
-            pm25.nuts3.list <- append(pm25.nuts3.list, list(as.data.frame(ctry_nuts)))
+            pm25.nuts3.list <- append(pm25.nuts3.list, list(as.data.frame(ctry_nuts_df)))
+
+
+            if(map) {
+
+              # Crop to the European region
+              nuts_europe <- ctry_nuts %>%
+                dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
+                                              dplyr::pull(id_code)))
+
+              plot_nuts3 <- ggplot2::ggplot(data = nuts_europe) +
+                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
+                ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+                ggplot2::theme_bw() +
+                ggplot2::theme(legend.title = ggplot2::element_blank())
+
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"), plot_nuts3,
+                              width = 500, height = 300, units = 'mm')
+
+            }
 
           }
 
