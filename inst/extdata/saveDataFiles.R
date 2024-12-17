@@ -545,6 +545,43 @@ usethis::use_data(raw.base_aot, overwrite = T)
 raw.base_mi = read.csv(paste0(rawDataFolder_m2,"base_mi.csv"))
 usethis::use_data(raw.base_mi, overwrite = T)
 
+
+#------------------------------------------------------------
+# COUNTRY-NUTS sf
+#------------------------------------------------------------
+
+# Load data
+# World Map: Load using rnaturalearth
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
+  dplyr::rename("id_code" = "adm0_a3")
+
+# NUTS Regions: Load using sf
+# Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+# NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
+nuts <- sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
+  dplyr::rename("id_code" = "NUTS_ID")
+
+# Filter NUTS regions: Europe
+nuts_europe <- nuts[nuts$CNTR_CODE %in% unique(world$iso_a2[world$region_un == "Europe"]) &
+                      nuts$LEVL_CODE == 3, ]
+
+# Combine data
+# Add a common column for differentiation
+world$region_type <- "CTRY"
+nuts_europe$region_type <- "NUTS"
+
+# Ensure column names match between the two dataframes
+world <- world[, c("region_type", "geometry", "id_code")]
+nuts_europe <- nuts_europe[, c("region_type", "geometry", "id_code")]
+
+# Combine the two sf objects
+ctry_nuts_sf <- rbind(world, nuts_europe)
+
+# Save it
+usethis::use_data(ctry_nuts_sf, overwrite = T)
+
+
+
 #------------------------------------------------------------
 # PM2.5
 #------------------------------------------------------------
@@ -1046,8 +1083,46 @@ ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
     by = 'ISO2') %>%
   dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
   dplyr::distinct()
+# add Greece and United Kingdom with the 2 possible ISO codes
+ctry_nuts3_codes <- dplyr::bind_rows(
+  ctry_nuts3_codes,
+  ctry_nuts3_codes %>%
+    dplyr::mutate(across(c(ISO2,NUTS3), ~ gsub("GR", "EL", .))) %>%
+    dplyr::mutate(across(c(ISO2,NUTS3), ~ gsub("GB", "UK", .)))
+)
 usethis::use_data(ctry_nuts3_codes, overwrite = T)
 
+# TODO start --------------------------------------------------
+# raw.mort.rates.nuts3
+# mapping for nuts3 and iso3 codes
+nuts3_data <- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+  tibble::as_tibble() %>%
+  dplyr::filter(LEVL_CODE == 3) %>%
+  dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
+                                "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
+  dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
+  dplyr::left_join(jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
+                     dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code), by = 'ISO2') %>%
+  # fix Greece (EL = GR) and United Kingdom (UK = GB)
+  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'EL','GRC',ISO3)) %>%
+  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'UK','GBR',ISO3)) %>%
+  dplyr::distinct()
+
+GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
+  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
+  dplyr::select(-ISO2, region = `FASST region`, `GCAM Region`, ISO3, NUTS3)
+
+usethis::use_data(GCAM_reg_EUR_NUTS3, overwrite = T)
+
+# expand raw.mort.rates to NUTS3
+raw.mort.rates.nuts <- raw.mort.rates %>%
+  dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
+
+
+# raw.mort.rates.grid
+
+# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling
