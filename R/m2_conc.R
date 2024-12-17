@@ -2,7 +2,8 @@
 #'
 #' Produce fine particulate matter (PM2.5) concentration levels for TM5-FASST regions based on re-scaled emission pathways.
 #' @keywords module_2, concentration, PM2.5
-#' @return Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
+#' @return Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3). The dataset is aggregated at the grid level (0.01 x 0.01 km), NUTS3 level, or regional level.
+#' The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
 #' @param db_path Path to the GCAM database
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
@@ -166,7 +167,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::mutate(delta_em = replace(delta_em, is.nan(delta_em), 0),
                       delta_em = replace(delta_em, !is.finite(delta_em), 0)) %>%
         dplyr::mutate(region = gsub("AIR","Air",region),
-               region = gsub("SHIP","Ship",region))  %>%
+                      region = gsub("SHIP","Ship",region))  %>%
         #not consider air and ship as in delta_Em_SR in the excel
         dplyr::mutate(delta_em = dplyr::if_else(region %in% c("Air","Ship"),0,delta_em))
 
@@ -183,8 +184,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            tidyr::gather(receptor,value,-COUNTRY) %>%
                            dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(no3_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -207,11 +208,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         tidyr::gather(receptor,value,-COUNTRY) %>%
         dplyr::mutate(pollutant="NOX") %>%
         dplyr::bind_rows(so4_so2 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="SO2")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(so4_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -237,8 +238,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            tidyr::gather(receptor,value,-COUNTRY) %>%
                            dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(nh4_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -404,7 +405,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
         # Expand data to all countries
         pm25_agg_fin_grid <- pm25_agg_fin %>%
-        dplyr::filter(region != "RUE") %>%
+          dplyr::filter(region != "RUE") %>%
           dplyr::rename(n = 'region',
                         rfasst_pm25 = 'value') %>%
           dplyr::left_join(countries, by = "n", multiple = "all") %>%
@@ -459,51 +460,50 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           if(agg_grid == "NUTS3"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
 
-            # Load NUTS-3 map
-            nuts3_sf<- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
-              dplyr::filter(LEVL_CODE == 3) %>%
-              dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
-                                     "PT2", "PT20", "PT3", "PT30", "PT300"))
+            ctry_nuts_sf <- rfasst::ctry_nuts_sf
 
-            nuts3_ext <- terra::ext(nuts3_sf)
+            ctry_nuts_ext <- terra::ext(ctry_nuts_sf)
 
             # Crop and mask PM25 to NUTS-3 extent
-            pm25_weighted_nuts3 <- terra::crop(pm25_weighted, nuts3_ext)
-            pm25_weighted_nuts3 <- terra::mask(pm25_weighted_nuts3, terra::vect(nuts3_sf))
+            pm25_weighted_nuts3 <- terra::crop(pm25_weighted, ctry_nuts_ext)
+            pm25_weighted_nuts3 <- terra::mask(pm25_weighted, terra::vect(ctry_nuts_ext))
 
-            nuts3 <- as(nuts3_sf, "SpatVector")
-
-            #terra::plot(pm25_weighted_nuts3)
-            #terra::plot(nuts3, add = TRUE)
+            ctry_nuts <- as(ctry_nuts_sf, "SpatVector")
 
             # Average raster values by polygon
-            nuts3$pm25_avg <- terra::extract(pm25_weighted_nuts3, nuts3, mean, na.rm = TRUE)$layer
+            ctry_nuts$pm25_avg <- terra::extract(pm25_weighted_nuts3, ctry_nuts, mean, na.rm = TRUE)$layer
 
             # Plot average raster values within polygons
             if(map) {
 
-              plot_nuts3 <- ggplot2::ggplot(data = nuts3) +
-                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg)) +
+              plot_nuts3 <- ggplot2::ggplot(data = ctry_nuts) +
+                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
                 ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.png"), plot_nuts3, device = "png")
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.pdf"), plot_nuts3,
+                              width = 500, height = 400, units = 'mm')
 
             }
 
             # Write df with NUTS3-average values
-            nuts3_df <- as.data.frame(nuts3) %>%
-              dplyr::mutate(year = unique(df$year))
+            ctry_nuts_df <- as.data.frame(ctry_nuts) %>%
+              dplyr::mutate(year = unique(df$year)) %>%
+              # remove non accounted NUTS3
+              dplyr::filter(!is.na(pm25_avg))
 
 
             if(save_AggGrid == T){
 
-              write.csv(nuts3_df, paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.csv"), row.names =  F)
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/", unique(df$year), "_CTRY-NUTS3_pm25_avg.gpkg"),
+                                 overwrite=TRUE)
+              write.csv(ctry_nuts_df, paste0(here::here(), "/output/m2/pm25_gridded/", unique(df$year), "_CTRY-NUTS3_pm25_avg.csv"),
+                        row.names = F)
 
             }
 
-            pm25.nuts3.list <- append(pm25.nuts3.list, list(as.data.frame(nuts3_df)))
+            pm25.nuts3.list <- append(pm25.nuts3.list, list(as.data.frame(ctry_nuts)))
 
           }
 
@@ -541,7 +541,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.nuts.output <- dplyr::bind_rows(m2_get_conc_pm25.nuts.output.list) %>%
       dplyr::mutate(units = "ug/m3") %>%
-      dplyr::select(nuts_id = NUTS_ID, year, units, value = pm25_avg, scenario)
+      dplyr::select(region = NUTS_ID, year, units, value = pm25_avg, scenario)
 
 
     #----------------------------------------------------------------------
@@ -613,6 +613,10 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
+    m2_get_conc_pm25.nuts.output <- m2_get_conc_pm25.nuts.output %>%
+      dplyr::mutate(level = 'NUTS3')
+    m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
+      dplyr::mutate(level = 'regions')
 
     if (agg_grid != F) {
       return(invisible(m2_get_conc_pm25.nuts.output))
@@ -620,7 +624,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     return(invisible(m2_get_conc_pm25.output))
   }
 
- }
+}
 
 
 #' m2_get_conc_o3
@@ -761,9 +765,9 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(o3_so2 %>%
-                          dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(o3_nmvoc %>%
                            dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
                            tidyr::gather(receptor, value, -COUNTRY) %>%
@@ -787,37 +791,37 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
 
       delta_o3_ch4<-tibble::as_tibble (o3_ch4) %>%
-       tidyr::gather(receptor, value, -COUNTRY) %>%
-       dplyr::mutate(pollutant = "CH4_HTAP") %>%
-       dplyr::rename(region = COUNTRY) %>%
-       dplyr::arrange(region) %>%
-       gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-       dplyr::mutate(year = as.factor(as.character(year))) %>%
-       dplyr::filter(region %!in% c("Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
-       gcamdata::left_join_error_no_match(delta_em %>%
-                                            dplyr::filter(pollutant %in% c("CH4_HTAP")),
-                                          by = c("pollutant","year","region")) %>%
-       dplyr::mutate(delta_o3 = value * delta_em) %>%
-       dplyr::group_by(receptor, year) %>%
-       dplyr::summarise(delta_o3=sum(delta_o3)) %>%
-       dplyr::ungroup() %>%
-       dplyr::rename(region = receptor) %>%
-       dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
-       dplyr::rename(value = delta_o3) %>%
-       dplyr::mutate(pollutant = "O3")
+        tidyr::gather(receptor, value, -COUNTRY) %>%
+        dplyr::mutate(pollutant = "CH4_HTAP") %>%
+        dplyr::rename(region = COUNTRY) %>%
+        dplyr::arrange(region) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
+        dplyr::mutate(year = as.factor(as.character(year))) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
+        gcamdata::left_join_error_no_match(delta_em %>%
+                                             dplyr::filter(pollutant %in% c("CH4_HTAP")),
+                                           by = c("pollutant","year","region")) %>%
+        dplyr::mutate(delta_o3 = value * delta_em) %>%
+        dplyr::group_by(receptor, year) %>%
+        dplyr::summarise(delta_o3=sum(delta_o3)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(region = receptor) %>%
+        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
+        dplyr::rename(value = delta_o3) %>%
+        dplyr::mutate(pollutant = "O3")
       #----------------------------------------------------------------------
       if(ch4_o3==T){
 
-       delta_o3<-dplyr::bind_rows(delta_o3_noch4, delta_o3_ch4) %>%
-        dplyr::group_by(region, year, pollutant) %>%
-        dplyr::summarise(value = sum(value)) %>%
-        dplyr::ungroup()
+        delta_o3<-dplyr::bind_rows(delta_o3_noch4, delta_o3_ch4) %>%
+          dplyr::group_by(region, year, pollutant) %>%
+          dplyr::summarise(value = sum(value)) %>%
+          dplyr::ungroup()
 
-       } else {
+      } else {
 
-         delta_o3<-delta_o3_noch4
+        delta_o3<-delta_o3_noch4
 
-       }
+      }
 
 
       #----------------------------------------------------------------------
@@ -1340,11 +1344,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(wheat_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(wheat_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1396,11 +1400,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(rice_aot40_so2 %>%
-                            tidyr::gather(receptor, value, -COUNTRY) %>%
-                            dplyr::mutate(pollutant = "SO2",value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2",value = as.numeric(value))) %>%
         dplyr::bind_rows(rice_aot40_nmvoc %>%
-                            tidyr::gather(receptor, value, -COUNTRY) %>%
-                            dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1451,11 +1455,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(maize_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(maize_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1506,11 +1510,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(soy_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(soy_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1559,7 +1563,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       delta_aot<-dplyr::bind_rows(delta_aot40_wheat, delta_aot40_rice, delta_aot40_maize, delta_aot40_soy)
       #----------------------------------------------------------------------
 
-        # AOT (base+delta)
+      # AOT (base+delta)
       aot<-tibble::as_tibble(delta_aot) %>%
         gcamdata::left_join_error_no_match(base_aot %>%
                                              dplyr::select(-year),
@@ -1579,7 +1583,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         write.csv(df,paste0("output/","m2/","AOT40_",sc,"_",unique(df$year),".csv"),row.names = F)
       }
 
-        if(saveOutput == T){
+      if(saveOutput == T){
 
         lapply(aot.list,aot_write)
 
@@ -1599,22 +1603,22 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
         aot.map.list<-split(aot.map,aot.map$pollutant)
 
-       make.map.aot40<-function(df){
+        make.map.aot40<-function(df){
 
-         df<-df %>%
-           dplyr::rename(crop = pollutant) %>%
-           dplyr::mutate(crop = gsub("AOT_","",crop))
+          df<-df %>%
+            dplyr::rename(crop = pollutant) %>%
+            dplyr::mutate(crop = gsub("AOT_","",crop))
 
-         rmap::map(data = df,
-                  shape = fasstSubset,
-                  folder =paste0("output/maps/m2/maps_aot40/maps_aot40_",unique(df$crop)),
-                  legendType = "pretty",
-                  background  = T,
-                  animate = anim)
+          rmap::map(data = df,
+                    shape = fasstSubset,
+                    folder =paste0("output/maps/m2/maps_aot40/maps_aot40_",unique(df$crop)),
+                    legendType = "pretty",
+                    background  = T,
+                    animate = anim)
 
-       }
+        }
 
-       lapply(aot.map.list, make.map.aot40)
+        lapply(aot.map.list, make.map.aot40)
 
       }
       #----------------------------------------------------------------------
@@ -1793,11 +1797,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(wheat_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(wheat_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1848,11 +1852,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(rice_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(rice_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1902,11 +1906,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(maize_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(maize_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1956,11 +1960,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(soy_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(soy_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
