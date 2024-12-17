@@ -580,6 +580,19 @@ ctry_nuts_sf <- rbind(world, nuts_europe)
 # Save it
 usethis::use_data(ctry_nuts_sf, overwrite = T)
 
+# Save also NUTS3 sf and NUTS based in the European continent sf
+nuts_sf <- nuts_europe
+usethis::use_data(nuts_sf, overwrite = T)
+nuts_europe_sf <- nuts_europe %>%
+  dplyr::filter(!id_code %in% c("FRG01", "FRG02", "FRG03", "FRG04", "FRG05", # FRA: French Guiana
+                                "FRB01", "FRB02", "FRB03", "FRB04", "FRB05", "FRB06", # FRA: Guadelopue
+                                "FRM01", "FRM02", # FRA: Martinique
+                                "FRY10", "FRY20", "FRY30", "FRY40", "FRY50", # FRA: Reunion
+                                "FRC11", "FRC12", "FRC13", "FRC14", "FRC21", "FRC22", "FRC23", "FRC24", # FRA: Saint Pierre and Miquelon
+                                "PT200", "PT300", # POR: Azores & Madeira
+                                "ES703", "ES704", "ES705", "ES706", "ES707", "ES708", "ES709", # ESP: Canary Islands
+                                "NO0B1", "NO0B2")) # NOR: Svalab & Jan Mayen Islands
+usethis::use_data(nuts_europe_sf, overwrite = T)
 
 
 #------------------------------------------------------------
