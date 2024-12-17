@@ -436,6 +436,21 @@
 "raw.base_mi"
 
 #------------------------------------------------------------
+# COUNTRY-NUTS sf
+#------------------------------------------------------------
+#' ctry_nuts_sf
+#'
+#' @description sf object for the entire World containing the NUTS3 region if avilable (Europe) or the country area otherwise
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::ctry_nuts_sf
+#' }
+"ctry_nuts_sf"
+
+#------------------------------------------------------------
 # PM2.5
 #------------------------------------------------------------
 #' SRC BC
