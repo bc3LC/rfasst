@@ -427,7 +427,7 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
   pop<-tibble::as_tibble(ssp.data) %>%
     dplyr::filter(grepl("Population", variable)) %>%
     dplyr::mutate(variable = gsub("-", "and", variable)) %>%
-    dplyr::left_join(age_str_mapping, by = 'variable') %>%
+    dplyr::left_join(rfasst::age_str_mapping, by = 'variable') %>%
     dplyr::filter(complete.cases(age)) %>%
     dplyr::filter(!grepl("Edu", variable)) %>%
     dplyr::mutate(age = dplyr::if_else(age == "95-99" | age == "100", "95+", age)) %>%
@@ -442,10 +442,28 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
     dplyr::ungroup() %>%
     # add NUTS3 regions and aggregate the values to those categories:
     dplyr::rename('ISO3' = 'region') %>%
-    dplyr::left_join(rfasst::ctry_nuts3_codes, # left_join since NUTS3 increments the nº of rows
+    dplyr::left_join(rfasst::ctry_nuts3_codes,
                      by = "ISO3", relationship = "many-to-many") %>%
     dplyr::select(-ISO3, -ISO2) %>%
-    dplyr::filter(!is.na(NUTS3)) %>% # rm Micronesia
+    dplyr::filter(!is.na(NUTS3)) %>% # rm overseas regions
+    # add pop-weights to downscale to NUTS3 level
+    dplyr::left_join(rfasst::weight.nuts.pop %>%
+                       tibble::as_tibble() %>%
+                       dplyr::filter(sex != 'T', age != 'TOTAL') %>%
+                       dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male', 'Female')) %>%
+                       dplyr::mutate(age = dplyr::case_when(
+                         age == "Y_LT15" ~ "0-4,5-9,10-14",
+                         age == "Y15-29" ~ "15-19,20-24,25-29",
+                         age == "Y30-49" ~ "30-34,35-39,40-44,45-49",
+                         age == "Y50-64" ~ "50-54,55-59,60-64",
+                         age == "Y65-84" ~ "65-69,70-74,75-79,80-84",
+                         age == "Y_GE85" ~ "85-89,90-94,95+",
+                       )) %>%
+                       tidyr::separate_rows(age, sep = ",") %>%
+                       dplyr::select(age, sex, NUTS3 = geo, weight),
+                     by = c('NUTS3','age','sex')) %>%
+    dplyr::mutate(weight = dplyr::if_else(is.na(weight) & nchar(NUTS3) == 5, 0, weight)) %>% # if NUTS3 but empty weight
+    dplyr::mutate(value = dplyr::if_else(!is.na(weight), value * weight, value)) %>%
     dplyr::group_by(model, scenario, region = NUTS3, age, sex, year, unit) %>%
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup()
