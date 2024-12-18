@@ -453,7 +453,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           if(saveRaster_grid == T){
 
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"))
+            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"),
+                               overwrite=TRUE)
 
           }
 
@@ -560,7 +561,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.ctry_nuts.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_nuts.output.list) %>%
       dplyr::mutate(units = "ug/m3") %>%
-      dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
+      dplyr::select(region = id_code, year, units, value = pm25_avg, scenario, region_type)
 
 
     #----------------------------------------------------------------------
@@ -633,7 +634,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Return output
     m2_get_conc_pm25.ctry_nuts.output <- m2_get_conc_pm25.ctry_nuts.output %>%
-      dplyr::mutate(level = 'CTRY-NUTS3')
+      dplyr::rename(level = region_type)
     m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
       dplyr::mutate(level = 'regions')
 
