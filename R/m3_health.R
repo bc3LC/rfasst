@@ -8,13 +8,14 @@
 #' @export
 
 calc_mort_rates<-function(downscale, agg_grid){
-  if (downscale & agg_grid == 'NUTS3') {
-    mort.rates <- raw.mort.rates.ctry_nuts3 %>%
-      dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
-  } else {
-    mort.rates <- raw.mort.rates.plus %>%
-      dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
-  }
+  mort.rates <- get(
+    if (downscale & agg_grid == 'NUTS3') {
+      raw.mort.rates.ctry_nuts3
+    } else {
+      raw.mort.rates.plus
+    }, envir = asNamespace("rfasst")
+  ) %>%
+    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
 
   invisible(mort.rates)
 }
@@ -176,7 +177,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
-                             final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur,
+                             final_db_year = final_db_year, recompute = recompute,
+                             map = map, anim = anim, gcam_eur = gcam_eur,
                              downscale = downscale, saveRaster_grid = saveRaster_grid,
                              agg_grid = agg_grid, save_AggGrid = save_AggGrid)
 
@@ -189,7 +191,11 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
     # Get population with age groups
-    pop.all.str <- get(if (downscale) paste0('pop.all.str.', ssp) else paste0('pop.all.ctry_nuts3.str.', ssp))
+    pop.all.str <- get(
+      if (downscale) { paste0('pop.all.ctry_nuts3.str.', ssp)
+      } else { paste0('pop.all.str.', ssp)
+      }, envir = asNamespace("rfasst")
+    )
     # Get baseline mortality rates
     mort.rates<-calc_mort_rates(downscale, agg_grid) %>%
       dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
@@ -209,7 +215,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm<- tibble::as_tibble(pm.pre %>%
                                dplyr::filter(scenario == sc)) %>%
         gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','stroke'))) %>%
-        gcamdata::repeat_add_columns(tibble::tibble(age = unique(raw.rr.gbd.param$age))) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(age = unique(rfasst::raw.rr.gbd.param$age))) %>%
         dplyr::filter(year != ">25") %>%
         dplyr::bind_rows(tibble::as_tibble(pm.pre %>%
                                              dplyr::filter(scenario == sc)) %>%
@@ -245,19 +251,20 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       # The FUSION model needs age-groups, so the calculation is slightly different
       pm.rr.fusion <- pm.rr.pre %>%
-        dplyr::select(region, year, units, pm_conc, disease, age) %>%
+        dplyr::select(region, level, year, units, pm_conc, disease, age) %>%
         dplyr::mutate(z = round(pm_conc, 1)) %>%
-        gcamdata::left_join_error_no_match(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
-        dplyr::select(region, year, units, pm_conc, disease, age, FUSION_rr = rr)
+        gcamdata::left_join_error_no_match(rfasst::raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
+        dplyr::select(region, level, year, units, pm_conc, disease, age, FUSION_rr = rr)
 
       pm.rr <- pm.rr.pre %>%
         gcamdata::left_join_error_no_match(pm.rr.fusion,
-                                           by = c('region', 'year', 'units', 'pm_conc', 'disease', 'age'))
+                                           by = c('region', 'level', 'year', 'units', 'pm_conc', 'disease', 'age'))
 
 
       #------------------------------------------------------------------------------------
       #------------------------------------------------------------------------------------
       # First, adjust population
+      # TODO - downscale pop of SSPs to NUTS3 using the data from 2020
       pop_fin_str <- pop.all.str %>%
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
