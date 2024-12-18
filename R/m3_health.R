@@ -7,9 +7,14 @@
 #' @importFrom magrittr %>%
 #' @export
 
-calc_mort_rates<-function(){
-  mort.rates <- raw.mort.rates.plus %>%
-    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
+calc_mort_rates<-function(downscale, agg_grid){
+  if (downscale & agg_grid == 'NUTS3') {
+    mort.rates <- raw.mort.rates.ctry_nuts3 %>%
+      dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
+  } else {
+    mort.rates <- raw.mort.rates.plus %>%
+      dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
+  }
 
   invisible(mort.rates)
 }
@@ -122,13 +127,19 @@ calc_daly_o3<-function(){
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
+#' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
+                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
+                           downscale = F, saveRaster_grid = F,
+                           agg_grid = F, save_AggGrid = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
@@ -165,7 +176,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
-                             final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+                             final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur,
+                             downscale = downscale, saveRaster_grid = saveRaster_grid,
+                             agg_grid = agg_grid, save_AggGrid = save_AggGrid)
 
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(pm.pre$year)))))]
@@ -176,9 +189,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
     # Get population with age groups
-    pop.all.str<-get(paste0('pop.all.str.',ssp))
+    pop.all.str <- get(if (downscale) paste0('pop.all.str.', ssp) else paste0('pop.all.ctry_nuts3.str.', ssp))
     # Get baseline mortality rates
-    mort.rates<-calc_mort_rates() %>%
+    mort.rates<-calc_mort_rates(downscale, agg_grid) %>%
       dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
 
 

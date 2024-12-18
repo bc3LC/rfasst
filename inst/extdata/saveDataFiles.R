@@ -422,6 +422,29 @@ usethis::use_data(raw.twn.pop, overwrite = T)
 raw.gdp = read.csv(paste0(rawDataFolder_ancillary,"iiasa_GDP_SSP.csv"))
 usethis::use_data(raw.gdp, overwrite = T)
 
+# raw NUTS 2021 pop
+raw.nuts.pop <- readr::read_tsv("inst/extdata/estat_cens_21agr3.tsv.gz") %>%
+  tidyr::separate(`freq,age,sex,unit,geo\\TIME_PERIOD`,
+                  into = c("freq", "age", "sex", "unit", "geo"),
+                  sep = ",") %>%
+  dplyr::mutate(`2021` = as.numeric(gsub(" p", "", `2021`)),
+                year = 2021,
+                value = `2021`) %>%
+  dplyr::select(-`2021`) %>%
+  as.data.frame()
+usethis::use_data(raw.nuts.pop, overwrite = T)
+
+# weights by NUTS3 for each country
+weight.nuts.pop <- raw.nuts.pop %>%
+  dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
+  dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
+  dplyr::filter(NUTS_LEVEL == 3) %>%
+  dplyr::group_by(freq, sex, age, unit, year, NUTS_LEVEL, NUTS0) %>%
+  dplyr::mutate(value_nuts0 = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(weight = value / value_nuts0)
+usethis::use_data(weight.nuts.pop, overwrite = T)
+
 # ssp population
 pop.all.SSP1 = calc_pop(ssp = 'SSP1')
 usethis::use_data(pop.all.SSP1, overwrite = T)
@@ -937,10 +960,9 @@ raw.yll.o3 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
   dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 usethis::use_data(raw.yll.o3, overwrite = T)
 #------------------
-# New mortality rates
-#raw.mort.rates.old <- raw.mort.rates
-#usethis::use_data(raw.mort.rates.old, overwrite = T)
+# Mortality rates
 
+# Simple mortality rate (by country, age, disease)
 raw.mort.rates <- dplyr::bind_rows(
   read.csv("inst/extdata/mr_stroke.csv"),
   read.csv("inst/extdata/mr_ihd.csv"),
@@ -983,6 +1005,7 @@ read_csvs_from_zip <- function(zip_file) {
 }
 
 
+# Complete mortality rates (by country, age, disease, and sex)
 ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
 ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
                                                     pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
@@ -1078,6 +1101,18 @@ raw.mort.rates.plus <- dplyr::bind_rows(
 usethis::use_data(raw.mort.rates.plus, overwrite = T)
 
 
+
+# CTRY-NUTS3 mortality rates (by country, age, disease, and sex)
+raw.mort.rates.ctry_nuts3 <- raw.mort.rates.plus %>%
+  dplyr::rename('ISO3' = 'region') %>%
+  dplyr::left_join(ctry_nuts3_codes,
+                   by = "ISO3", relationship = "many-to-many") %>%
+  dplyr::select(-ISO3, -ISO2) %>%
+  dplyr::filter(!is.na(NUTS3)) %>%
+  dplyr::select(region = NUTS3, age, sex, disease, year, rate)
+usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
+
+
 # ctry_nuts3_codes contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
 ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
   dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code) %>%
@@ -1102,7 +1137,8 @@ ctry_nuts3_codes <- dplyr::bind_rows(
   ctry_nuts3_codes %>%
     dplyr::mutate(across(c(ISO2,NUTS3), ~ gsub("GR", "EL", .))) %>%
     dplyr::mutate(across(c(ISO2,NUTS3), ~ gsub("GB", "UK", .)))
-)
+) %>%
+  dplyr::distinct()
 usethis::use_data(ctry_nuts3_codes, overwrite = T)
 
 # TODO start --------------------------------------------------
