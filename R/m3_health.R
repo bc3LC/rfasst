@@ -182,23 +182,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       unique() %>%
       sort()
 
-    # Get PM2.5
-    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
-                             final_db_year = final_db_year, recompute = recompute,
-                             map = map, anim = anim, gcam_eur = gcam_eur,
-                             downscale = downscale, saveRaster_grid = saveRaster_grid,
-                             agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
-      dplyr::filter(!region %in% EUR_iso_codes, # rm EUR ctries (NUTS3 codes accounted)
-                    !region %in% c("DEG0Q","DEG0R","DEG0S","DEG0T","DEG0U","DEG0V","FI1C7","FI1DA","FI1DB","FI1DC",
-                                   "FI198","FI199","FI19A","FI19B","FI1C6","LV00A","LV00B","LV00C","NL114","NL115",
-                                   "NL127","NL128","FRY10","FRY30","NO072","NO073","NO083","NO084","NO085","NO093",
-                                   "NO094","PT1C4","PT1D1","PT1D2","PT1D3","PT191","PT192","PT193","PT194","PT195",
-                                   "PT196","PT1A0","PT1B0","PT1C1","PT1C2","PT1C3","NL32A","NL32B","NL350","NL361",
-                                   "NL362","NL363","NL364","NL365","NL366","NL415","NL416")) # rm not considered NUTS3 codes
-
-    all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
-
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -212,6 +195,17 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Get baseline mortality rates
     mort.rates<-calc_mort_rates(downscale, agg_grid) %>%
       dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
+
+    # Get PM2.5
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                             final_db_year = final_db_year, recompute = recompute,
+                             map = map, anim = anim, gcam_eur = gcam_eur,
+                             downscale = downscale, saveRaster_grid = saveRaster_grid,
+                             agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
+      dplyr::filter(region %in% unique(pop.all.str$region)) # only regions from which we have population data
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
 
 
     # Get relative risk parameters
@@ -252,7 +246,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         nu = as.numeric(nu),
                         cf_pm = as.numeric(cf_pm)
           ) %>%
-          dplyr::mutate(GEMM_rr =exp(theta * log(max(0, value - cf_pm)/ alpha + 1) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu)))) %>%
+          dplyr::mutate(GEMM_rr = dplyr::if_else(value - cf_pm <= 0, 0,
+                                                 exp(theta * log(max(0, value - cf_pm)/ (alpha + 1)) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu))))) %>%
           dplyr::select(-theta, -alpha, - mu, -nu, -cf_pm) %>%
           dplyr::rename(pm_conc = value)
 
