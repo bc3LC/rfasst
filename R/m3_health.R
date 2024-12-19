@@ -8,13 +8,13 @@
 #' @export
 
 calc_mort_rates<-function(downscale, agg_grid){
-  mort.rates <- get(
+
     if (downscale & agg_grid == 'NUTS3') {
-      raw.mort.rates.ctry_nuts3
+      mort.rates <- rfasst::raw.mort.rates.ctry_nuts3
     } else {
-      raw.mort.rates.plus
-    }, envir = asNamespace("rfasst")
-  ) %>%
+      mort.rates <- rfasst::raw.mort.rates.plus
+    }
+  mort.rates <- mort.rates %>%
     dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
 
   invisible(mort.rates)
@@ -169,12 +169,26 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
+    # Get ISO3 codes for EUR countries (whose NUTS3 level codes exist)
+    EUR_iso_codes <- GCAM_reg_EUR %>%
+      dplyr::filter(!`GCAM Region` %in% unique(GCAM_reg$`GCAM Region`)) %>%
+      dplyr::pull(`ISO 3`) %>%
+      unique() %>%
+      sort()
+
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                              final_db_year = final_db_year, recompute = recompute,
                              map = map, anim = anim, gcam_eur = gcam_eur,
                              downscale = downscale, saveRaster_grid = saveRaster_grid,
-                             agg_grid = agg_grid, save_AggGrid = save_AggGrid)
+                             agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
+      dplyr::filter(!region %in% EUR_iso_codes, # rm EUR ctries (NUTS3 codes accounted)
+                    !region %in% c("DEG0Q","DEG0R","DEG0S","DEG0T","DEG0U","DEG0V","FI1C7","FI1DA","FI1DB","FI1DC",
+                                   "FI198","FI199","FI19A","FI19B","FI1C6","LV00A","LV00B","LV00C","NL114","NL115",
+                                   "NL127","NL128","FRY10","FRY30","NO072","NO073","NO083","NO084","NO085","NO093",
+                                   "NO094","PT1C4","PT1D1","PT1D2","PT1D3","PT191","PT192","PT193","PT194","PT195",
+                                   "PT196","PT1A0","PT1B0","PT1C1","PT1C2","PT1C3","NL32A","NL32B","NL350","NL361",
+                                   "NL362","NL363","NL364","NL365","NL366","NL415","NL416")) # rm not considered NUTS3 codes
 
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(pm.pre$year)))))]
@@ -182,7 +196,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
-
 
     # Get population with age groups
     pop.all.str <- get(
@@ -258,7 +271,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       #------------------------------------------------------------------------------------
       # First, adjust population
-      # TODO - downscale pop of SSPs to NUTS3 using the data from 2020
       pop_fin_str <- pop.all.str %>%
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
@@ -291,7 +303,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         tidyr::uncount(weights = 3) %>%
         dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
         gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>%
+        dplyr::left_join(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
         dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
@@ -306,7 +318,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         tidyr::uncount(weights = 3) %>%
         dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
         gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_allages, by = c('region', 'year', 'sex')) %>%
+        dplyr::left_join(pop_fin_allages, by = c('region', 'year', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
         dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
@@ -327,7 +339,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       # Write results
 
       pm.mort<-pm.mort %>%
-        dplyr::mutate(scenario = sc)
+        dplyr::mutate(scenario = sc) %>%
+        dplyr::arrange(year,disease,region)
       m3_get_mort_pm25.output.list <- append(m3_get_mort_pm25.output.list, list(pm.mort))
 
     }
