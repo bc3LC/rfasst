@@ -16,7 +16,9 @@ calc_pop_rfasst_reg_str(ssp = "SSP2")
 Population and population shares (<5Y; >30Y) for TM5-FASST regions for all years
 }
 \description{
-Get population data and shares of population for all population segments. To be consistent we make use of the IIASA-WIC Model/scenarios. Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
+Get population data and shares of population for all population segments.
+To be consistent we make use of the IIASA-WIC Model/scenarios. rfasst regions.
+Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
 }
 \keyword{population}
 \keyword{socioeconomics,}
