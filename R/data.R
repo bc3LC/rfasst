@@ -53,6 +53,43 @@
 #' }
 "raw.gdp"
 
+
+#' GDP-SSP database
+#'
+#' @description Population data from Eurostat 2021 by NUTS0, NUTS1, NUTS2, and NUTS3.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.nuts.pop
+#' }
+"raw.nuts.pop"
+
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weights by each European country based on Eurostat data 2021.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop
+#' }
+"weight.nuts.pop"
+
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weights by each European country based on Eurostat data 2021 over F, M and T sex.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop.sex
+#' }
+"weight.nuts.pop.sex"
+
 #'GDP-SSP database
 #'
 #' @description Filtered GDP data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
@@ -112,6 +149,71 @@
 #'  rfasst::gdp_pc.SSP5
 #' }
 "gdp_pc.SSP5"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP1
+#' }
+"gdp_pc.ctry_nuts3.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP2
+#' }
+"gdp_pc.ctry_nuts3.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP3
+#' }
+"gdp_pc.ctry_nuts3.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP4
+#' }
+"gdp_pc.ctry_nuts3.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP5 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP5
+#' }
+"gdp_pc.ctry_nuts3.SSP5"
 
 #'GDP-SSP database
 #'

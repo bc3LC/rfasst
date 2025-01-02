@@ -16,7 +16,9 @@ calc_pop_ctry_nuts3_str(ssp = "SSP2")
 Population and population shares (<5Y; >30Y) for NUTS3 regions for all years
 }
 \description{
-Get population data and shares of population for all population segments. To be consistent we make use of the IIASA-WIC Model/scenarios. Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
+Get population data and shares of population for all population segments.
+To be consistent we make use of the IIASA-WIC Model/scenarios. NUTS3 codes for the European region and ISO3 codes for the ROW.
+Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
 }
 \keyword{population}
 \keyword{socioeconomics,}
