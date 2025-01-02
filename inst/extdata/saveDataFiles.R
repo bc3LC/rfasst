@@ -422,6 +422,41 @@ usethis::use_data(raw.twn.pop, overwrite = T)
 raw.gdp = read.csv(paste0(rawDataFolder_ancillary,"iiasa_GDP_SSP.csv"))
 usethis::use_data(raw.gdp, overwrite = T)
 
+# raw NUTS 2021 pop
+raw.nuts.pop <- readr::read_tsv("inst/extdata/estat_cens_21agr3.tsv.gz") %>%
+  tidyr::separate(`freq,age,sex,unit,geo\\TIME_PERIOD`,
+                  into = c("freq", "age", "sex", "unit", "geo"),
+                  sep = ",") %>%
+  dplyr::mutate(`2021` = as.numeric(gsub(" p", "", `2021`)),
+                year = 2021,
+                value = `2021`) %>%
+  dplyr::select(-`2021`) %>%
+  as.data.frame()
+usethis::use_data(raw.nuts.pop, overwrite = T)
+
+# weights by NUTS3 for each country and sex
+weight.nuts.pop.sex <- raw.nuts.pop %>%
+  dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
+  dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
+  dplyr::filter(NUTS_LEVEL == 3) %>%
+  dplyr::group_by(freq, sex, age, unit, year, NUTS_LEVEL, NUTS0) %>%
+  dplyr::mutate(value_nuts0 = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(weight = value / value_nuts0)
+usethis::use_data(weight.nuts.pop.sex, overwrite = T)
+
+# weights by NUTS3 for each country
+weight.nuts.pop <- raw.nuts.pop %>%
+  dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
+  dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
+  dplyr::filter(NUTS_LEVEL == 3, age == 'TOTAL') %>%
+  dplyr::mutate(sex_group = dplyr::if_else(sex == 'T', 'grouped', 'ungrouped')) %>%
+  dplyr::group_by(freq, unit, sex_group, year, NUTS_LEVEL, NUTS0) %>%
+  dplyr::mutate(value_nuts0 = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(weight = value / value_nuts0)
+usethis::use_data(weight.nuts.pop, overwrite = T)
+
 # ssp population
 pop.all.SSP1 = calc_pop(ssp = 'SSP1')
 usethis::use_data(pop.all.SSP1, overwrite = T)
@@ -457,16 +492,27 @@ pop.all.ctry_nuts3.str.SSP5 = calc_pop_ctry_nuts3_str(ssp = 'SSP5')
 usethis::use_data(pop.all.ctry_nuts3.str.SSP5, overwrite = T)
 
 # ssp gdp
-gdp_pc.SSP1 = calc_gdp_pc(ssp = 'SSP1')
+gdp_pc.SSP1 = calc_gdp_pc_reg(ssp = 'SSP1')
 usethis::use_data(gdp_pc.SSP1, overwrite = T)
-gdp_pc.SSP2 = calc_gdp_pc(ssp = 'SSP2')
+gdp_pc.SSP2 = calc_gdp_pc_reg(ssp = 'SSP2')
 usethis::use_data(gdp_pc.SSP2, overwrite = T)
-gdp_pc.SSP3 = calc_gdp_pc(ssp = 'SSP3')
+gdp_pc.SSP3 = calc_gdp_pc_reg(ssp = 'SSP3')
 usethis::use_data(gdp_pc.SSP3, overwrite = T)
-gdp_pc.SSP4 = calc_gdp_pc(ssp = 'SSP4')
+gdp_pc.SSP4 = calc_gdp_pc_reg(ssp = 'SSP4')
 usethis::use_data(gdp_pc.SSP4, overwrite = T)
-gdp_pc.SSP5 = calc_gdp_pc(ssp = 'SSP5')
+gdp_pc.SSP5 = calc_gdp_pc_reg(ssp = 'SSP5')
 usethis::use_data(gdp_pc.SSP5, overwrite = T)
+
+gdp_pc.ctry_nuts3.SSP1 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP1')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP1, overwrite = T)
+gdp_pc.ctry_nuts3.SSP2 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP2')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP2, overwrite = T)
+gdp_pc.ctry_nuts3.SSP3 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP3')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP3, overwrite = T)
+gdp_pc.ctry_nuts3.SSP4 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP4')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP4, overwrite = T)
+gdp_pc.ctry_nuts3.SSP5 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP5')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP5, overwrite = T)
 
 # Annual ssp-specific GDP growth rates (for HCL)
 gdp_growth <- raw.gdp %>%

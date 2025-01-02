@@ -14,17 +14,21 @@ m3_get_pm25_ecoloss_vsl(
   prj_name,
   prj = NULL,
   scen_name,
+  queries = "queries_rfasst.xml",
   ssp = "SSP2",
   final_db_year = 2100,
   mort_model = "GBD",
   Damage_vsl_range = "VSL_med",
   inc_elas_vsl = 0.8,
-  queries = "queries_rfasst.xml",
   saveOutput = T,
   map = F,
   anim = T,
   recompute = F,
-  gcam_eur = F
+  gcam_eur = F,
+  downscale = F,
+  saveRaster_grid = F,
+  agg_grid = F,
+  save_AggGrid = F
 )
 }
 \arguments{
@@ -40,6 +44,8 @@ m3_get_pm25_ecoloss_vsl(
 
 \item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
+\item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
+
 \item{ssp}{Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2}
 
 \item{final_db_year}{Final year in the GCAM database (this allows to process databases with user-defined "stop periods")}
@@ -50,8 +56,6 @@ m3_get_pm25_ecoloss_vsl(
 
 \item{inc_elas_vsl}{Select the income elasticity. Normally c(0.8, 1, 1.2). By default = 0.8}
 
-\item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
-
 \item{saveOutput}{Writes the emission files.By default=T}
 
 \item{map}{Produce the maps. By default=F}
@@ -61,6 +65,14 @@ m3_get_pm25_ecoloss_vsl(
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
 
 \item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
+
+\item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
+
+\item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
+
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available}
+
+\item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }
 \value{
 Economic damages associated with mortality attributable to PM2.5 exposure for each TM5-FASST regions for all years (Million$2015). The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
