@@ -20,14 +20,20 @@
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
+#' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
-                                   scen_name, ssp = "SSP2", final_db_year = 2100,
-                                   mort_model = "GBD",  Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
-                                   queries = "queries_rfasst.xml", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
+                                  scen_name, queries = "queries_rfasst.xml", ssp = "SSP2", final_db_year = 2100,
+                                  mort_model = "GBD", Damage_vsl_range = "VSL_med", inc_elas_vsl = 0.8,
+                                  saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
+                                  downscale = F, saveRaster_grid = F,
+                                  agg_grid = F, save_AggGrid = F){
 
   if (!recompute & exists('m3_get_pm25_ecoloss_vsl.output')) {
     return(m3_get_pm25_ecoloss_vsl.output)
@@ -63,13 +69,18 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get Mortalities
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
-                              queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur) %>%
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name,
+                              prj = prj, scen_name = scen_name, query_path = query_path,
+                              queries = queries, ssp = ssp, saveOutput = F,
+                              final_db_year = final_db_year, recompute = recompute,
+                              gcam_eur = gcam_eur,
+                              downscale = downscale, saveRaster_grid = saveRaster_grid,
+                              agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
       tidyr::pivot_longer(cols = c("GBD", "GEMM", "FUSION"),
                           names_to = "model",
                           values_to = "mort_pm25") %>%
       dplyr::filter(model == mort_model) %>%
-      dplyr::group_by(region, year, scenario) %>%
+      dplyr::group_by(region, year, scenario, sex) %>%
       dplyr::summarise(mort_pm25 = sum(mort_pm25)) %>%
       dplyr::ungroup()
 
@@ -77,7 +88,11 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
                                           max(as.numeric(as.character(unique(pm.mort$year)))))]
 
     # Get gdp_pc
-    gdp_pc<-get(paste0('gdp_pc.',ssp))
+    gdp_pc<- get(
+      if (downscale) { paste0('gdp_pc.ctry_nuts3.', ssp)
+      } else { paste0('gdp_pc.', ssp)
+      }, envir = asNamespace("rfasst")
+    )
 
     #------------------------------------------------------------------------------------
     #------------------------------------------------------------------------------------
@@ -89,12 +104,13 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
                     vsl_ub = adj * vsl_eu_2005_ub,
                     vsl_med = (vsl_lb + vsl_ub) / 2) %>%
-      dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
+      dplyr::select(scenario, region, sex, year, vsl_med, vsl_lb, vsl_ub) %>%
       dplyr::mutate(vsl_med = vsl_med * 1E-6,
                     vsl_lb = vsl_lb * 1E-6,
                     vsl_ub = vsl_ub * 1E-6) %>%
       dplyr::mutate(unit = "Million$2005") %>%
-      dplyr::mutate(year = as.numeric(year))
+      dplyr::mutate(year = as.numeric(year)) %>%
+      dplyr::filter(year %in% all_years)
 
 
     m3_get_pm25_ecoloss_vsl.output.list <- list()
@@ -104,7 +120,9 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       pm.mort.EcoLoss<-pm.mort %>%
         dplyr::filter(scenario == sc) %>%
         dplyr::select(-scenario) %>%
-        gcamdata::left_join_error_no_match(vsl, by=c("region", "year")) %>%
+        # some NUTS3 are not present in the VSL data - TODO: find or estimate them
+        dplyr::left_join(vsl, by=c("region", "year", "sex")) %>%
+        dplyr::filter(rowSums(is.na(.)) == 0) %>%
         dplyr::select(-scenario) %>%
         # Calculate the median damages
         dplyr::mutate(VSL_med = round(mort_pm25 * vsl_med * gcamdata::gdp_deflator(2015, base_year = 2005), 0),
@@ -116,7 +134,8 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
                             names_to = "range",
                             values_to = "damages") %>%
         dplyr::filter(range == Damage_vsl_range) %>%
-        dplyr::select(region, year, range, damages, unit)
+        dplyr::select(region, year, sex, range, damages, unit) %>%
+        dplyr::distinct()
 
 
       #------------------------------------------------------------------------------------
