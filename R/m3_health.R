@@ -380,7 +380,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
-    if(map==T){
+    if(map && !downscale){
 
       pm.mort.agg <- m3_get_mort_pm25.output %>%
         dplyr::filter(sex == 'Both') %>%
@@ -405,7 +405,59 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
+    } else if(map && downscale){
+
+      ctry_nuts_sf <- rfasst::ctry_nuts_sf
+      ctry_nuts <- as(ctry_nuts_sf, "SpatVector")
+      ctry_nuts <- ctry_nuts %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION),
+                                            GBD = sum(GBD),
+                                            GEMM = sum(GEMM)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code')
+
+      # Crop to the European region
+      nuts_europe <- ctry_nuts %>%
+        dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
+                                      dplyr::pull(id_code)))
+
+
+      for (y in unique(m3_get_mort_pm25.output$year)) {
+
+        # Global
+        pm.mort.map <- ggplot2::ggplot(data = ctry_nuts %>%
+                                                 dplyr::filter(year == y, sex == 'Both')) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Mortalities") +
+          ggplot2::theme_bw()
+
+        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort/", y,"_mort.pdf"), pm.mort.map,
+                        width = 500, height = 400, units = 'mm')
+
+
+        # Europe
+        pm.mort.nuts3.map <- ggplot2::ggplot(data = nuts_europe %>%
+                                               dplyr::filter(year == y, sex == 'Both')) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Mortalities") +
+          ggplot2::theme_bw()
+
+        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort/", y,"_EUR-NUTS3_mort.pdf"), pm.mort.nuts3.map,
+                        width = 500, height = 300, units = 'mm')
+
+
+
+      }
+      cat('Maps saved at output/maps/m3/maps_pm25_mort')
     }
+
 
 
     #----------------------------------------------------------------------

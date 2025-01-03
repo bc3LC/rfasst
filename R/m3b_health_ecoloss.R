@@ -176,7 +176,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
     #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
-    if(map == T){
+    if(map && !downscale){
 
       pm.mort.EcoLoss.map <- m3_get_pm25_ecoloss_vsl.output %>%
         dplyr::rename(subRegion = region)%>%
@@ -195,6 +195,51 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
+    } else if(map && downscale){
+
+      ctry_nuts_sf <- rfasst::ctry_nuts_sf
+      ctry_nuts <- as(ctry_nuts_sf, "SpatVector")
+      ctry_nuts <- ctry_nuts %>%
+        dplyr::left_join(m3_get_pm25_ecoloss_vsl.output %>%
+                           dplyr::rename(id_code = region,
+                                         value = damages) %>%
+                           dplyr::mutate(year = as.numeric(as.character(year)),
+                                         value = value * 1E-6,
+                                         units = "Trillion$2015") %>%
+                           tibble::as_tibble(),
+                         by = 'id_code')
+
+      # Crop to the European region
+      nuts_europe <- ctry_nuts %>%
+        dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
+                                      dplyr::pull(id_code)))
+
+      for (y in unique(m3_get_pm25_ecoloss_vsl.output$year)) {
+
+        # Global
+        pm.mort.EcoLoss.map <- ggplot2::ggplot(data = ctry_nuts %>%
+                                                 dplyr::filter(year == y, sex == 'Both')) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Trillion$2015") +
+          ggplot2::theme_bw()
+
+        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort_ecoloss/", y,"_mort_ecoloss.pdf"), pm.mort.EcoLoss.map,
+                        width = 500, height = 400, units = 'mm')
+
+        # Europe
+        pm.mort.EcoLoss.nuts3.map <- ggplot2::ggplot(data = nuts_europe %>%
+                                               dplyr::filter(year == y, sex == 'Both')) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Trillion$2015") +
+          ggplot2::theme_bw()
+
+        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort_ecoloss/", y,"_EUR-NUTS3_mort_ecoloss.pdf.pdf"), pm.mort.EcoLoss.nuts3.map,
+                        width = 500, height = 300, units = 'mm')
+
+
+      }
+      cat('Maps saved at output/maps/m3/maps_pm25_mort_ecoloss')
+
     }
 
     #----------------------------------------------------------------------
