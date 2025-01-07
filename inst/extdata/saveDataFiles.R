@@ -1029,6 +1029,10 @@ read_csvs_from_zip <- function(zip_file) {
 }
 
 
+# Complete mortality rates (by country, age, disease, and sex)
+nuts2021_nuts2024 <- xlsx::read.xlsx('inst/extdata/NUTS2021-NUTS2024.xlsx', sheetName = 'NUTS2021- NUTS2024') %>%
+  dplyr::select(NUTS2021 = Code.2021, NUTS2024 = Code.2024) %>%
+  dplyr::distinct()
 ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
 ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
                                                     pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
@@ -1236,7 +1240,7 @@ usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
 ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
   dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code) %>%
   dplyr::left_join(
-    sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+    sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
       tibble::as_tibble() %>%
       dplyr::filter(LEVL_CODE == 3) %>%
       dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
@@ -1258,8 +1262,6 @@ ctry_nuts3_codes <- dplyr::bind_rows(
       # Greece
       NUTS3 = dplyr::if_else(ISO3 == 'GRC', gsub("GR", "EL", NUTS3), NUTS3),
       # United Kingdom
-      NUTS3 = dplyr::if_else(ISO3 == 'GBR', gsub("GB", "UK", NUTS3), NUTS3),
-      # United Kingdom
       ISO3 = dplyr::if_else(ISO3 == 'ROU', "ROM", ISO3)
     )
   ) %>%
@@ -1269,7 +1271,7 @@ usethis::use_data(ctry_nuts3_codes, overwrite = T)
 # TODO start --------------------------------------------------
 # raw.mort.rates.nuts3
 # mapping for nuts3 and iso3 codes
-nuts3_data <- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
+nuts3_data <- sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
   tibble::as_tibble() %>%
   dplyr::filter(LEVL_CODE == 3) %>%
   dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
