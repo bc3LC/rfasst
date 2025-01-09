@@ -30,9 +30,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & (exists('m2_get_conc_pm25.output') | exists('m2_get_conc_pm25.ctry_nuts.output'))) {
-    if (agg_grid != F) {
+  if (!recompute & (exists('m2_get_conc_pm25.output') |
+                    exists('m2_get_conc_pm25.ctry_nuts.output') |
+                    exists('m2_get_conc_pm25.grid.output'))) {
+    if (downscale & agg_grid != F) {
       return(m2_get_conc_pm25.ctry_nuts.output)
+    } else if (downscale & !agg_grid) {
+      return(m2_get_conc_pm25.grid.output)
     } else {
       return(m2_get_conc_pm25.output)
     }
@@ -399,7 +403,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
       # If downscale = T, the function gives gridded outputs
-      pm25.ctry_nuts3.list <- list()
+      pm25.fine.list <- list()
       if(downscale == T){
         rlang::inform('Downscaling PM25 ...')
 
@@ -408,7 +412,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           dplyr::filter(region != "RUE") %>%
           dplyr::rename(n = 'region',
                         rfasst_pm25 = 'value') %>%
-          dplyr::left_join(countries, by = "n", multiple = "all") %>%
+          dplyr::left_join(countries, by = "n", multiple = "all", relationship = "many-to-many") %>%
           dplyr::select(-n) %>%
           dplyr::arrange(ISO3V10)
 
@@ -451,12 +455,12 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           }
 
-          if(saveRaster_grid == T){
-
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"),
-                               overwrite=TRUE)
-
-          }
+          # if(saveRaster_grid == T){
+          #
+          #   terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"),
+          #                      overwrite=TRUE)
+          #
+          # }
 
           if(agg_grid == "NUTS3"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
@@ -504,7 +508,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             }
 
-            pm25.ctry_nuts3.list <- append(pm25.ctry_nuts3.list, list(as.data.frame(ctry_nuts_df)))
+            pm25.fine.list <- append(pm25.fine.list, list(as.data.frame(ctry_nuts_df)))
 
 
             if(map) {
@@ -525,12 +529,14 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             }
 
+          } else {
+            pm25.fine.list <- append(pm25.fine.list, list(pm25_weighted))
           }
 
-          return(invisible(pm25.ctry_nuts3.list))
+          return(invisible(pm25.fine.list))
         }
 
-        pm25.ctry_nuts3.list = lapply(pm25_agg_fin_grid.list, generate_gridded_output)
+        pm25.fine.list = lapply(pm25_agg_fin_grid.list, generate_gridded_output)
 
       }
 
@@ -545,9 +551,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                                                 pm25_pr_sec_wide %>%
                                                   dplyr::mutate(scenario = sc))
 
-      pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
-        dplyr::mutate(scenario = sc)
-      m2_get_conc_pm25.ctry_nuts.output.list <- append(m2_get_conc_pm25.ctry_nuts.output.list, list(pm.ctry_nuts))
+      if (downscale && agg_grid != F) {
+        pm.ctry_nuts<-dplyr::bind_rows(pm25.fine.list) %>%
+          dplyr::mutate(scenario = sc)
+        m2_get_conc_pm25.ctry_nuts.output.list <- append(m2_get_conc_pm25.ctry_nuts.output.list, list(pm.ctry_nuts))
+      } else if (downscale && !agg_grid) {
+        m2_get_conc_pm25.grid.output.list <- pm25.fine.list
+      }
 
 
     }
@@ -559,9 +569,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
 
-    m2_get_conc_pm25.ctry_nuts.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_nuts.output.list) %>%
-      dplyr::mutate(units = "ug/m3") %>%
-      dplyr::select(region = id_code, year, units, value = pm25_avg, scenario, region_type)
+    if (downscale && agg_grid != F) {
+      m2_get_conc_pm25.ctry_nuts.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_nuts.output.list) %>%
+        dplyr::mutate(units = "ug/m3") %>%
+        dplyr::select(region = id_code, year, units, value = pm25_avg, scenario, region_type)
+    }
 
 
     #----------------------------------------------------------------------
@@ -619,7 +631,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per CTRY-NUTS3 region
 
-    if(saveOutput==T & agg_grid != F) {
+    if(saveOutput==T && agg_grid != F) {
       pm25.ctry_nuts.list<-split(m2_get_conc_pm25.ctry_nuts.output,m2_get_conc_pm25.ctry_nuts.output$year)
 
       pm25.ctry_nuts.write<-function(df){
@@ -633,13 +645,22 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-    m2_get_conc_pm25.ctry_nuts.output <- m2_get_conc_pm25.ctry_nuts.output %>%
-      dplyr::rename(level = region_type)
+
+    if(saveOutput==T && agg_grid != F) {
+      m2_get_conc_pm25.ctry_nuts.output <- m2_get_conc_pm25.ctry_nuts.output %>%
+        dplyr::rename(level = region_type)
+    } else if(saveOutput==T && !agg_grid) {
+      m2_get_conc_pm25.grid.output <- m2_get_conc_pm25.grid.output.list
+    }
     m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
       dplyr::mutate(level = 'regions')
 
-    if (agg_grid != F) {
+
+    if (downscale && agg_grid != F) {
       return(invisible(m2_get_conc_pm25.ctry_nuts.output))
+    }
+    if (downscale && !agg_grid) {
+      return(invisible(m2_get_conc_pm25.grid.output))
     }
     return(invisible(m2_get_conc_pm25.output))
   }
