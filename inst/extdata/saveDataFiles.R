@@ -353,14 +353,14 @@ Regions<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `F
 usethis::use_data(Regions, overwrite = T)
 
 Regions_EUR<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
-                          , GCAM_reg_EUR, by="ISO 3") %>%
+                              , GCAM_reg_EUR, by="ISO 3") %>%
   dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
   dplyr::select(-`ISO 3`) %>%
   dplyr::rename(COUNTRY = Country)
 usethis::use_data(Regions_EUR, overwrite = T)
 
 Regions_ctry_NUTS3<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
-                          , GCAM_reg_EUR, by="ISO 3") %>%
+                                     , GCAM_reg_EUR, by="ISO 3") %>%
   dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
   dplyr::select(-`ISO 3`) %>%
   dplyr::rename(COUNTRY = Country)
@@ -543,7 +543,7 @@ gdp_growth <- raw.gdp %>%
   dplyr::ungroup() %>%
   dplyr::select(-unit)
 
-  # ADD RUE
+# ADD RUE
 gdp_growth <- gdp_growth %>%
   dplyr::bind_rows(gdp_growth %>%
                      dplyr::filter(region == "RUS") %>%
@@ -599,13 +599,17 @@ usethis::use_data(raw.base_mi, overwrite = T)
 # Load data
 # World Map: Load using rnaturalearth
 world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
-  dplyr::rename("id_code" = "adm0_a3")
+  dplyr::rename("id_code" = "adm0_a3") %>%
+  dplyr::mutate(iso_a2 = dplyr::if_else(iso_a2 == 'GB', 'UK',
+                                        dplyr::if_else(iso_a2 == 'GR', 'EL', iso_a2)))
 
 # NUTS Regions: Load using sf
 # Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
 # NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
-nuts <- sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
+nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
+  dplyr::select(-FID) %>%
   dplyr::rename("id_code" = "NUTS_ID")
+
 
 # Filter NUTS regions: Europe
 nuts_europe <- nuts[nuts$CNTR_CODE %in% unique(world$iso_a2[world$region_un == "Europe"]) &
@@ -630,11 +634,7 @@ usethis::use_data(ctry_nuts_sf, overwrite = T)
 nuts_sf <- nuts_europe
 usethis::use_data(nuts_sf, overwrite = T)
 nuts_europe_sf <- nuts_europe %>%
-  dplyr::filter(!id_code %in% c("FRG01", "FRG02", "FRG03", "FRG04", "FRG05", # FRA: French Guiana
-                                "FRB01", "FRB02", "FRB03", "FRB04", "FRB05", "FRB06", # FRA: Guadelopue
-                                "FRM01", "FRM02", # FRA: Martinique
-                                "FRY10", "FRY20", "FRY30", "FRY40", "FRY50", # FRA: Reunion
-                                "FRC11", "FRC12", "FRC13", "FRC14", "FRC21", "FRC22", "FRC23", "FRC24", # FRA: Saint Pierre and Miquelon
+  dplyr::filter(!id_code %in% c("FRY10", "FRY20", "FRY30", "FRY40", "FRY50", # FRA: Reunion
                                 "PT200", "PT300", # POR: Azores & Madeira
                                 "ES703", "ES704", "ES705", "ES706", "ES707", "ES708", "ES709", # ESP: Canary Islands
                                 "NO0B1", "NO0B2")) # NOR: Svalab & Jan Mayen Islands
@@ -658,6 +658,7 @@ raw.urb_incr = read.csv(paste0(rawDataFolder_m2,"Urban_increment.csv"))
 usethis::use_data(raw.urb_incr, overwrite = T)
 #------------------------------------------------------------
 #NO3
+
 
 # src.no3_nox
 src.no3_nox = read.csv(paste0(rawDataFolder_m2,"dno3_dnox.csv"),sep="\t")
@@ -966,7 +967,7 @@ raw.daly = dplyr::bind_rows(
   dplyr::filter(year == max(as.numeric(year)),
                 cause %in% c("Diabetes mellitus type 2", "Lower respiratory infections", "Ischemic stroke", "Ischemic heart disease", "Tracheal, bronchus, and lung cancer", "Chronic obstructive pulmonary disease"),
                 age %in% (c("All ages", "25-29 years", "30-34 years", "35-39 years", "40-44 years", "45-49 years", "50-54 years","55-59 years","60-64 years",
-                       "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
+                            "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
   dplyr::mutate(age = gsub(" years", "", age)) %>%
   dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 
@@ -1035,7 +1036,7 @@ nuts2021_nuts2024 <- xlsx::read.xlsx('inst/extdata/NUTS2021-NUTS2024.xlsx', shee
   dplyr::distinct()
 ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
 ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
-                                                    pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
+                                                pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
 
 iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
   read.csv("inst/extdata/mapping/ihme_localtions.csv") %>% tibble::as_tibble(),
@@ -1046,10 +1047,7 @@ iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
       dplyr::mutate(iso = tolower(iso)),
     by = c('iso','GCAM_region_name'))
 
-mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
-  gcamdata::left_join_error_no_match(iso_ihme_rfasst,
-                                     by = "location_id")
-
+# RFASST reg mortality rates (by region, age, disease, and sex) --------------------------------------------------
 raw.mort.rates.plus1 <- mort.rates.country %>%
   dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
   dplyr::mutate(age_name = gsub(" years", "", age_name),
@@ -1129,7 +1127,7 @@ usethis::use_data(raw.mort.rates.plus, overwrite = T)
 
 
 
-# CTRY-NUTS3 mortality rates (by country, age, disease, and sex)
+# CTRY-NUTS3 mortality rates (by country, age, disease, and sex) --------------------------------------------------
 raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
   dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
   dplyr::mutate(age_name = gsub(" years", "", age_name),
@@ -1236,7 +1234,8 @@ raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts5
 usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
 
 
-# ctry_nuts3_codes contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
+# ctry_nuts3_codes --------------------------------------------------
+# contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
 ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
   dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code) %>%
   dplyr::left_join(
@@ -1264,41 +1263,10 @@ ctry_nuts3_codes <- dplyr::bind_rows(
       # United Kingdom
       ISO3 = dplyr::if_else(ISO3 == 'ROU', "ROM", ISO3)
     )
-  ) %>%
+) %>%
   dplyr::distinct()
 usethis::use_data(ctry_nuts3_codes, overwrite = T)
 
-# TODO start --------------------------------------------------
-# raw.mort.rates.nuts3
-# mapping for nuts3 and iso3 codes
-nuts3_data <- sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
-  tibble::as_tibble() %>%
-  dplyr::filter(LEVL_CODE == 3) %>%
-  dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
-                                "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
-  dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
-  dplyr::left_join(jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
-                     dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code), by = 'ISO2') %>%
-  # fix Greece (EL = GR) and United Kingdom (UK = GB)
-  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'EL','GRC',ISO3)) %>%
-  dplyr::mutate(ISO3 = dplyr::if_else(ISO2 == 'UK','GBR',ISO3)) %>%
-  dplyr::distinct()
-
-GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
-  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
-  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
-  dplyr::select(-ISO2, region = `FASST region`, `GCAM Region`, ISO3, NUTS3)
-
-usethis::use_data(GCAM_reg_EUR_NUTS3, overwrite = T)
-
-# expand raw.mort.rates to NUTS3
-raw.mort.rates.nuts <- raw.mort.rates %>%
-  dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
-
-
-# raw.mort.rates.grid
-
-# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling

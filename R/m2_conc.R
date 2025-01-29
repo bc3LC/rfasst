@@ -453,7 +453,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           if(saveRaster_grid == T){
 
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"))
+            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"),
+                               overwrite=TRUE)
 
           }
 
@@ -476,13 +477,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
             # Plot average raster values within polygons
             if(map) {
 
-              plot_nuts3 <- ggplot2::ggplot(data = ctry_nuts) +
+              plot_ctry_nuts <- ggplot2::ggplot(data = ctry_nuts) +
                 tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
                 ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_CTRY-NUTS3_pm25_avg.pdf"), plot_nuts3,
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_CTRY-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
                               width = 500, height = 400, units = 'mm')
 
             }
@@ -509,18 +510,24 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
             if(map) {
 
               # Crop to the European region
-              nuts_europe <- ctry_nuts %>%
+              toplot_nuts_europe <- ctry_nuts %>%
                 dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
                                               dplyr::pull(id_code)))
 
-              plot_nuts3 <- ggplot2::ggplot(data = nuts_europe) +
-                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
-                ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
-                ggplot2::theme_bw() +
-                ggplot2::theme(legend.title = ggplot2::element_blank())
+              plot_nuts3 <- tmap::tm_shape(ctry_nuts_sf,
+                                           projection = "EPSG:3035",
+                                           xlim = c(2400000, 6500000),
+                                           ylim = c(1320000, 5650000)
+              ) +
+                tmap::tm_fill("lightgrey") +
+                tmap::tm_shape(sf::st_as_sf(toplot_nuts_europe)) +
+                tmap::tm_polygons("pm25_avg",
+                                  title = "PM2.5 concentration",
+                                  palette = "Oranges"
+                )
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"), plot_nuts3,
-                              width = 500, height = 300, units = 'mm')
+              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
+                              width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
 
@@ -550,7 +557,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
     }
-
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -707,8 +713,8 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(as.character(unique(em.list$year)))))]
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
