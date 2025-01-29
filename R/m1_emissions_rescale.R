@@ -100,8 +100,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
-    all_years<-all_years[all_years <= min(final_db_year,
-                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
     rlang::inform('Computing emissions ...')
 
 
