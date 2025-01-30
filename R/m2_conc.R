@@ -76,7 +76,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
@@ -453,13 +453,16 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           if(saveRaster_grid == T){
 
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"),
+            if (!dir.exists("output/m2/pm25_gridded/raster_grid")) dir.create("output/m2/pm25_gridded/raster_grid")
+
+            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , unique(df$year),"_pm25_fin_weighted.tif"),
                                overwrite=TRUE)
 
           }
 
           if(agg_grid == "NUTS3"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
+            if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3")) dir.create("output/m2/pm25_gridded/agg_NUTS3")
 
             ctry_nuts_sf <- rfasst::ctry_nuts_sf
 
@@ -483,7 +486,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_CTRY-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year),"_WORLD-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
                               width = 500, height = 400, units = 'mm')
 
             }
@@ -497,15 +500,14 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             if(save_AggGrid == T){
 
-              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/", unique(df$year), "_CTRY-NUTS3_pm25_avg.gpkg"),
+              if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3/raster_grid")) dir.create("output/m2/pm25_gridded/agg_NUTS3/raster_grid")
+
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/raster_grid/", unique(df$year), "_WORLD-NUTS3_pm25_avg.gpkg"),
                                  overwrite=TRUE)
-              write.csv(ctry_nuts_df, paste0(here::here(), "/output/m2/pm25_gridded/", unique(df$year), "_CTRY-NUTS3_pm25_avg.csv"),
+              write.csv(ctry_nuts_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
                         row.names = F)
 
             }
-
-            pm25.ctry_nuts3.list <- append(pm25.ctry_nuts3.list, list(as.data.frame(ctry_nuts_df)))
-
 
             if(map) {
 
@@ -522,18 +524,18 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 tmap::tm_fill("lightgrey") +
                 tmap::tm_shape(sf::st_as_sf(toplot_nuts_europe)) +
                 tmap::tm_polygons("pm25_avg",
-                                  title = "PM2.5 concentration",
+                                  title = paste("PM2.5 concentration,", unique(df$year)),
                                   palette = "Oranges"
                 )
 
-              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
+              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
                               width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
 
           }
 
-          return(invisible(pm25.ctry_nuts3.list))
+          return(invisible(ctry_nuts_df))
         }
 
         pm25.ctry_nuts3.list = lapply(pm25_agg_fin_grid.list, generate_gridded_output)
@@ -980,7 +982,7 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,scen_name,queries,saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
@@ -1275,7 +1277,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
     em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
@@ -1729,7 +1731,7 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
