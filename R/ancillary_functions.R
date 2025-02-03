@@ -417,6 +417,29 @@ calc_pop_rfasst_reg_str<-function(ssp = "SSP2"){
 
 calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
 
+
+  # Fill weight.nuts.pop.sex using the age-sex mean
+  weight.nuts.pop.sex_mean <- weight.nuts.pop.sex %>%
+    dplyr::filter(age != 'TOTAL') %>%
+    dplyr::group_by(sex, age) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::mutate(total = sum(value)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(weight = value / total)
+
+  weight.nuts.pop.sex_completed <- weight.nuts.pop.sex %>%
+    tidyr::complete(tidyr::nesting(freq, unit, geo, sex, year, NUTS_LEVEL, NUTS0),
+                    age = unique(weight.nuts.pop.sex$age),
+                    fill = list(weight = NA_real_)) %>%
+    dplyr::filter(is.na(weight)) %>%
+    dplyr::select(-value, -value_nuts0, -weight) %>%
+    dplyr::left_join(weight.nuts.pop.sex_mean,
+                     by = c('age','sex')) %>%
+    dplyr::select(-total, -value) %>%
+    rbind(weight.nuts.pop.sex %>%
+            dplyr::select(-value, -value_nuts0))
+
+
   # Ancillary Functions
   `%!in%` = Negate(`%in%`)
 
@@ -449,9 +472,9 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
     dplyr::left_join(rfasst::ctry_nuts3_codes, # left_join since NUTS3 increments the nº of rows
                      by = "ISO3", relationship = "many-to-many") %>%
     dplyr::select(-ISO3, -ISO2) %>%
-    dplyr::filter(!is.na(NUTS3)) %>% # rm overseas regions
+    dplyr::filter(!is.na(NUTS3)) %>%  # rm overseas regions
     # add pop-weights to downscale to NUTS3 level
-    dplyr::left_join(rfasst::weight.nuts.pop.sex %>%
+    dplyr::left_join(weight.nuts.pop.sex_completed %>%
                        tibble::as_tibble() %>%
                        dplyr::filter(sex != 'T', age != 'TOTAL') %>%
                        dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male', 'Female')) %>%
@@ -620,6 +643,27 @@ calc_gdp_pc_reg<-function(ssp="SSP2"){
 
 calc_gdp_pc_ctry_nuts3<-function(ssp="SSP2"){
 
+  # Fill weight.nuts.pop.sex using the age-sex mean
+  weight.nuts.pop.sex_mean <- weight.nuts.pop.sex %>%
+    dplyr::filter(age != 'TOTAL') %>%
+    dplyr::group_by(sex, age) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::mutate(total = sum(value)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(weight = value / total)
+
+  weight.nuts.pop.sex_completed <- weight.nuts.pop.sex %>%
+    tidyr::complete(tidyr::nesting(freq, unit, geo, sex, year, NUTS_LEVEL, NUTS0),
+                    age = unique(weight.nuts.pop.sex$age),
+                    fill = list(weight = NA_real_)) %>%
+    dplyr::filter(is.na(weight)) %>%
+    dplyr::select(-value, -value_nuts0, -weight) %>%
+    dplyr::left_join(weight.nuts.pop.sex_mean,
+                     by = c('age','sex')) %>%
+    dplyr::select(-total, -value) %>%
+    rbind(weight.nuts.pop.sex %>%
+            dplyr::select(-value, -value_nuts0))
+
   # Ancillary Functions
   `%!in%` = Negate(`%in%`)
 
@@ -650,7 +694,7 @@ calc_gdp_pc_ctry_nuts3<-function(ssp="SSP2"){
     dplyr::select(-ISO3, -ISO2) %>%
     dplyr::filter(!is.na(NUTS3)) %>% # rm overseas regions
     # add pop-weights to downscale to NUTS3 level
-    dplyr::left_join(rfasst::weight.nuts.pop %>%
+    dplyr::left_join(weight.nuts.pop.sex_completed %>%
                        tibble::as_tibble() %>%
                        dplyr::filter(sex != 'T') %>%
                        dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male', 'Female')) %>%
