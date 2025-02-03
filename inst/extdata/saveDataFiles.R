@@ -439,7 +439,7 @@ weight.nuts.pop.sex <- raw.nuts.pop %>%
   dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
   dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
   dplyr::filter(NUTS_LEVEL == 3) %>%
-  dplyr::group_by(freq, sex, age, unit, year, NUTS_LEVEL, NUTS0) %>%
+  dplyr::group_by(freq, sex, age, unit, NUTS_LEVEL, NUTS0) %>%
   dplyr::mutate(value_nuts0 = sum(value)) %>%
   dplyr::ungroup() %>%
   dplyr::mutate(weight = value / value_nuts0)
@@ -451,7 +451,7 @@ weight.nuts.pop <- raw.nuts.pop %>%
   dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
   dplyr::filter(NUTS_LEVEL == 3, age == 'TOTAL') %>%
   dplyr::mutate(sex_group = dplyr::if_else(sex == 'T', 'grouped', 'ungrouped')) %>%
-  dplyr::group_by(freq, unit, sex_group, year, NUTS_LEVEL, NUTS0) %>%
+  dplyr::group_by(freq, unit, sex_group, NUTS_LEVEL, NUTS0) %>%
   dplyr::mutate(value_nuts0 = sum(value)) %>%
   dplyr::ungroup() %>%
   dplyr::mutate(weight = value / value_nuts0)
@@ -601,7 +601,8 @@ usethis::use_data(raw.base_mi, overwrite = T)
 world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
   dplyr::rename("id_code" = "adm0_a3") %>%
   dplyr::mutate(iso_a2 = dplyr::if_else(iso_a2 == 'GB', 'UK',
-                                        dplyr::if_else(iso_a2 == 'GR', 'EL', iso_a2)))
+                                        dplyr::if_else(iso_a2 == 'GR', 'EL', iso_a2))) %>%
+  dplyr::mutate(iso_a3 = dplyr::if_else(iso_a3 == 'ROU', 'ROM', iso_a3))
 
 # NUTS Regions: Load using sf
 # Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
@@ -612,7 +613,7 @@ nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year =
 
 
 # Filter NUTS regions: Europe
-nuts_europe <- nuts[nuts$CNTR_CODE %in% unique(world$iso_a2[world$region_un == "Europe"]) &
+nuts_europe <- nuts[nuts$CNTR_CODE %in% unique(world$iso_a2[world$region_un == "Europe" | world$iso_a3 == 'TUR']) &
                       nuts$LEVL_CODE == 3, ]
 
 # Combine data
@@ -621,24 +622,38 @@ world$region_type <- "CTRY"
 nuts_europe$region_type <- "NUTS"
 
 # Ensure column names match between the two dataframes
-world <- world[, c("region_type", "geometry", "id_code")]
-nuts_europe <- nuts_europe[, c("region_type", "geometry", "id_code")]
+world_subset <- world[, c("region_type", "geometry", "id_code")]
+nuts_europe_subset <- nuts_europe[, c("region_type", "geometry", "id_code")]
 
 # Combine the two sf objects
-ctry_nuts_sf <- rbind(world, nuts_europe)
+ctry_nuts_sf <- rbind(world_subset, nuts_europe_subset)
 
 # Save it
 usethis::use_data(ctry_nuts_sf, overwrite = T)
 
 # Save also NUTS3 sf and NUTS based in the European continent sf
-nuts_sf <- nuts_europe
+nuts_sf <- nuts_europe_subset
 usethis::use_data(nuts_sf, overwrite = T)
-nuts_europe_sf <- nuts_europe %>%
+nuts_europe_sf <- nuts_europe_subset %>%
   dplyr::filter(!id_code %in% c("FRY10", "FRY20", "FRY30", "FRY40", "FRY50", # FRA: Reunion
                                 "PT200", "PT300", # POR: Azores & Madeira
                                 "ES703", "ES704", "ES705", "ES706", "ES707", "ES708", "ES709", # ESP: Canary Islands
                                 "NO0B1", "NO0B2")) # NOR: Svalab & Jan Mayen Islands
 usethis::use_data(nuts_europe_sf, overwrite = T)
+
+# ctry_nuts3_codes mapping
+# contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
+ctry_nuts3_codes <- as.data.frame(world) %>%
+  dplyr::select(ISO2 = iso_a2, ISO3 = iso_a3) %>%
+  dplyr::distinct() %>%
+  dplyr::filter(!is.na(ISO2)) %>%
+  dplyr::left_join(as.data.frame(nuts_europe) %>%
+                     dplyr::select(ISO2 = CNTR_CODE, NUTS3 = id),
+                   by = 'ISO2') %>%
+  # assing ISO3 code when NUTS3 code not present
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3))
+usethis::use_data(ctry_nuts3_codes, overwrite = T)
+
 
 
 #------------------------------------------------------------
@@ -984,10 +999,9 @@ raw.yll.o3 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
   dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 usethis::use_data(raw.yll.o3, overwrite = T)
 #------------------
-# New mortality rates
-#raw.mort.rates.old <- raw.mort.rates
-#usethis::use_data(raw.mort.rates.old, overwrite = T)
+# Mortality rates
 
+# Simple mortality rate (by country, age, disease)
 raw.mort.rates <- dplyr::bind_rows(
   read.csv("inst/extdata/mr_stroke.csv"),
   read.csv("inst/extdata/mr_ihd.csv"),
@@ -1031,9 +1045,6 @@ read_csvs_from_zip <- function(zip_file) {
 
 
 # Complete mortality rates (by country, age, disease, and sex)
-nuts2021_nuts2024 <- xlsx::read.xlsx('inst/extdata/NUTS2021-NUTS2024.xlsx', sheetName = 'NUTS2021- NUTS2024') %>%
-  dplyr::select(NUTS2021 = Code.2021, NUTS2024 = Code.2024) %>%
-  dplyr::distinct()
 ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
 ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
                                                 pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
@@ -1046,6 +1057,35 @@ iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
       dplyr::rename(iso = ISO3, GCAM_region_name = `GCAM Region`) %>%
       dplyr::mutate(iso = tolower(iso)),
     by = c('iso','GCAM_region_name'))
+
+# NUTS Regions: Load using sf
+# Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+# NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
+nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
+  dplyr::select(-FID) %>%
+  dplyr::rename("id_code" = "NUTS_ID")
+
+# raw.mort.rates.nuts3
+# mapping for nuts3 and iso3 codes
+nuts3_data <- nuts %>% # TODO - continue from here
+  tibble::as_tibble() %>%
+  dplyr::filter(LEVL_CODE == 3) %>%
+  dplyr::select(NUTS3 = geo, ISO2 = CNTR_CODE) %>%
+  dplyr::left_join(ctry_nuts3_codes %>%
+                     dplyr::select(ISO2, ISO3) %>%
+                     dplyr::distinct(),
+                   by = 'ISO2')
+
+GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
+  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
+  dplyr::select(-ISO2, region = `FASST region`, `GCAM Region`, ISO3, NUTS3)
+
+usethis::use_data(GCAM_reg_EUR_NUTS3, overwrite = T)
+
+mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
+  gcamdata::left_join_error_no_match(iso_ihme_rfasst,
+                                     by = "location_id")
 
 # RFASST reg mortality rates (by region, age, disease, and sex) --------------------------------------------------
 raw.mort.rates.plus1 <- mort.rates.country %>%
@@ -1069,6 +1109,7 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
                                age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
                                                "95+","All Ages","All ages"))) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
   # select only years multiple of 5 and >= 1990
   dplyr::filter(year %% 5 == 0, year >= 1990) %>%
   # compute the regional rate
@@ -1149,6 +1190,7 @@ raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
                                age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
                                                "95+","All Ages","All ages"))) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
   # select only years multiple of 5 and >= 1990
   dplyr::filter(year %% 5 == 0, year >= 1990) %>%
   # compute the regional rate
@@ -1179,7 +1221,7 @@ raw.mort.rates.fluctuation <- raw.mort.rates %>%
                 dplyr::if_else(disease == 'lri', age == '<5', TRUE)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
-                     dplyr::mutate(iso = dplyr::if_else(region == 'RUE', 'rus', iso)),
+                     dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
                    by = 'region', relationship = "many-to-many") %>%
   dplyr::mutate(iso = toupper(iso)) %>%
   dplyr::select(region = iso, disease, year, age, fluc) %>%
@@ -1217,9 +1259,7 @@ raw.mort.rates.ctry_nuts4 <-
                        dplyr::select(`Fasst Region` = region, region = NUTS3),
                      raw.mort.rates.ctry_nuts3 %>%
                        dplyr::select(age, sex, disease, year) %>%
-                       dplyr::distinct()) %>%
-  dplyr::mutate(region = dplyr::if_else(grepl('EL',region) & `Fasst Region` == 'GRC',
-                                        gsub('EL','GR',region), region))
+                       dplyr::distinct())
 
 raw.mort.rates.ctry_nuts5 <- raw.mort.rates.ctry_nuts4 %>%
   dplyr::left_join(raw.mort.rates.ctry_nuts3,
@@ -1234,39 +1274,116 @@ raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts5
 usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
 
 
-# ctry_nuts3_codes --------------------------------------------------
-# contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
-ctry_nuts3_codes <- jsonlite::fromJSON('inst/extdata/iso2-iso3.json') %>%
-  dplyr::select(ISO2 = iso2_code, ISO3 = iso3_code) %>%
-  dplyr::left_join(
-    sf::st_read("inst/extdata/NUTS_RG_20M_2024_4326.shp/NUTS_RG_20M_2024_4326.shp") %>%
-      tibble::as_tibble() %>%
-      dplyr::filter(LEVL_CODE == 3) %>%
-      dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
-                                    "PT2", "PT20", "PT3", "PT30", "PT300")) %>%
-      dplyr::select(NUTS3 = NUTS_ID, ISO2 = CNTR_CODE) %>%
-      # fix Greece (EL = GR) and United Kingdom (UK = GB)
-      dplyr::mutate(NUTS3 = dplyr::if_else(ISO2 == 'EL',gsub('EL','GR',NUTS3), NUTS3),
-                    ISO2 = dplyr::if_else(ISO2 == 'EL',gsub('EL','GR',ISO2), ISO2),
-                    NUTS3 = dplyr::if_else(ISO2 == 'UK',gsub('UK','GB',NUTS3), NUTS3),
-                    ISO2 = dplyr::if_else(ISO2 == 'UK',gsub('UK','GB',ISO2), ISO2)),
-    by = 'ISO2') %>%
-  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
-  dplyr::distinct()
-# add Greece, United Kingdom, and Romania with the 2 possible ISO codes
-ctry_nuts3_codes <- dplyr::bind_rows(
-  ctry_nuts3_codes,
-  ctry_nuts3_codes %>%
-    dplyr::mutate(
-      # Greece
-      NUTS3 = dplyr::if_else(ISO3 == 'GRC', gsub("GR", "EL", NUTS3), NUTS3),
-      # United Kingdom
-      ISO3 = dplyr::if_else(ISO3 == 'ROU', "ROM", ISO3)
-    )
-) %>%
-  dplyr::distinct()
-usethis::use_data(ctry_nuts3_codes, overwrite = T)
+# GRIDDED mortality rates --------------------------------------------------
+grid.population <- terra::vect("inst/extdata/Eurostat_Census-GRID_2021_V2-0/ESTAT_Census_2021_V2.gpkg", layer = "census2021")
+usethis::use_data(grid.population, overwrite = T)
 
+grid.population.df <- as.data.frame(grid.population, xy = TRUE) %>%
+  tidyr::pivot_longer(cols = c("M","F","T","Y_LT15","Y_1564","Y_GE65"),
+                      names_to = "variable",
+                      values_to = "value") %>%
+  dplyr::select(GRD_ID,variable,value) %>%
+  dplyr::distinct() %>%
+  # extract coordinates (x = easting, Y = northing)
+  dplyr::mutate(
+    x = as.numeric(sub(".*E([0-9]+).*", "\\1", GRD_ID)),
+    y = as.numeric(sub(".*N([0-9]+)E.*", "\\1", GRD_ID))
+  )
+usethis::use_data(grid.population.df, overwrite = T)
+
+
+
+grid1km <- terra::vect("grid_1km_surf.gpkg")
+p <- terra::merge(grid.population, grid1km, by = 'GRD_ID')
+
+p.spatvect <- terra::vect(p, geom = c("X_LLC","Y_LLC"), crs = "EPSG:3035")
+
+
+
+
+
+# # Convert the grid population (SpatVector) to sf (Simple Features)
+# grid_sf <- sf::st_as_sf(grid.population)
+#
+# # Read the GeoJSON data (already done, assumed as geojson_data)
+# # Convert the GeoJSON data to sf if needed
+# geojson_sf <- sf::st_read('CNTR_RG_20M_2024_4326.geojson')
+#
+# grid.geojson <- terra::vect(geojson_sf)
+# cropping_extent <- terra::ext(grid.population)
+# grid.geojson.croped <- terra::crop(grid.geojson, cropping_extent)
+#
+#
+# pp <- terra::merge(grid.population, grid.geojson)
+# grid_sf <- sf::st_transform(grid_sf, crs = sf::st_crs(geojson_sf))
+#
+#
+#
+# grid_sf <- st_transform(grid_sf, crs = 4326)
+# sf::st_crs(grid_sf)
+# sf::st_crs(geojson_sf)
+#
+#
+#
+# # invalid_grid <- sf::st_is_valid(grid_sf)
+# invalid_geojson <- sf::st_is_valid(geojson_sf)
+# #
+# # # Print invalid entries
+# # cat("Invalid geometries in grid: ", sum(!invalid_grid), "\n")
+# cat("Invalid geometries in geojson: ", sum(!invalid_geojson), "\n")
+# #
+# # # Attempt to fix invalid geometries if needed
+# # grid_sf <- sf::st_make_valid(grid_sf)
+# # geojson_sf <- sf::st_make_valid(geojson_sf)
+#
+# # grid_sf_simplified <- sf::st_simplify(grid_sf, dTolerance = 100)  # Adjust tolerance as needed
+# # geojson_sf_simplified <- sf::st_simplify(geojson_sf, dTolerance = 200)
+#
+# # # Perform spatial join again with simplified geometries
+# # grid_sf_with_iso <- sf::st_join(grid_sf_simplified, geojson_sf_simplified, join = sf::st_intersects)
+#
+# geojson_sf <- geojson_sf[st_is_valid(geojson_sf), ]
+#
+# # Spatial join: add ISO code from GeoJSON to the grid population
+# grid_sf_with_iso <- sf::st_join(grid_sf, geojson_sf, join = sf::st_intersects)
+#
+# # Check the result
+# head(grid_sf_with_iso)
+# str(grid_sf_with_iso)
+#
+# # If you only want the ISO code as a new column
+# grid_sf_with_iso <- grid_sf_with_iso %>%
+#   select(GRD_ID, ISO3_CODE = ISO3_CODE) # Adjust column names accordingly
+#
+# # Convert back to SpatVector if needed
+# grid_population_with_iso <- vect(grid_sf_with_iso)
+#
+# # Check the first few rows of the new SpatVector
+# head(grid_population_with_iso)
+
+# TODELETE
+#
+#
+# grid_long2 <- grid_long %>%
+#   filter(!is.na(value))
+# # Plot with ggplot2
+gg <- ggplot(as.data.frame(p.spatvect), aes(x = x, y = y, fill = CNTR_ID)) +
+  geom_tile() + # Use geom_tile for raster-like spatial data
+  # scale_fill_viridis_c() + # Use a vibrant color scale
+  # facet_wrap(~variable, ncol = 3) + # Create a panel for each variable
+  coord_fixed() + # Keep the aspect ratio square
+  labs(fill = "Value", title = "CTR_ID")
+ggsave("grid.prova.pdf", gg, width = 8, height = 6)
+#
+#
+# # expand raw.mort.rates to NUTS3
+# raw.mort.rates.nuts <- raw.mort.rates %>%
+#   dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
+
+
+# raw.mort.rates.grid
+
+# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling
@@ -1312,27 +1429,4 @@ pm25_weights <- terra::rast("pm25_weights_rast.tif")
 terra::saveRDS(wrap(pm25_weights), "pm25_weights.rds")
 # To read:
 # pm25_weights <- rast(readRDS("pm25_weights.rds"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
