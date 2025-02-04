@@ -1256,6 +1256,7 @@ raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts2 %>%
 # Add missing countries
 raw.mort.rates.ctry_nuts4 <-
   tidyr::expand_grid(GCAM_reg_EUR_NUTS3 %>%
+                       dplyr::mutate(NUTS3 = dplyr::if_else(ISO3 == 'CYP', 'CYP', NUTS3)) %>%  # fix Cyprus case
                        dplyr::select(`Fasst Region` = region, region = NUTS3),
                      raw.mort.rates.ctry_nuts3 %>%
                        dplyr::select(age, sex, disease, year) %>%

@@ -631,7 +631,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       pm25.ctry_nuts.write<-function(df){
         df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","PM2.5_CTRY-NUTS_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        write.csv(df,paste0("output/","m2/","PM2.5_WORLD-NUTS_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
       }
 
       lapply(pm25.ctry_nuts.list,pm25.ctry_nuts.write)
@@ -641,7 +641,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Return output
     m2_get_conc_pm25.ctry_nuts.output <- m2_get_conc_pm25.ctry_nuts.output %>%
-      dplyr::mutate(level = 'CTRY-NUTS3')
+      dplyr::mutate(level = 'WORLD-NUTS3')
     m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
       dplyr::mutate(level = 'regions')
 

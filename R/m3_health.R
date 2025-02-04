@@ -7,7 +7,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-calc_mort_rates<-function(downscale, agg_grid){
+calc_mort_rates<-function(downscale = F, agg_grid = F){
 
     if (downscale & agg_grid == 'NUTS3') {
       mort.rates <- rfasst::raw.mort.rates.ctry_nuts3
@@ -169,13 +169,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    # Get ISO3 codes for EUR countries (whose NUTS3 level codes exist)
-    EUR_iso_codes <- GCAM_reg_EUR %>%
-      dplyr::filter(!`GCAM Region` %in% unique(GCAM_reg$`GCAM Region`)) %>%
-      dplyr::pull(`ISO 3`) %>%
-      unique() %>%
-      sort()
-
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -187,7 +180,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       }, envir = asNamespace("rfasst")
     )
     # Get baseline mortality rates
-    mort.rates<-calc_mort_rates() %>%
+    mort.rates<-calc_mort_rates(downscale, agg_grid) %>%
       dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
 
     # Get PM2.5
@@ -198,8 +191,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                              agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
       dplyr::filter(region %in% unique(pop.all.str$region)) # only regions from which we have population data
 
-    all_years<-all_years[all_years <= min(final_db_year,
-                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
 
 
     # Get relative risk parameters
@@ -406,10 +399,11 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 background  = T,
                 animate = anim)
     } else if(map && downscale){
+      if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
+      if (!dir.exists("output/m3/pm25_gridded/agg_NUTS3")) dir.create("output/m3/pm25_gridded/agg_NUTS3")
 
-      ctry_nuts_sf <- rfasst::ctry_nuts_sf
-      ctry_nuts <- as(ctry_nuts_sf, "SpatVector")
-      ctry_nuts <- ctry_nuts %>%
+      # Global
+      m3_get_mort_pm25.output_sf <- as(rfasst::ctry_nuts_sf, "SpatVector") %>%
         dplyr::left_join(m3_get_mort_pm25.output %>%
                            dplyr::group_by(region, year, scenario, sex) %>%
                            dplyr::summarise(FUSION = sum(FUSION),
@@ -423,39 +417,51 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            tibble::as_tibble(),
                          by = 'id_code')
 
-      # Crop to the European region
-      nuts_europe <- ctry_nuts %>%
-        dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
-                                      dplyr::pull(id_code)))
+      # Europe
+      m3_get_mort_pm25.output_EUR_sf <- as(rfasst::nuts_europe_sf, "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION),
+                                            GBD = sum(GBD),
+                                            GEMM = sum(GEMM)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code')
 
 
       for (y in unique(m3_get_mort_pm25.output$year)) {
 
         # Global
-        pm.mort.map <- ggplot2::ggplot(data = ctry_nuts %>%
-                                                 dplyr::filter(year == y, sex == 'Both')) +
+        plot_ctry_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_sf %>%
+                                            dplyr::filter(year == y)) +
           tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
-          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Mortalities") +
-          ggplot2::theme_bw()
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
 
-        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort/", y,"_mort.pdf"), pm.mort.map,
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_WORLD-NUTS3_PM25mort_avg.pdf"), plot_ctry_nuts,
                         width = 500, height = 400, units = 'mm')
 
 
         # Europe
-        pm.mort.nuts3.map <- ggplot2::ggplot(data = nuts_europe %>%
-                                               dplyr::filter(year == y, sex == 'Both')) +
+        plot_eur_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_EUR_sf %>%
+                                           dplyr::filter(year == y)) +
           tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
-          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1, name = "Mortalities") +
-          ggplot2::theme_bw()
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
 
-        ggplot2::ggsave(paste0(here::here(),"/output/maps/m3/maps_pm25_mort/", y,"_EUR-NUTS3_mort.pdf"), pm.mort.nuts3.map,
-                        width = 500, height = 300, units = 'mm')
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_EUR-NUTS3_PM25mort_avg.pdf"), plot_eur_nuts,
+                        width = 500, height = 400, units = 'mm')
 
 
 
       }
-      cat('Maps saved at output/maps/m3/maps_pm25_mort')
+      cat('Maps saved at output/m3/pm25_gridded/agg_NUTS3')
     }
 
 
@@ -463,7 +469,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-    m3_get_mort_pm25.output <- m3_get_mort_pm25.output
     return(invisible(m3_get_mort_pm25.output))
 
   }
@@ -534,7 +539,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(pm.mort$year)))))]
 
 
@@ -752,7 +757,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(pm.mort$year)))))]
 
     m3_get_daly_pm25.output.list <- list()
@@ -940,13 +945,13 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj,  scen_name, queries, saveOutput = F,
                            final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(m6m$year)))))]
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
     # Get baseline mortality rates
-    mort.rates.o3<-calc_mort_rates() %>%
+    mort.rates.o3<-calc_mort_rates(downscale, agg_grid) %>%
       dplyr::ungroup() %>%
       dplyr::filter(disease == "copd") %>%
       dplyr::select(-age) %>%
@@ -1109,7 +1114,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_yll_o3.output.list <- list()
@@ -1293,7 +1298,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-all_years[all_years <= min(final_db_year,
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_daly_o3.output.list <- list()
