@@ -58,3 +58,5 @@ m3_get_mort_pm25.output.RData
 m3_get_pm25_ecoloss_vsl.output.RData
 m2_get_conc_pm25.ctry_nuts.output.RData
 m2_get_conc_pm25.ctry_nuts.output - allyears.RData
+inst/extdata/estat_cens_21agr3.tsv.gz
+tmp_*
