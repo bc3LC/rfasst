@@ -22,7 +22,8 @@ m3_get_mort_pm25(
   map = F,
   anim = T,
   recompute = F,
-  gcam_eur = F
+  gcam_eur = F,
+  normalize = F
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ m3_get_mort_pm25(
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
 
 \item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
+
+\item{normalize}{Adjust the output to represent the number of deaths per 100K people. By default = F}
 }
 \value{
 Premature mortality attributable to PM2.5 exposure for each TM5-FASST regions for all years (# mortalities).

@@ -129,12 +129,14 @@ calc_daly_o3<-function(){
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
+#' @param normalize Adjust the output to represent the number of deaths per 100K people. By default = F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
+                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
+                           normalize = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
@@ -200,6 +202,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     GEMM <- raw.rr.gemm.param %>%
       rbind(c(">25", 0, 0, 0, 2.4, 0, "dm"))
 
+    # Mortality units
+    normalize_pm_mort <- dplyr::if_else(!normalize, 'pm_mort', 'pm_mort_norm_100k')
 
     m3_get_mort_pm25.output.list <- list()
     for (sc in scen_name) {
@@ -294,10 +298,12 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::left_join(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
+        dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
+        dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
-                           values_from = pm_mort)
+                           values_from = !!rlang::sym(normalize_pm_mort))
 
       pm.mort.allages <- pm.mort.pre %>%
         dplyr::filter(disease %!in% c("ihd", "stroke")) %>%
@@ -309,12 +315,15 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::left_join(pop_fin_allages, by = c('region', 'year', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, sex, disease, pm_mort = mort, rr) %>%
+        dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
         # adjust missing value for dm in the GEMM model
-        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0)) %>%
+        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0),
+                      pm_mort_norm_100k = dplyr::if_else(is.finite(pm_mort_norm_100k), pm_mort_norm_100k, 0)) %>%
+        dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
-                           values_from = pm_mort)
+                           values_from = !!rlang::sym(normalize_pm_mort))
 
 
 
@@ -344,14 +353,16 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
+    normalize_tag <- dplyr::if_else(normalize, '_norm100k', '')
+
     pm.mort.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, ".csv"), row.names = F)
     }
 
     pm.mort.agg.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, ".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -393,7 +404,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       rmap::map(data = pm.mort.map,
                 shape = fasstSubset,
-                folder ="output/maps/m3/maps_pm25_mort",
+                folder = paste0("output/maps/m3/maps_pm25_mort/",normalize_tag),
                 ncol = 3,
                 legendType = "pretty",
                 background  = T,
@@ -406,9 +417,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       m3_get_mort_pm25.output_sf <- as(rfasst::ctry_nuts_sf, "SpatVector") %>%
         dplyr::left_join(m3_get_mort_pm25.output %>%
                            dplyr::group_by(region, year, scenario, sex) %>%
-                           dplyr::summarise(FUSION = sum(FUSION),
-                                            GBD = sum(GBD),
-                                            GEMM = sum(GEMM)) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
                            dplyr::ungroup() %>%
                            dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
                            dplyr::rename(value = all_of(mort_param)) %>%
@@ -421,9 +432,9 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       m3_get_mort_pm25.output_EUR_sf <- as(rfasst::nuts_europe_sf, "SpatVector") %>%
         dplyr::left_join(m3_get_mort_pm25.output %>%
                            dplyr::group_by(region, year, scenario, sex) %>%
-                           dplyr::summarise(FUSION = sum(FUSION),
-                                            GBD = sum(GBD),
-                                            GEMM = sum(GEMM)) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
                            dplyr::ungroup() %>%
                            dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
                            dplyr::rename(value = all_of(mort_param)) %>%
@@ -443,7 +454,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           ggplot2::theme_bw() +
           ggplot2::theme(legend.title = ggplot2::element_blank())
 
-        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_WORLD-NUTS3_PM25mort_avg.pdf"), plot_ctry_nuts,
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_WORLD-NUTS3_PM25mort_avg", normalize_tag, ".pdf"), plot_ctry_nuts,
                         width = 500, height = 400, units = 'mm')
 
 
@@ -455,7 +466,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           ggplot2::theme_bw() +
           ggplot2::theme(legend.title = ggplot2::element_blank())
 
-        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_EUR-NUTS3_PM25mort_avg.pdf"), plot_eur_nuts,
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_EUR-NUTS3_PM25mort_avg", normalize_tag, ".pdf"), plot_eur_nuts,
                         width = 500, height = 400, units = 'mm')
 
 
