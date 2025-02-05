@@ -130,13 +130,19 @@ calc_daly_o3<-function(){
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @param normalize Adjust the output to represent the number of deaths per 100K people. By default = F
+#' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
+#' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
-                           normalize = F){
+                           normalize = F,
+                           downscale = F, saveRaster_grid = F,
+                           agg_grid = F, save_AggGrid = F){
 
   if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
@@ -1429,6 +1435,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
   }
 
 }
+
 
 
 
