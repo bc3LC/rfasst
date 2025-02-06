@@ -188,8 +188,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       }, envir = asNamespace("rfasst")
     )
     # Get baseline mortality rates
-    mort.rates<-calc_mort_rates(downscale, agg_grid) %>%
-      dplyr::mutate(age = dplyr::if_else(age %in% c("All Ages", "All ages", "<5"), ">25", age))
+    mort.rates<-calc_mort_rates(downscale, agg_grid)
 
     # Get PM2.5
     pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,

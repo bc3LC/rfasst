@@ -23,7 +23,11 @@ m3_get_mort_pm25(
   anim = T,
   recompute = F,
   gcam_eur = F,
-  normalize = F
+  normalize = F,
+  downscale = F,
+  saveRaster_grid = F,
+  agg_grid = F,
+  save_AggGrid = F
 )
 }
 \arguments{
@@ -58,6 +62,14 @@ m3_get_mort_pm25(
 \item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
 
 \item{normalize}{Adjust the output to represent the number of deaths per 100K people. By default = F}
+
+\item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
+
+\item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
+
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available}
+
+\item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }
 \value{
 Premature mortality attributable to PM2.5 exposure for each TM5-FASST regions for all years (# mortalities).

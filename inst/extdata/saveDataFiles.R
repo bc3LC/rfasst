@@ -1067,7 +1067,7 @@ nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year =
 
 # raw.mort.rates.nuts3
 # mapping for nuts3 and iso3 codes
-nuts3_data <- nuts %>% # TODO - continue from here
+nuts3_data <- nuts %>%
   tibble::as_tibble() %>%
   dplyr::filter(LEVL_CODE == 3) %>%
   dplyr::select(NUTS3 = geo, ISO2 = CNTR_CODE) %>%
@@ -1103,12 +1103,9 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
-  # ALRI only affects children < 5 years old, the rest of illnesses, >=25 years old
-  dplyr::filter(dplyr::if_else(cause_name == 'lri',
-                               age_name == '<5',
-                               age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
-                                               "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
-                                               "95+","All Ages","All ages"))) %>%
+  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
   dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
   # select only years multiple of 5 and >= 1990
   dplyr::filter(year %% 5 == 0, year >= 1990) %>%
@@ -1135,9 +1132,7 @@ raw.mort.rates.fluctuation <- raw.mort.rates %>%
   dplyr::ungroup() %>%
   dplyr::select(-rate) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
-  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1)) %>%
-  dplyr::filter(dplyr::if_else(disease != 'lri', age != '<5', TRUE),
-                dplyr::if_else(disease == 'lri', age == '<5', TRUE))
+  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1))
 
 # 2. add this fluctuations into raw.mort.rates.plus
 raw.mort.rates.plus2 <- raw.mort.rates.plus1 %>%
@@ -1184,12 +1179,9 @@ raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
-  # ALRI only affects children < 5 years old, the rest of illnesses, >=25 years old
-  dplyr::filter(dplyr::if_else(cause_name == 'lri',
-                               age_name == '<5',
-                               age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
-                                               "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
-                                               "95+","All Ages","All ages"))) %>%
+  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
   dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
   # select only years multiple of 5 and >= 1990
   dplyr::filter(year %% 5 == 0, year >= 1990) %>%
@@ -1217,8 +1209,6 @@ raw.mort.rates.fluctuation <- raw.mort.rates %>%
   dplyr::select(-rate) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
   tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.ctry_nuts1$age), fill = list('fluc' = 1)) %>%
-  dplyr::filter(dplyr::if_else(disease != 'lri', age != '<5', TRUE),
-                dplyr::if_else(disease == 'lri', age == '<5', TRUE)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
                      dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
@@ -1274,117 +1264,6 @@ raw.mort.rates.ctry_nuts5 <- raw.mort.rates.ctry_nuts4 %>%
 raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts5
 usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
 
-
-# GRIDDED mortality rates --------------------------------------------------
-grid.population <- terra::vect("inst/extdata/Eurostat_Census-GRID_2021_V2-0/ESTAT_Census_2021_V2.gpkg", layer = "census2021")
-usethis::use_data(grid.population, overwrite = T)
-
-grid.population.df <- as.data.frame(grid.population, xy = TRUE) %>%
-  tidyr::pivot_longer(cols = c("M","F","T","Y_LT15","Y_1564","Y_GE65"),
-                      names_to = "variable",
-                      values_to = "value") %>%
-  dplyr::select(GRD_ID,variable,value) %>%
-  dplyr::distinct() %>%
-  # extract coordinates (x = easting, Y = northing)
-  dplyr::mutate(
-    x = as.numeric(sub(".*E([0-9]+).*", "\\1", GRD_ID)),
-    y = as.numeric(sub(".*N([0-9]+)E.*", "\\1", GRD_ID))
-  )
-usethis::use_data(grid.population.df, overwrite = T)
-
-
-
-grid1km <- terra::vect("grid_1km_surf.gpkg")
-p <- terra::merge(grid.population, grid1km, by = 'GRD_ID')
-
-p.spatvect <- terra::vect(p, geom = c("X_LLC","Y_LLC"), crs = "EPSG:3035")
-
-
-
-
-
-# # Convert the grid population (SpatVector) to sf (Simple Features)
-# grid_sf <- sf::st_as_sf(grid.population)
-#
-# # Read the GeoJSON data (already done, assumed as geojson_data)
-# # Convert the GeoJSON data to sf if needed
-# geojson_sf <- sf::st_read('CNTR_RG_20M_2024_4326.geojson')
-#
-# grid.geojson <- terra::vect(geojson_sf)
-# cropping_extent <- terra::ext(grid.population)
-# grid.geojson.croped <- terra::crop(grid.geojson, cropping_extent)
-#
-#
-# pp <- terra::merge(grid.population, grid.geojson)
-# grid_sf <- sf::st_transform(grid_sf, crs = sf::st_crs(geojson_sf))
-#
-#
-#
-# grid_sf <- st_transform(grid_sf, crs = 4326)
-# sf::st_crs(grid_sf)
-# sf::st_crs(geojson_sf)
-#
-#
-#
-# # invalid_grid <- sf::st_is_valid(grid_sf)
-# invalid_geojson <- sf::st_is_valid(geojson_sf)
-# #
-# # # Print invalid entries
-# # cat("Invalid geometries in grid: ", sum(!invalid_grid), "\n")
-# cat("Invalid geometries in geojson: ", sum(!invalid_geojson), "\n")
-# #
-# # # Attempt to fix invalid geometries if needed
-# # grid_sf <- sf::st_make_valid(grid_sf)
-# # geojson_sf <- sf::st_make_valid(geojson_sf)
-#
-# # grid_sf_simplified <- sf::st_simplify(grid_sf, dTolerance = 100)  # Adjust tolerance as needed
-# # geojson_sf_simplified <- sf::st_simplify(geojson_sf, dTolerance = 200)
-#
-# # # Perform spatial join again with simplified geometries
-# # grid_sf_with_iso <- sf::st_join(grid_sf_simplified, geojson_sf_simplified, join = sf::st_intersects)
-#
-# geojson_sf <- geojson_sf[st_is_valid(geojson_sf), ]
-#
-# # Spatial join: add ISO code from GeoJSON to the grid population
-# grid_sf_with_iso <- sf::st_join(grid_sf, geojson_sf, join = sf::st_intersects)
-#
-# # Check the result
-# head(grid_sf_with_iso)
-# str(grid_sf_with_iso)
-#
-# # If you only want the ISO code as a new column
-# grid_sf_with_iso <- grid_sf_with_iso %>%
-#   select(GRD_ID, ISO3_CODE = ISO3_CODE) # Adjust column names accordingly
-#
-# # Convert back to SpatVector if needed
-# grid_population_with_iso <- vect(grid_sf_with_iso)
-#
-# # Check the first few rows of the new SpatVector
-# head(grid_population_with_iso)
-
-# TODELETE
-#
-#
-# grid_long2 <- grid_long %>%
-#   filter(!is.na(value))
-# # Plot with ggplot2
-gg <- ggplot(as.data.frame(p.spatvect), aes(x = x, y = y, fill = CNTR_ID)) +
-  geom_tile() + # Use geom_tile for raster-like spatial data
-  # scale_fill_viridis_c() + # Use a vibrant color scale
-  # facet_wrap(~variable, ncol = 3) + # Create a panel for each variable
-  coord_fixed() + # Keep the aspect ratio square
-  labs(fill = "Value", title = "CTR_ID")
-ggsave("grid.prova.pdf", gg, width = 8, height = 6)
-#
-#
-# # expand raw.mort.rates to NUTS3
-# raw.mort.rates.nuts <- raw.mort.rates %>%
-#   dplyr::left_join(GCAM_reg_EUR_NUTS3, by = 'region', relationship = "many-to-many")
-
-
-# raw.mort.rates.grid
-
-# TODO end ------------------------------------------------
 
 #=========================================================
 # Downscaling

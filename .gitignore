@@ -60,3 +60,4 @@ m2_get_conc_pm25.ctry_nuts.output.RData
 m2_get_conc_pm25.ctry_nuts.output - allyears.RData
 inst/extdata/estat_cens_21agr3.tsv.gz
 tmp_*
+/inst/extdata/High-resolution_Downscaling
