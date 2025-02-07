@@ -15,7 +15,8 @@ calc_mort_rates<-function(downscale = F, agg_grid = F){
       mort.rates <- rfasst::raw.mort.rates.plus
     }
   mort.rates <- mort.rates %>%
-    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
+    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate)) %>%
+    dplyr::mutate(age = dplyr::if_else(age == "All Ages", ">25", age))
 
   invisible(mort.rates)
 }

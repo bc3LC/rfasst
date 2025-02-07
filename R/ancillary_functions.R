@@ -469,6 +469,7 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
     dplyr::ungroup() %>%
     # add NUTS3 regions and aggregate the values to those categories:
     dplyr::rename('ISO3' = 'region') %>%
+    dplyr::mutate(ISO3 = dplyr::if_else(ISO3 == 'ROU', 'ROM', ISO3)) %>%  # fix Romania ISO3 code
     dplyr::left_join(rfasst::ctry_nuts3_codes, # left_join since NUTS3 increments the nº of rows
                      by = "ISO3", relationship = "many-to-many") %>%
     dplyr::select(-ISO3, -ISO2) %>%
