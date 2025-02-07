@@ -418,28 +418,6 @@ calc_pop_rfasst_reg_str<-function(ssp = "SSP2"){
 calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
 
 
-  # Fill weight.nuts.pop.sex using the age-sex mean
-  weight.nuts.pop.sex_mean <- weight.nuts.pop.sex %>%
-    dplyr::filter(age != 'TOTAL') %>%
-    dplyr::group_by(sex, age) %>%
-    dplyr::summarise(value = sum(value)) %>%
-    dplyr::mutate(total = sum(value)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(weight = value / total)
-
-  weight.nuts.pop.sex_completed <- weight.nuts.pop.sex %>%
-    tidyr::complete(tidyr::nesting(freq, unit, geo, sex, year, NUTS_LEVEL, NUTS0),
-                    age = unique(weight.nuts.pop.sex$age),
-                    fill = list(weight = NA_real_)) %>%
-    dplyr::filter(is.na(weight)) %>%
-    dplyr::select(-value, -value_nuts0, -weight) %>%
-    dplyr::left_join(weight.nuts.pop.sex_mean,
-                     by = c('age','sex')) %>%
-    dplyr::select(-total, -value) %>%
-    rbind(weight.nuts.pop.sex %>%
-            dplyr::select(-value, -value_nuts0))
-
-
   # Ancillary Functions
   `%!in%` = Negate(`%in%`)
 
@@ -464,6 +442,7 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
       TRUE ~ "Both"
     )) %>%
     dplyr::select(-variable) %>%
+    dplyr::mutate(age = dplyr::if_else(age == '95+', '90-94', age)) %>%  # assume all people GE90 has LT95
     dplyr::group_by(model, scenario, region, age, sex, unit, year) %>%
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup() %>%
@@ -475,19 +454,13 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
     dplyr::select(-ISO3, -ISO2) %>%
     dplyr::filter(!is.na(NUTS3)) %>%  # rm overseas regions
     # add pop-weights to downscale to NUTS3 level
-    dplyr::left_join(weight.nuts.pop.sex_completed %>%
+    dplyr::left_join(weight.nuts.pop.sex %>%
                        tibble::as_tibble() %>%
-                       dplyr::filter(sex != 'T', age != 'TOTAL') %>%
-                       dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male', 'Female')) %>%
-                       dplyr::mutate(age = dplyr::case_when(
-                         age == "Y_LT15" ~ "0-4,5-9,10-14",
-                         age == "Y15-29" ~ "15-19,20-24,25-29",
-                         age == "Y30-49" ~ "30-34,35-39,40-44,45-49",
-                         age == "Y50-64" ~ "50-54,55-59,60-64",
-                         age == "Y65-84" ~ "65-69,70-74,75-79,80-84",
-                         age == "Y_GE85" ~ "85-89,90-94,95+",
-                       )) %>%
-                       tidyr::separate_rows(age, sep = ",") %>%
+                       dplyr::filter(age != 'TOTAL', sex != 'T') %>%
+                       dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male',
+                                                          dplyr::if_else(sex == 'F', 'Female',
+                                                                         'T'))) %>%
+                       dplyr::mutate(age = gsub("^Y", "", age)) %>%
                        dplyr::select(age, sex, NUTS3 = geo, weight),
                      by = c('NUTS3','age','sex')) %>%
     dplyr::mutate(weight = dplyr::if_else(is.na(weight) & nchar(NUTS3) == 5, 0, weight)) %>% # if NUTS3 but empty weight
@@ -498,7 +471,6 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
 
   # Taiwan is not included in the database, so we use population projections from OECD Env-Growth.
   # We use China's percentages
-
   perc.china.str<-pop %>%
     dplyr::filter(region == "CHN") %>%
     # aggregate all NUTS3 to have the values at country level
@@ -644,47 +616,20 @@ calc_gdp_pc_reg<-function(ssp="SSP2"){
 
 calc_gdp_pc_ctry_nuts3<-function(ssp="SSP2"){
 
-  # Fill weight.nuts.pop.sex using the age-sex mean
-  weight.nuts.pop.sex_mean <- weight.nuts.pop.sex %>%
-    dplyr::filter(age != 'TOTAL') %>%
-    dplyr::group_by(sex, age) %>%
-    dplyr::summarise(value = sum(value)) %>%
-    dplyr::mutate(total = sum(value)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(weight = value / total)
-
-  weight.nuts.pop.sex_completed <- weight.nuts.pop.sex %>%
-    tidyr::complete(tidyr::nesting(freq, unit, geo, sex, year, NUTS_LEVEL, NUTS0),
-                    age = unique(weight.nuts.pop.sex$age),
-                    fill = list(weight = NA_real_)) %>%
-    dplyr::filter(is.na(weight)) %>%
-    dplyr::select(-value, -value_nuts0, -weight) %>%
-    dplyr::left_join(weight.nuts.pop.sex_mean,
-                     by = c('age','sex')) %>%
-    dplyr::select(-total, -value) %>%
-    rbind(weight.nuts.pop.sex %>%
-            dplyr::select(-value, -value_nuts0))
-
   # Ancillary Functions
   `%!in%` = Negate(`%in%`)
 
   # Get pop data
-  pop.all<-get(paste0('pop.all.ctry_nuts3.str.',ssp))
-
-  # First, we read in the population data.
-  ssp.data<-raw.ssp.data %>%
-    tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
-    dplyr::mutate(year=gsub("X", "", year)) %>%
-    dplyr::filter(year >= 2010, year <= 2100,
-                  grepl(ssp, SCENARIO)) %>%
-    dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT)
-
+  pop.all<-get(paste0('pop.all.ctry_nuts3.str.',ssp)) %>%
+    dplyr::filter(sex == 'Both') %>%
+    dplyr::group_by(NUTS3 = region, year) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup()
 
   gdp<-tibble::as_tibble(raw.gdp) %>%
     tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
     dplyr::mutate(year = gsub("X", "", year)) %>%
-    dplyr::filter(year >= 2010, year <= 2100,
-           grepl(ssp, SCENARIO)) %>%
+    dplyr::filter(year >= 2010, year <= 2100, grepl(ssp, SCENARIO)) %>%
     dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT) %>%
     dplyr::filter(variable == "GDP|PPP") %>%
     dplyr::rename(gdp_tot = value) %>%
@@ -695,40 +640,20 @@ calc_gdp_pc_ctry_nuts3<-function(ssp="SSP2"){
     dplyr::select(-ISO3, -ISO2) %>%
     dplyr::filter(!is.na(NUTS3)) %>% # rm overseas regions
     # add pop-weights to downscale to NUTS3 level
-    dplyr::left_join(weight.nuts.pop.sex_completed %>%
+    dplyr::left_join(weight.nuts.pop.nuts3 %>%
                        tibble::as_tibble() %>%
-                       dplyr::filter(sex != 'T') %>%
-                       dplyr::mutate(sex = dplyr::if_else(sex == 'M', 'Male', 'Female')) %>%
-                       dplyr::select(sex, NUTS3 = geo, weight),
+                       dplyr::rename(NUTS3 = geo),
                      by = c('NUTS3'), relationship = "many-to-many") %>%
-    dplyr::filter(!(is.na(sex) & nchar(NUTS3) == 5)) %>% # if NUTS3 but empty weight
-    dplyr::mutate(sex = dplyr::if_else(is.na(sex) & nchar(NUTS3) != 5, 'Both', sex)) %>% # if not NUTS3, sex = TOTAL
+    dplyr::mutate(weight = dplyr::if_else(is.na(weight) & nchar(NUTS3) == 5, 0, weight)) %>% # if NUTS3 but empty weight
     dplyr::mutate(gdp_tot = dplyr::if_else(!is.na(weight), gdp_tot * weight, gdp_tot)) %>%
-    dplyr::group_by(model, scenario, region = NUTS3, sex, year, unit) %>%
-    dplyr::summarise(gdp_tot = sum(gdp_tot)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(scenario = ssp)
+    dplyr::select(model, scenario, variable, unit, year, gdp_tot, NUTS3)
 
-  gdp_mfb<-gdp %>%
-    dplyr::filter(sex != 'Both') %>%
-    dplyr::group_by(model, scenario, region, year, unit) %>%
-    dplyr::summarise(gdp_tot = sum(gdp_tot)) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(sex = 'Both')
-
-  gdp_pc<-
-    rbind(
-      gdp,
-      gdp_mfb
-    ) %>%
+  gdp_pc <- gdp %>%
     dplyr::distinct() %>%
-    gcamdata::left_join_error_no_match(pop.all %>%
-                                         dplyr::group_by(scenario, region, year, sex, unit) %>%
-                                         dplyr::summarise(pop_tot = sum(value)) %>%
-                                         dplyr::ungroup(),
-                                       by=c("scenario", "region", "year", "sex")) %>%
-    dplyr::mutate(gdp_pc = (gdp_tot * CONV_BIL) / (pop_tot * CONV_MIL)) %>%
-    dplyr::select(-model, -unit.x, -unit.y, -gdp_tot, -pop_tot) %>%
+    gcamdata::left_join_error_no_match(pop.all,
+                                       by=c("NUTS3", "year")) %>%
+    dplyr::mutate(gdp_pc = (gdp_tot * CONV_BIL) / (value * CONV_MIL)) %>%
+    dplyr::select(-model, -gdp_tot, -value) %>%
     dplyr::mutate(unit = "2005$/pers")
 
   invisible(gdp_pc)

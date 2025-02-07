@@ -422,40 +422,52 @@ usethis::use_data(raw.twn.pop, overwrite = T)
 raw.gdp = read.csv(paste0(rawDataFolder_ancillary,"iiasa_GDP_SSP.csv"))
 usethis::use_data(raw.gdp, overwrite = T)
 
-# raw NUTS 2021 pop
-raw.nuts.pop <- readr::read_tsv("inst/extdata/estat_cens_21agr3.tsv.gz") %>%
-  tidyr::separate(`freq,age,sex,unit,geo\\TIME_PERIOD`,
-                  into = c("freq", "age", "sex", "unit", "geo"),
-                  sep = ",") %>%
-  dplyr::mutate(`2021` = as.numeric(gsub(" p", "", `2021`)),
-                year = 2021,
-                value = `2021`) %>%
-  dplyr::select(-`2021`) %>%
-  as.data.frame()
+# raw NUTS 2019 pop
+# raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjanaggr3') %>%
+raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjangrp3') %>%
+  dplyr::mutate(year = as.numeric(as.character(substr(TIME_PERIOD, 1, 4)))) %>%
+  dplyr::filter(year == 2019, #last year UK values
+                age != 'UNK', #avoid incomplete data (only Macedonia reported some UNK (<33 people))
+                !grepl('XXX',geo),  #avoid non-matching NUTS3
+                nchar(geo) == 5) %>% #consider only NUTS3 codes
+  dplyr::select(unit, sex, age, geo, year, value = values) %>%
+  # compute 0-4, GE85 ages
+  tidyr::pivot_wider(names_from = age, values_from = value) %>%
+  dplyr::rename(`Y0-4` = `Y_LT5`,
+                `Y90-94` = `Y_GE90`) %>% # assume all people GE90 has LT95
+  dplyr::mutate(`Y_GE85` = dplyr::if_else(is.na(`Y_GE85`), `Y85-89` + `Y90-94`, `Y_GE85`)) %>%
+  dplyr::select(-`Y85-89`, -`Y90-94`) %>%
+  tidyr::pivot_longer(cols = c("TOTAL", "Y0-4", "Y5-9", "Y10-14", "Y15-19",
+                               "Y20-24", "Y25-29", "Y30-34", "Y35-39",
+                               "Y40-44", "Y45-49", "Y50-54", "Y55-59",
+                               "Y60-64", "Y65-69", "Y70-74", "Y75-79",
+                               "Y80-84", "Y_GE85"),
+                      names_to = 'age', values_to = 'value')
 usethis::use_data(raw.nuts.pop, overwrite = T)
 
-# weights by NUTS3 for each country and sex
+# weights by NUTS3 for each country and sex-age
 weight.nuts.pop.sex <- raw.nuts.pop %>%
   dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
   dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
   dplyr::filter(NUTS_LEVEL == 3) %>%
-  dplyr::group_by(freq, sex, age, unit, NUTS_LEVEL, NUTS0) %>%
+  dplyr::group_by(sex, age, unit, NUTS_LEVEL, NUTS0) %>%
   dplyr::mutate(value_nuts0 = sum(value)) %>%
   dplyr::ungroup() %>%
-  dplyr::mutate(weight = value / value_nuts0)
+  dplyr::mutate(weight = value / value_nuts0) %>%
+  dplyr::select(NUTS0, geo, NUTS_LEVEL, age, sex, weight)
 usethis::use_data(weight.nuts.pop.sex, overwrite = T)
 
 # weights by NUTS3 for each country
-weight.nuts.pop <- raw.nuts.pop %>%
+weight.nuts.pop.nuts3 <- raw.nuts.pop %>%
   dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
   dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
-  dplyr::filter(NUTS_LEVEL == 3, age == 'TOTAL') %>%
-  dplyr::mutate(sex_group = dplyr::if_else(sex == 'T', 'grouped', 'ungrouped')) %>%
-  dplyr::group_by(freq, unit, sex_group, NUTS_LEVEL, NUTS0) %>%
-  dplyr::mutate(value_nuts0 = sum(value)) %>%
+  dplyr::filter(NUTS_LEVEL == 3, age == 'TOTAL', sex == 'T') %>%
+  dplyr::group_by(NUTS0) %>%
+  dplyr::mutate(value_T = sum(value)) %>%
   dplyr::ungroup() %>%
-  dplyr::mutate(weight = value / value_nuts0)
-usethis::use_data(weight.nuts.pop, overwrite = T)
+  dplyr::mutate(weight = value / value_T) %>%
+  dplyr::select(geo, weight)
+usethis::use_data(weight.nuts.pop.nuts3, overwrite = T)
 
 # ssp population
 pop.all.SSP1 = calc_pop(ssp = 'SSP1')

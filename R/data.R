@@ -90,6 +90,18 @@
 #' }
 "weight.nuts.pop.sex"
 
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weight mean by age among all European countries based on Eurostat data 2021 over F, M and T sex.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop.nuts3
+#' }
+"weight.nuts.pop.nuts3"
+
 #'GDP-SSP database
 #'
 #' @description Filtered GDP data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
