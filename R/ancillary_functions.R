@@ -442,7 +442,6 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
       TRUE ~ "Both"
     )) %>%
     dplyr::select(-variable) %>%
-    dplyr::mutate(age = dplyr::if_else(age == '95+', '90-94', age)) %>%  # assume all people GE90 has LT95
     dplyr::group_by(model, scenario, region, age, sex, unit, year) %>%
     dplyr::summarise(value = sum(value)) %>%
     dplyr::ungroup() %>%

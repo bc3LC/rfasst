@@ -423,25 +423,41 @@ raw.gdp = read.csv(paste0(rawDataFolder_ancillary,"iiasa_GDP_SSP.csv"))
 usethis::use_data(raw.gdp, overwrite = T)
 
 # raw NUTS 2019 pop
-# raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjanaggr3') %>%
+NUTS_2021_2016 <- xlsx::read.xlsx('inst/extdata/NUTS2021.xlsx', sheetName = 'Changes detailed NUTS 2016-2021') %>%
+  dplyr::select(NUTS2016 = Code.2016, NUTS2021 = Code.2021) %>%
+  dplyr::distinct() %>%
+  dplyr::mutate(diff = NUTS2016 != NUTS2021) %>%
+  dplyr::filter(diff)
+
 raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjangrp3') %>%
   dplyr::mutate(year = as.numeric(as.character(substr(TIME_PERIOD, 1, 4)))) %>%
   dplyr::filter(year == 2019, #last year UK values
                 age != 'UNK', #avoid incomplete data (only Macedonia reported some UNK (<33 people))
                 !grepl('XXX',geo),  #avoid non-matching NUTS3
                 nchar(geo) == 5) %>% #consider only NUTS3 codes
+  # modify the nuts3 codes for UK, EE, and IT NUTS3 regions
+  dplyr::left_join(NUTS_2021_2016 %>%
+                     dplyr::rename('geo' = 'NUTS2016'),
+                   by = 'geo') %>%
+  dplyr::mutate(geo = dplyr::if_else(grepl('UK', geo) & nchar(geo) == 5, NUTS2021,
+                                     dplyr::if_else(grepl('EE', geo) & nchar(geo) == 5, NUTS2021,
+                                                    dplyr::if_else(grepl('IT', geo) & nchar(geo) == 5, NUTS2021, geo)))) %>%
   dplyr::select(unit, sex, age, geo, year, value = values) %>%
   # compute 0-4, GE85 ages
   tidyr::pivot_wider(names_from = age, values_from = value) %>%
   dplyr::rename(`Y0-4` = `Y_LT5`,
                 `Y90-94` = `Y_GE90`) %>% # assume all people GE90 has LT95
-  dplyr::mutate(`Y_GE85` = dplyr::if_else(is.na(`Y_GE85`), `Y85-89` + `Y90-94`, `Y_GE85`)) %>%
-  dplyr::select(-`Y85-89`, -`Y90-94`) %>%
+  dplyr::mutate(`Y85-89` = dplyr::if_else(!is.na(`Y_GE85`) & is.na(`Y85-89`), `Y_GE85`, `Y85-89`)) %>% # only ALBANIA case
+  dplyr::mutate(`Y90-94` = dplyr::if_else(is.na(`Y90-94`), 0, `Y90-94`)) %>% # only ALBANIA case
+  dplyr::mutate(`Y+95` = dplyr::if_else(!is.na(`Y_GE85`) & !is.na(`Y85-89`) & !is.na(`Y90-94`),
+                                        `Y_GE85` - `Y90-94` - `Y85-89`,
+                                        0)) %>%
+  dplyr::select(-`Y_GE85`) %>%
   tidyr::pivot_longer(cols = c("TOTAL", "Y0-4", "Y5-9", "Y10-14", "Y15-19",
                                "Y20-24", "Y25-29", "Y30-34", "Y35-39",
                                "Y40-44", "Y45-49", "Y50-54", "Y55-59",
                                "Y60-64", "Y65-69", "Y70-74", "Y75-79",
-                               "Y80-84", "Y_GE85"),
+                               "Y80-84", "Y85-89", "Y90-94", "Y+95"),
                       names_to = 'age', values_to = 'value')
 usethis::use_data(raw.nuts.pop, overwrite = T)
 
