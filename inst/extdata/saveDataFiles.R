@@ -425,9 +425,7 @@ usethis::use_data(raw.gdp, overwrite = T)
 # raw NUTS 2019 pop
 NUTS_2021_2016 <- xlsx::read.xlsx('inst/extdata/NUTS2021.xlsx', sheetName = 'Changes detailed NUTS 2016-2021') %>%
   dplyr::select(NUTS2016 = Code.2016, NUTS2021 = Code.2021) %>%
-  dplyr::distinct() %>%
-  dplyr::mutate(diff = NUTS2016 != NUTS2021) %>%
-  dplyr::filter(diff)
+  dplyr::distinct()
 
 raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjangrp3') %>%
   dplyr::mutate(year = as.numeric(as.character(substr(TIME_PERIOD, 1, 4)))) %>%
@@ -439,10 +437,11 @@ raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjangrp3') %>%
   dplyr::left_join(NUTS_2021_2016 %>%
                      dplyr::rename('geo' = 'NUTS2016'),
                    by = 'geo') %>%
-  dplyr::mutate(geo = dplyr::if_else(grepl('UK', geo) & nchar(geo) == 5, NUTS2021,
-                                     dplyr::if_else(grepl('EE', geo) & nchar(geo) == 5, NUTS2021,
-                                                    dplyr::if_else(grepl('IT', geo) & nchar(geo) == 5, NUTS2021, geo)))) %>%
+  dplyr::mutate(geo = dplyr::if_else(grepl('UK', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021,
+                                     dplyr::if_else(grepl('EE', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021,
+                                                    dplyr::if_else(grepl('IT', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021, geo)))) %>%
   dplyr::select(unit, sex, age, geo, year, value = values) %>%
+  unique() %>%
   # compute 0-4, GE85 ages
   tidyr::pivot_wider(names_from = age, values_from = value) %>%
   dplyr::rename(`Y0-4` = `Y_LT5`,

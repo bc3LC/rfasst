@@ -270,12 +270,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       # First, adjust population
       pop_fin_str <- pop.all.str %>%
+        dplyr::filter(!age %in% c("0-4","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
                       year = as.numeric(year)) %>%
         dplyr::select(-scenario, -unit, -value)
 
       pop_fin_allages <- pop.all.str %>%
+        dplyr::filter(!age %in% c("0-4","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::group_by(region, year, sex) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
@@ -303,10 +305,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
         dplyr::left_join(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
-                      mort = round(mort, 0)) %>%
+                      mort = round(mort, 0),
+                      mort = dplyr::if_else(is.na(mort), 0, mort)) %>%
         dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
         dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
+        # adjust missing value for dm in the GEMM model
+        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0),
+                      pm_mort_norm_100k = dplyr::if_else(is.finite(pm_mort_norm_100k), pm_mort_norm_100k, 0)) %>%
         dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
                            values_from = !!rlang::sym(normalize_pm_mort))
@@ -330,7 +336,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
                            values_from = !!rlang::sym(normalize_pm_mort))
-
 
 
       pm.mort <- dplyr::bind_rows(pm.mort.allages,
