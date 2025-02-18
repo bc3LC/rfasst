@@ -534,6 +534,125 @@ calc_pop_ctry_nuts3_str<-function(ssp = "SSP2"){
 
 }
 
+#' calc_pop_ctry_ctry_str
+#'
+#' Get population data and shares of population for all population segments.
+#' To be consistent we make use of the IIASA-WIC Model/scenarios. NUTS3 codes for the European region and ISO3 codes for the ROW.
+#' Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.
+#' @source  https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @keywords socioeconomics, population
+#' @return Population and population shares (<5Y; >30Y) for CTRY regions for all years
+#' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
+#' @importFrom magrittr %>%
+#' @export
+
+calc_pop_ctry_ctry_str<-function(ssp = "SSP2"){
+
+
+  # Ancillary Functions
+  `%!in%` = Negate(`%in%`)
+
+  # First, we read in the population data.
+  ssp.data<-raw.ssp.data %>%
+    tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
+    dplyr::mutate(year = gsub("X", "", year)) %>%
+    dplyr::filter(year >= 2010, year <= 2100,
+                  grepl(ssp, SCENARIO)) %>%
+    dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT)
+
+  pop<-tibble::as_tibble(ssp.data) %>%
+    dplyr::filter(grepl("Population", variable)) %>%
+    dplyr::mutate(variable = gsub("-", "and", variable)) %>%
+    dplyr::left_join(age_str_mapping, by = 'variable') %>%
+    dplyr::filter(complete.cases(age)) %>%
+    dplyr::filter(!grepl("Edu", variable)) %>%
+    dplyr::mutate(age = dplyr::if_else(age == "95-99" | age == "100", "95+", age)) %>%
+    dplyr::mutate(sex = dplyr::case_when(
+      stringr::str_detect(variable, "\\|Female\\|") ~ "Female",
+      stringr::str_detect(variable, "\\|Male\\|") ~ "Male",
+      TRUE ~ "Both"
+    )) %>%
+    dplyr::select(-variable) %>%
+    dplyr::group_by(model, scenario, region, age, sex, unit, year) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup() %>%
+    # add NUTS3 regions and aggregate the values to those categories:
+    dplyr::rename('ISO3' = 'region') %>%
+    dplyr::mutate(ISO3 = dplyr::if_else(ISO3 == 'ROU', 'ROM', ISO3)) %>%  # fix Romania ISO3 code
+    dplyr::left_join(dplyr::select(rfasst::ctry_nuts3_codes, ISO3, ISO2) %>%
+                       dplyr::distinct(),
+                     by = "ISO3") %>%
+    dplyr::filter(!is.na(ISO2)) %>%  # rm overseas regions
+    dplyr::group_by(model, scenario, region = ISO3, age, sex, year, unit) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup()
+
+  # Taiwan is not included in the database, so we use population projections from OECD Env-Growth.
+  # We use China's percentages
+  perc.china.str<-pop %>%
+    dplyr::filter(region == "CHN") %>%
+    # aggregate all NUTS3 to have the values at country level
+    dplyr::group_by(model, scenario, region, age, sex, year) %>%
+    dplyr::summarise(value = sum(value)) %>%
+    dplyr::ungroup() %>%
+    # compute the share by age & sex
+    dplyr::group_by(model, scenario, region, year) %>%
+    dplyr::mutate(pop_tot = sum(value)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(share = value / pop_tot) %>%
+    dplyr::select(model, scenario, age, sex, year, share)
+
+  twn.pop<-tibble::as_tibble(raw.twn.pop) %>%
+    tidyr::gather(year, value, -MODEL, -SCENARIO, -REGION, -VARIABLE, -UNIT) %>%
+    dplyr::mutate(year = gsub("X", "", year)) %>%
+    dplyr::filter(year >= 2010, year <= 2100,
+                  grepl(ssp, SCENARIO)) %>%
+    dplyr::rename(model = MODEL, scenario = SCENARIO, region = REGION, variable = VARIABLE, unit = UNIT) %>%
+    dplyr::filter(variable == "Population") %>%
+    dplyr::rename(pop_tot = value) %>%
+    # add NUTS3 regions and aggregate the values to those categories:
+    dplyr::rename('ISO3' = 'region') %>%
+    dplyr::left_join(dplyr::select(rfasst::ctry_nuts3_codes, ISO3, ISO2) %>%
+                       dplyr::distinct(),
+                     by = "ISO3") %>%
+    dplyr::filter(!is.na(ISO2)) %>% # rm overseas regions
+    dplyr::group_by(model, scenario, region = ISO3, year, unit) %>%
+    dplyr::summarise(pop_tot = sum(pop_tot)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-model) %>%
+    dplyr::mutate(scenario = ssp) %>%
+    gcamdata::repeat_add_columns(tibble::tibble(age = unique(perc.china.str$age))) %>%
+    gcamdata::repeat_add_columns(tibble::tibble(sex = unique(perc.china.str$sex))) %>%
+    gcamdata::left_join_error_no_match(perc.china.str %>% dplyr::select(-scenario), by = c("year", "age", "sex")) %>%
+    dplyr::mutate(value = pop_tot * share,
+                  model = "IIASA-WiC POP",
+                  scenario = "SSP2_v9_130115") %>%
+    dplyr::select(model, scenario, region, age, sex, year, unit, value)
+
+  # We add twn to the database
+  pop <-dplyr::bind_rows(pop, twn.pop)
+
+  # Clean the database
+  pop.tot <- pop %>%
+    dplyr::mutate(scenario = ssp) %>%
+    dplyr::select(scenario, region, year, age, sex, unit, value)
+
+  # Compute total pop (sex = Both)
+  pop.both <- pop.tot %>%
+    dplyr::group_by(scenario, region, year, age, unit) %>%
+    dplyr::summarise(value = sum(value),
+                     sex = 'Both') %>%
+    dplyr::ungroup()
+
+  pop <- dplyr::bind_rows(
+    pop.tot,
+    pop.both
+  )
+
+  invisible(pop)
+
+}
+
 
 
 #' calc_gdp_pc_reg

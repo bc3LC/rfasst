@@ -474,6 +474,71 @@
 #' }
 "pop.all.ctry_nuts3.str.SSP5"
 
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP1
+#' }
+"pop.all.ctry_ctry.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP2
+#' }
+"pop.all.ctry_ctry.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP3
+#' }
+"pop.all.ctry_ctry.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP4
+#' }
+"pop.all.ctry_ctry.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP5
+#' }
+"pop.all.ctry_ctry.str.SSP5"
+
 #'ctry_nuts3_codes
 #'
 #' @description A mapping table that links ISO2, ISO3, and NUTS3 codes. For regions outside Europe, the NUTS3 code corresponds to the ISO3 code.
@@ -1290,6 +1355,30 @@
 #'  rfasst::raw.mort.rates.plus
 #' }
 "raw.mort.rates.plus"
+
+#' raw.mort.rates.ctry_nuts3
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex and NUTS3 when possible, CTRY otherwise.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.ctry_nuts3
+#' }
+"raw.mort.rates.ctry_nuts3"
+
+#' raw.mort.rates.ctry_ctry
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex and CTRY.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.ctry_ctry
+#' }
+"raw.mort.rates.ctry_ctry"
 
 #' raw.rr.fusion
 #'

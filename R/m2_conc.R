@@ -18,7 +18,7 @@
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
 #' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
-#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available
 #' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
@@ -30,9 +30,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & (exists('m2_get_conc_pm25.output') | exists('m2_get_conc_pm25.ctry_nuts.output'))) {
+  if (!recompute & (exists('m2_get_conc_pm25.output') | exists('m2_get_conc_pm25.ctry_agg.output'))) {
     if (agg_grid != F) {
-      return(m2_get_conc_pm25.ctry_nuts.output)
+      return(m2_get_conc_pm25.ctry_agg.output)
     } else {
       return(m2_get_conc_pm25.output)
     }
@@ -43,10 +43,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Assert that the parameters of the function are okay
 
     if(saveRaster_grid == T) assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to save the raster grid')
-    if(identical(agg_grid, TRUE)) stop('Specify the downscaled PM25 aggretagion. Currently only `NUTS3` is allowed, i.e., `agg_grid = "NUTS3"`')
+    if(identical(agg_grid, TRUE)) stop('Specify the downscaled PM25 aggretagion. Currently only `NUTS3` and `CTRY` are allowed, i.e., set `agg_grid = "NUTS3"` or `agg_grid = "CTRY"`')
     if(agg_grid == "NUTS3") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to NUTS3')
-    if(save_AggGrid == T) assertthat::assert_that(agg_grid  == "NUTS3" & downscale == T,
-                                                  msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` to save the aggregated raster grid')
+    if(agg_grid == "CTRY") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to CTRY')
+    if(save_AggGrid == T) assertthat::assert_that(agg_grid %in% c("NUTS3","CTRY") & downscale == T,
+                                                  msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` or `CTRY` to save the aggregated raster grid')
     if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
 
@@ -133,7 +134,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.output.list <- list()
     m2_nat_prim_sec_pm25.output.list <- NULL
-    m2_get_conc_pm25.ctry_nuts.output.list <- list()
+    m2_get_conc_pm25.ctry_agg.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -492,7 +493,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
             }
 
             # Write df with NUTS3-average values
-            ctry_nuts_df <- as.data.frame(ctry_nuts) %>%
+            agg_grid_df <- as.data.frame(ctry_nuts) %>%
               dplyr::mutate(year = unique(df$year)) %>%
               # remove non accounted NUTS3
               dplyr::filter(!is.na(pm25_avg))
@@ -504,7 +505,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
               terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/raster_grid/", unique(df$year), "_WORLD-NUTS3_pm25_avg.gpkg"),
                                  overwrite=TRUE)
-              write.csv(ctry_nuts_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
                         row.names = F)
 
             }
@@ -533,9 +534,83 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             }
 
+          } else if(agg_grid == "CTRY"){
+            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
+            if (!dir.exists("output/m2/pm25_gridded/agg_CTRY")) dir.create("output/m2/pm25_gridded/agg_CTRY")
+
+            ctry_ctry_sf <- rfasst::ctry_nuts_sf %>%
+              dplyr::filter(region_type == 'CTRY')
+
+            ctry_ctry_ext <- terra::ext(ctry_ctry_sf)
+
+            # Crop and mask PM25 to NUTS-3 extent
+            pm25_weighted_ctry <- terra::crop(pm25_weighted, ctry_ctry_ext)
+            pm25_weighted_ctry <- terra::mask(pm25_weighted, terra::vect(ctry_ctry_ext))
+
+            ctry_nuts <- as(ctry_ctry_sf, "SpatVector")
+
+            # Average raster values by polygon
+            ctry_nuts$pm25_avg <- terra::extract(pm25_weighted_ctry, ctry_nuts, mean, na.rm = TRUE)$layer
+
+            # Plot average raster values within polygons
+            if(map) {
+
+              plot_ctry_nuts <- ggplot2::ggplot(data = ctry_nuts) +
+                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
+                ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+                ggplot2::theme_bw() +
+                ggplot2::theme(legend.title = ggplot2::element_blank())
+
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", unique(df$year),"_WORLD-CTRY_pm25_avg.pdf"), plot_ctry_nuts,
+                              width = 500, height = 400, units = 'mm')
+
+            }
+
+            # Write df with CTRY-average values
+            agg_grid_df <- as.data.frame(ctry_nuts) %>%
+              dplyr::mutate(year = unique(df$year)) %>%
+              # remove non accounted CTRY
+              dplyr::filter(!is.na(pm25_avg))
+
+
+            if(save_AggGrid == T){
+
+              if (!dir.exists("output/m2/pm25_gridded/agg_CTRY/raster_grid")) dir.create("output/m2/pm25_gridded/agg_CTRY/raster_grid")
+
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/raster_grid/", unique(df$year), "_WORLD-CTRY_pm25_avg.gpkg"),
+                                 overwrite=TRUE)
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/", unique(df$year), "_WORLD-CTRY_pm25_avg.csv"),
+                        row.names = F)
+
+            }
+
+            if(map) {
+
+              # Crop to the European region
+              toplot_ctry_europe <- ctry_nuts %>%
+                dplyr::filter(!id_code %in% (rfasst::nuts_europe_sf %>%
+                                               dplyr::pull(id_code)))
+
+              plot_ctry <- tmap::tm_shape(ctry_nuts_sf,
+                                           projection = "EPSG:3035",
+                                           xlim = c(2400000, 6500000),
+                                           ylim = c(1320000, 5650000)
+              ) +
+                tmap::tm_fill("lightgrey") +
+                tmap::tm_shape(sf::st_as_sf(toplot_ctry_europe)) +
+                tmap::tm_polygons("pm25_avg",
+                                  title = paste("PM2.5 concentration,", unique(df$year)),
+                                  palette = "Oranges"
+                )
+
+              tmap::tmap_save(plot_ctry, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", unique(df$year),"_EUR-CTRY_pm25_avg.pdf"),
+                              width = 500, height = 300, units = 'mm', dpi = 300)
+
+            }
+
           }
 
-          return(invisible(ctry_nuts_df))
+          return(invisible(agg_grid_df))
         }
 
         pm25.ctry_nuts3.list = lapply(pm25_agg_fin_grid.list, generate_gridded_output)
@@ -555,7 +630,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
         dplyr::mutate(scenario = sc)
-      m2_get_conc_pm25.ctry_nuts.output.list <- append(m2_get_conc_pm25.ctry_nuts.output.list, list(pm.ctry_nuts))
+      m2_get_conc_pm25.ctry_agg.output.list <- append(m2_get_conc_pm25.ctry_agg.output.list, list(pm.ctry_nuts))
 
 
     }
@@ -566,7 +641,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
 
-    m2_get_conc_pm25.ctry_nuts.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_nuts.output.list) %>%
+    m2_get_conc_pm25.ctry_agg.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output.list) %>%
       dplyr::mutate(units = "ug/m3") %>%
       dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
 
@@ -627,11 +702,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # If saveOutput=T,  writes aggregated PM2.5 values per CTRY-NUTS3 region
 
     if(saveOutput==T & agg_grid != F) {
-      pm25.ctry_nuts.list<-split(m2_get_conc_pm25.ctry_nuts.output,m2_get_conc_pm25.ctry_nuts.output$year)
+      pm25.ctry_nuts.list<-split(m2_get_conc_pm25.ctry_agg.output,m2_get_conc_pm25.ctry_agg.output$year)
 
       pm25.ctry_nuts.write<-function(df){
         df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","PM2.5_WORLD-NUTS_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        write.csv(df,paste0("output/","m2/","PM2.5_WORLD-",agg_grid,"_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
       }
 
       lapply(pm25.ctry_nuts.list,pm25.ctry_nuts.write)
@@ -640,13 +715,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-    m2_get_conc_pm25.ctry_nuts.output <- m2_get_conc_pm25.ctry_nuts.output %>%
-      dplyr::mutate(level = 'WORLD-NUTS3')
+    m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
+      dplyr::mutate(level = paste0('WORLD-',agg_grid))
     m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
       dplyr::mutate(level = 'regions')
 
     if (agg_grid != F) {
-      return(invisible(m2_get_conc_pm25.ctry_nuts.output))
+      return(invisible(m2_get_conc_pm25.ctry_agg.output))
     }
     return(invisible(m2_get_conc_pm25.output))
   }

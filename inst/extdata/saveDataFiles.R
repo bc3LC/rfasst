@@ -518,6 +518,17 @@ usethis::use_data(pop.all.ctry_nuts3.str.SSP4, overwrite = T)
 pop.all.ctry_nuts3.str.SSP5 = calc_pop_ctry_nuts3_str(ssp = 'SSP5')
 usethis::use_data(pop.all.ctry_nuts3.str.SSP5, overwrite = T)
 
+pop.all.ctry_ctry.str.SSP1 = calc_pop_ctry_ctry_str(ssp = 'SSP1')
+usethis::use_data(pop.all.ctry_ctry.str.SSP1, overwrite = T)
+pop.all.ctry_ctry.str.SSP2 = calc_pop_ctry_ctry_str(ssp = 'SSP2')
+usethis::use_data(pop.all.ctry_ctry.str.SSP2, overwrite = T)
+pop.all.ctry_ctry.str.SSP3 = calc_pop_ctry_ctry_str(ssp = 'SSP3')
+usethis::use_data(pop.all.ctry_ctry.str.SSP3, overwrite = T)
+pop.all.ctry_ctry.str.SSP4 = calc_pop_ctry_ctry_str(ssp = 'SSP4')
+usethis::use_data(pop.all.ctry_ctry.str.SSP4, overwrite = T)
+pop.all.ctry_ctry.str.SSP5 = calc_pop_ctry_ctry_str(ssp = 'SSP5')
+usethis::use_data(pop.all.ctry_ctry.str.SSP5, overwrite = T)
+
 # ssp gdp
 gdp_pc.SSP1 = calc_gdp_pc_reg(ssp = 'SSP1')
 usethis::use_data(gdp_pc.SSP1, overwrite = T)
@@ -1290,6 +1301,108 @@ raw.mort.rates.ctry_nuts5 <- raw.mort.rates.ctry_nuts4 %>%
 
 raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts5
 usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
+
+
+# CTRY-CTRY mortality rates (by country, age, disease, and sex) --------------------------------------------------
+raw.mort.rates.ctry_ctry1 <- mort.rates.country %>%
+  dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
+  dplyr::mutate(age_name = gsub(" years", "", age_name),
+                age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::filter(metric_name == 'Rate', measure_name == 'Deaths') %>% # select only rate values from deaths
+  dplyr::mutate(cause_name = tolower(cause_name),
+                year = as.numeric(year)) %>%
+  dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic stroke','stroke',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
+  ) %>%
+  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
+  # select only years multiple of 5 and >= 1990
+  dplyr::filter(year %% 5 == 0, year >= 1990) %>%
+  # compute the regional rate
+  gcamdata::left_join_error_no_match(ihme.population %>%
+                                       dplyr::select(pop = val, location_id, sex_id, sex_name, age_id, year),
+                                     by = c('location_id', 'sex_id', 'sex_name', 'age_id', 'year')) %>%
+  dplyr::mutate(val = val * pop) %>%
+  dplyr::group_by(region = iso, year, age = age_name, sex = sex_name, disease = cause_name) %>%
+  dplyr::summarise(pop = sum(pop),
+                   val = sum(val),
+                   rate = val / pop) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-pop, -val)
+
+
+# Expand to future years using the previous regression
+
+# 1. 5-year step rate fluctuation by rfasst region
+raw.mort.rates.fluctuation <- raw.mort.rates %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::arrange(year, .by_group = TRUE) %>%
+  dplyr::mutate(fluc = (rate - dplyr::lag(rate)) / dplyr::lag(rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-rate) %>%
+  dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
+  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.ctry_ctry1$age), fill = list('fluc' = 1)) %>%
+  dplyr::left_join(iso_ihme_rfasst %>%
+                     dplyr::select(iso, region = `FASST region`) %>%
+                     dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
+                   by = 'region', relationship = "many-to-many") %>%
+  dplyr::mutate(iso = toupper(iso)) %>%
+  dplyr::select(region = iso, disease, year, age, fluc) %>%
+  dplyr::distinct()
+
+# 2. add this fluctuations into raw.mort.rates.plus
+raw.mort.rates.ctry_ctry2 <- raw.mort.rates.ctry_ctry1 %>%
+  tidyr::complete(tidyr::nesting(region, age, sex, disease), year = seq(1990, 2100, by = 5), fill = list('rate')) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
+                                      max(rate[year == 2020], na.rm = TRUE), rate),
+                region = toupper(region)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct() %>%
+  gcamdata::left_join_error_no_match(raw.mort.rates.fluctuation,
+                                     by = c('region','age','disease','year')) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
+                                      max(rate[year == 2040], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-fluc)
+
+raw.mort.rates.ctry_ctry3 <- raw.mort.rates.ctry_ctry2 %>%
+  dplyr::rename('ISO3' = 'region') %>%
+  dplyr::left_join(dplyr::select(rfasst::ctry_nuts3_codes, ISO3, ISO2) %>%
+                     dplyr::distinct(),
+                   by = "ISO3") %>%
+  dplyr::filter(!is.na(ISO2)) %>%  # rm overseas regions
+  dplyr::select(region = ISO3, age, sex, disease, year, rate)
+
+# Add missing countries
+raw.mort.rates.ctry_ctry4 <-
+  tidyr::expand_grid(GCAM_reg_EUR_NUTS3 %>%
+                       dplyr::select(`Fasst Region` = region, region = ISO3) %>%
+                       dplyr::distinct(),
+                     raw.mort.rates.ctry_ctry3 %>%
+                       dplyr::select(age, sex, disease, year) %>%
+                       dplyr::distinct())
+
+raw.mort.rates.ctry_ctry5 <- raw.mort.rates.ctry_ctry4 %>%
+  dplyr::left_join(raw.mort.rates.ctry_ctry3,
+                   by = c('region','age','sex','disease','year')) %>%
+  dplyr::group_by(`Fasst Region`, age, sex, disease, year) %>%
+  dplyr::mutate(mean_rate = mean(rate, na.rm = TRUE)) %>%
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), mean_rate, rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(region, age, sex, disease, year, rate)
+
+raw.mort.rates.ctry_ctry <- raw.mort.rates.ctry_ctry5
+usethis::use_data(raw.mort.rates.ctry_ctry, overwrite = T)
 
 
 #=========================================================

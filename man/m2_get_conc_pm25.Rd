@@ -55,7 +55,7 @@ m2_get_conc_pm25(
 
 \item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
 
-\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available}
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available}
 
 \item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }

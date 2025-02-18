@@ -11,6 +11,8 @@ calc_mort_rates<-function(downscale = F, agg_grid = F){
 
     if (downscale & agg_grid == 'NUTS3') {
       mort.rates <- rfasst::raw.mort.rates.ctry_nuts3
+    } else if (downscale & agg_grid == 'CTRY') {
+      mort.rates <- rfasst::raw.mort.rates.ctry_ctry
     } else {
       mort.rates <- rfasst::raw.mort.rates.plus
     }
@@ -133,7 +135,7 @@ calc_daly_o3<-function(){
 #' @param normalize Adjust the output to represent the number of deaths per 100K people. By default = F
 #' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
 #' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
-#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available
 #' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @importFrom magrittr %>%
 #' @export
@@ -184,7 +186,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Get population with age groups
     pop.all.str <- get(
-      if (downscale) { paste0('pop.all.ctry_nuts3.str.', ssp)
+      if (downscale & agg_grid == 'NUTS3') { paste0('pop.all.ctry_nuts3.str.', ssp)
+      } else if (downscale & agg_grid == 'CTRY') { paste0('pop.all.ctry_ctry.str.', ssp)
       } else { paste0('pop.all.str.', ssp)
       }, envir = asNamespace("rfasst")
     )
@@ -368,12 +371,12 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     pm.mort.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, ".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, "_", agg_grid, ".csv"), row.names = F)
     }
 
     pm.mort.agg.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, ".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, "_", agg_grid, ".csv"), row.names = F)
     }
 
     if(saveOutput == T){
@@ -420,7 +423,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
-    } else if(map && downscale){
+    } else if(map && downscale == 'NUTS3'){
       if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
       if (!dir.exists("output/m3/pm25_gridded/agg_NUTS3")) dir.create("output/m3/pm25_gridded/agg_NUTS3")
 
@@ -484,6 +487,72 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       }
       cat('Maps saved at output/m3/pm25_gridded/agg_NUTS3')
+    } else if(map && downscale == 'CTRY'){
+      if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
+      if (!dir.exists("output/m3/pm25_gridded/agg_CTRY")) dir.create("output/m3/pm25_gridded/agg_CTRY")
+
+      # Global
+      m3_get_mort_pm25.output_sf <- as(rfasst::ctry_nuts_sf, "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code')
+
+      # Europe
+      m3_get_mort_pm25.output_EUR_sf <- as(rfasst::ctry_nuts_sf %>%
+                                             dplyr::filter(region_type == 'CTRY'),
+                                           "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code')
+
+
+      for (y in unique(m3_get_mort_pm25.output$year)) {
+
+        # Global
+        plot_ctry_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_sf %>%
+                                            dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_CTRY/", y, "_WORLD-CTRY_PM25mort_avg", normalize_tag, ".pdf"), plot_ctry_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+        # Europe
+        plot_eur_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_EUR_sf %>%
+                                           dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_CTRY/", y, "_EUR-CTRY_PM25mort_avg", normalize_tag, ".pdf"), plot_eur_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+
+      }
+      cat('Maps saved at output/m3/pm25_gridded/agg_CTRY')
     }
 
 
@@ -495,6 +564,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
   }
 }
+
 
 #' m3_get_yll_pm25
 #'
