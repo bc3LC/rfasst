@@ -41,7 +41,7 @@ Imports:
     gcamdata,
     terra,
     sf,
-    raster,
+    raster (> 3.5),
     rworldmap,
     assertthat,
     tidyterra,
