@@ -1057,7 +1057,8 @@ raw.mort.rates <- dplyr::bind_rows(
                 year = as.numeric(year)) %>%
   tidyr::complete(tidyr::nesting(region, age, disease), year = seq(1990, 2100, by = 5)) %>%
   dplyr::group_by(region, age, disease) %>%
-  dplyr::mutate(rate = dplyr::if_else(is.na(rate), gcamdata::approx_fun(year, rate, rule = 2), rate))
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), gcamdata::approx_fun(year, rate, rule = 2), rate)) %>%
+  dplyr::ungroup()
 usethis::use_data(raw.mort.rates, overwrite = T)
 
 
@@ -1141,7 +1142,8 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
-  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                 "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
                                 "95+","All Ages","All ages")) %>%
   dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
@@ -1154,27 +1156,36 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
   dplyr::mutate(val = val * pop) %>%
   dplyr::group_by(region = `FASST region`, year, age = age_name, sex = sex_name, disease = cause_name) %>%
   dplyr::summarise(pop = sum(pop),
-                   val = sum(val),
-                   rate = val / pop) %>%
+                   val = sum(val)) %>%
   dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
   dplyr::select(-pop, -val)
 
 
 # Expand to future years using the previous regression
 
 # 1. 5-year step rate fluctuation by rfasst region
-raw.mort.rates.fluctuation <- raw.mort.rates %>%
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  gcamreport::left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%
-  dplyr::mutate(fluc = (rate - dplyr::lag(rate)) / dplyr::lag(rate)) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
   dplyr::ungroup() %>%
-  dplyr::select(-rate) %>%
+  dplyr::select(-rate, -rate_2020) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
   tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1))
 
 # 2. add this fluctuations into raw.mort.rates.plus
-raw.mort.rates.plus2 <- raw.mort.rates.plus1 %>%
-  tidyr::complete(tidyr::nesting(region, age, sex, disease), year = seq(1990, 2100, by = 5), fill = list('rate')) %>%
+raw.mort.rates.plus2 <-  dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.plus1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
   dplyr::group_by(region, age, sex, disease) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
                                       max(rate[year == 2020], na.rm = TRUE), rate)) %>%
@@ -1217,7 +1228,8 @@ raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
-  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                 "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
                                 "95+","All Ages","All ages")) %>%
   dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
@@ -1230,23 +1242,26 @@ raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
   dplyr::mutate(val = val * pop) %>%
   dplyr::group_by(region = iso, year, age = age_name, sex = sex_name, disease = cause_name) %>%
   dplyr::summarise(pop = sum(pop),
-                   val = sum(val),
-                   rate = val / pop) %>%
+                   val = sum(val)) %>%
   dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
   dplyr::select(-pop, -val)
 
 
 # Expand to future years using the previous regression
 
 # 1. 5-year step rate fluctuation by rfasst region
-raw.mort.rates.fluctuation <- raw.mort.rates %>%
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  gcamreport::left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%
-  dplyr::mutate(fluc = (rate - dplyr::lag(rate)) / dplyr::lag(rate)) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
   dplyr::ungroup() %>%
   dplyr::select(-rate) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
-  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.ctry_nuts1$age), fill = list('fluc' = 1)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
                      dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
@@ -1256,16 +1271,21 @@ raw.mort.rates.fluctuation <- raw.mort.rates %>%
   dplyr::distinct()
 
 # 2. add this fluctuations into raw.mort.rates.plus
-raw.mort.rates.ctry_nuts2 <- raw.mort.rates.ctry_nuts1 %>%
-  tidyr::complete(tidyr::nesting(region, age, sex, disease), year = seq(1990, 2100, by = 5), fill = list('rate')) %>%
+raw.mort.rates.ctry_nuts2 <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.ctry_nuts1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
   dplyr::group_by(region, age, sex, disease) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
                                       max(rate[year == 2020], na.rm = TRUE), rate),
                 region = toupper(region)) %>%
   dplyr::ungroup() %>%
   dplyr::distinct() %>%
-  gcamdata::left_join_error_no_match(raw.mort.rates.fluctuation,
-                                     by = c('region','age','disease','year')) %>%
+  dplyr::left_join(raw.mort.rates.fluctuation,
+                   by = c('region','age','disease','year')) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
   dplyr::group_by(region, age, sex, disease) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
@@ -1319,7 +1339,8 @@ raw.mort.rates.ctry_ctry1 <- mort.rates.country %>%
                 cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
                 cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
   ) %>%
-  dplyr::filter(age_name %in% c("25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
                                 "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
                                 "95+","All Ages","All ages")) %>%
   dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
@@ -1332,23 +1353,26 @@ raw.mort.rates.ctry_ctry1 <- mort.rates.country %>%
   dplyr::mutate(val = val * pop) %>%
   dplyr::group_by(region = iso, year, age = age_name, sex = sex_name, disease = cause_name) %>%
   dplyr::summarise(pop = sum(pop),
-                   val = sum(val),
-                   rate = val / pop) %>%
+                   val = sum(val)) %>%
   dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
   dplyr::select(-pop, -val)
 
 
 # Expand to future years using the previous regression
 
 # 1. 5-year step rate fluctuation by rfasst region
-raw.mort.rates.fluctuation <- raw.mort.rates %>%
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  gcamreport::left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%
-  dplyr::mutate(fluc = (rate - dplyr::lag(rate)) / dplyr::lag(rate)) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
   dplyr::ungroup() %>%
   dplyr::select(-rate) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
-  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.ctry_ctry1$age), fill = list('fluc' = 1)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
                      dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
@@ -1358,16 +1382,21 @@ raw.mort.rates.fluctuation <- raw.mort.rates %>%
   dplyr::distinct()
 
 # 2. add this fluctuations into raw.mort.rates.plus
-raw.mort.rates.ctry_ctry2 <- raw.mort.rates.ctry_ctry1 %>%
-  tidyr::complete(tidyr::nesting(region, age, sex, disease), year = seq(1990, 2100, by = 5), fill = list('rate')) %>%
+raw.mort.rates.ctry_ctry2 <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.ctry_ctry1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
   dplyr::group_by(region, age, sex, disease) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
                                       max(rate[year == 2020], na.rm = TRUE), rate),
                 region = toupper(region)) %>%
   dplyr::ungroup() %>%
   dplyr::distinct() %>%
-  gcamdata::left_join_error_no_match(raw.mort.rates.fluctuation,
-                                     by = c('region','age','disease','year')) %>%
+  dplyr::left_join(raw.mort.rates.fluctuation,
+                   by = c('region','age','disease','year')) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
   dplyr::group_by(region, age, sex, disease) %>%
   dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
