@@ -31,9 +31,7 @@
 m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
-                           normalize = F,
-                           downscale = F, saveRaster_grid = F,
-                           agg_grid = F, save_AggGrid = F){
+                           normalize = F, downscale = F, saveRaster_grid = F, agg_grid = F, save_AggGrid = F){
 
 
     #----------------------------------------------------------------------
@@ -50,6 +48,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     if (!dir.exists("output/m3")) dir.create("output/m3")
     if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
     if (!dir.exists("output/m3/pm25_gridded/EUR_grid")) dir.create("output/m3/pm25_gridded/EUR_grid")
+    if (!dir.exists("output/m3/pm25_gridded/computed_data")) dir.create("output/m3/pm25_gridded/computed_data")
     if (!dir.exists("output/maps")) dir.create("output/maps")
     if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
     if (!dir.exists("output/maps/m3/maps_pm25_mort")) dir.create("output/maps/m3/maps_pm25_mort")
@@ -89,7 +88,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     pm.pre_mat <- list()
     extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
     for (yy in all_years) {
-      pm.pre <- terra::rast(paste0('C:/Users/claudia.rodes/Documents/GitHub/rfasst_v2/output/m2/pm25_gridded/raster_grid/',yy,'_pm25_fin_weighted.tif'))
+      pm.pre <- terra::rast(paste0('output/m2/pm25_gridded/raster_grid/',yy,'_pm25_fin_weighted.tif'))
       pm.pre <- terra::crop(pm.pre, extent_raster)
       pm.pre_mat[[as.character(yy)]] <- as.matrix(pm.pre)
     }
@@ -151,7 +150,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
         mort.rates_mat_yy[[as.character(yy)]] <- as.matrix(mort.rates_rast)
 
       }
-      save(mort.rates_mat_yy, file = paste0('mort.rates_mat_',dd,'.RData'))
+      save(mort.rates_mat_yy, file = paste0('output/m3/pm25_gridded/mort.rates_mat_',dd,'.RData'))
       rm(mort.rates_mat_yy);gc()
     }
 
@@ -187,7 +186,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     for (dd in na.omit(unique(GBD_sf$disease))) {
       print(dd)
       if (file.exists(paste0('GBD_mat_',dd,'.RData'))) {
-        assign(paste0('GBD_mat_',dd), get(load(paste0('GBD_mat_',dd,'.RData'))))
+        assign(paste0('GBD_mat_',dd), get(load(paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData'))))
       } else {
         GBD_mat_yy <- list()
         for (yy in na.omit(unique(GBD_sf$year))) {
@@ -205,7 +204,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
           GBD_mat_yy[[as.character(yy)]] <- GBD_mat_param
         }
-        save(GBD_mat_yy, file = paste0('GBD_mat_',dd,'.RData'))
+        save(GBD_mat_yy, file = paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData'))
         rm(GBD_mat_yy); gc()
       }
 
@@ -218,9 +217,9 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     for (dd in unique(GBD$disease)) {
       print(dd)
       pm.mort_yy <- list()
-      GBD_tmp <- get(load(paste0('GBD_mat_',dd,'.RData')))
+      GBD_tmp <- get(load(paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData')))
       rm(list = c(paste0('GBD_mat_',dd))); gc()
-      mort.rates_tmp <- get(load(paste0('mort.rates_mat_',dd,'.RData')))
+      mort.rates_tmp <- get(load(paste0('output/m3/pm25_gridded/mort.rates_mat_',dd,'.RData')))
       rm(list = c(paste0('mort.rates_mat_yy'))); gc()
 
       for (yy in na.omit(unique(GBD_sf$year))) {
