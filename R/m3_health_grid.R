@@ -35,9 +35,6 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & exists('m3_get_mort_grid_pm25.output')) {
-    return(m3_get_mort_grid_pm25.output)
-  } else {
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -97,13 +94,8 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       pm.pre_mat[[as.character(yy)]] <- as.matrix(pm.pre)
     }
 
-    # boundaries.countries <- terra::rast('C:/Users/claudia.rodes/Documents/GitHub/rfasst_v2/inst/extdata/global_level0_1km_2000_2020.tif')
-    # boundaries.countries.resampled <- terra::resample(boundaries.countries, pm.pre, method = "bilinear")
-    # boundaries.countries_mat=as.matrix(boundaries.countries.resampled)
-    isonum <- read.csv('inst/extdata/isonum.csv', stringsAsFactors = F, na.strings = "")
-
     # Population weights by age
-    pop.all.ctry_nuts3.str.SSP2_w <- pop.all.ctry_nuts3.str.SSP2 %>%
+    pop.all.ctry_nuts3.str.SSP2_w <- get(paste0('pop.all.ctry_nuts3.str.',ssp), envir = asNamespace("gcamreport")) %>%
       dplyr::filter(sex == 'Both', !age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
       dplyr::group_by(scenario, region, year, sex, unit) %>%
       dplyr::mutate(total = sum(value)) %>%
@@ -118,7 +110,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     mort.rates_iso_pre <- rfasst::Regions_EUR %>%
       dplyr::rename(region = 'FASST region') %>%
       gcamreport::left_join_strict(mort.rates, by = 'region') %>%
-      dplyr::left_join(isonum, by = 'ISO3') %>%
+      dplyr::left_join(rfasst::isonum, by = 'ISO3') %>%
       dplyr::mutate(ISO3 = dplyr::if_else(ISO3 == 'ROU','ROM',ISO3)) %>%
       dplyr::left_join(rfasst::ctry_nuts3_codes, by = c('ISO3','ISO2')) %>%
       dplyr::filter(sex == 'Both')
@@ -139,8 +131,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
               dplyr::filter(age == '>25') %>%
               dplyr::select(region = NUTS3, year, disease, rate, age))
 
-    mort.rates_iso_sf <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
-      dplyr::select(-FID) %>%
+    mort.rates_iso_sf <- rfasst::nuts3_sf %>%
       dplyr::select(region = geo, geometry) %>%
       dplyr::left_join(
         mort.rates_iso,
@@ -186,8 +177,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
               dplyr::cross_join(pop.all.ctry_nuts3.str.SSP2_w %>%
                                  dplyr::select(region, year) %>%
                                  dplyr::distinct()))
-    GBD_sf <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
-      dplyr::select(-FID) %>%
+    GBD_sf <- rfasst::nuts3_sf %>%
       dplyr::select(region = geo, geometry) %>%
       dplyr::left_join(
         GBD,
@@ -277,5 +267,5 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     # Return output
     return(NULL)
 
-  }
+
 }

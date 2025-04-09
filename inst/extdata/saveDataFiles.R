@@ -529,6 +529,23 @@ usethis::use_data(pop.all.ctry_ctry.str.SSP4, overwrite = T)
 pop.all.ctry_ctry.str.SSP5 = calc_pop_ctry_ctry_str(ssp = 'SSP5')
 usethis::use_data(pop.all.ctry_ctry.str.SSP5, overwrite = T)
 
+pop.all.grid_SSP2_mat <- list()
+extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
+for (yy in rfasst::all_years) {
+  if (yy %in% c(2010, 2020)) {
+    # # https://hub.worldpop.org/geodata/summary?id=24776
+    pop.pre <- terra::rast(paste0('C:/Users/claudia.rodes/Documents/Inequality/ineq_ap/data/pop_rasters/ppp_',yy,'_1km_Aggregated.tif'))
+  } else if (yy > 2020) {
+    # https://www.nature.com/articles/s41597-022-01675-x#Sec9; https://figshare.com/articles/dataset/Projecting_1_km-grid_population_distributions_from_2020_to_2100_globally_under_shared_socioeconomic_pathways/19608594/3?file=34829370
+    pop.pre <- terra::rast(paste0('C:/Users/claudia.rodes/Documents/Inequality/ineq_ap/data/pop_rasters/SSP2/SSP2_',y,'.tif'))
+  }
+  pop.pre <- terra::crop(pop.pre, extent_raster)
+  pop.all.str.resampled <- terra::resample(pop.pre, pm.pre, method = "bilinear")
+  pop.all.grid_SSP2_mat[[as.character(yy)]] <- as.matrix(pop.all.str.resampled)
+}
+usethis::use_data(pop.all.grid_SSP2_mat, overwrite = T)
+
+
 # ssp gdp
 gdp_pc.SSP1 = calc_gdp_pc_reg(ssp = 'SSP1')
 usethis::use_data(gdp_pc.SSP1, overwrite = T)
@@ -1100,8 +1117,11 @@ iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
 # NUTS Regions: Load using sf
 # Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
 # NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
-nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
-  dplyr::select(-FID) %>%
+nuts3_sf <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
+  dplyr::select(-FID)
+usethis::use_data(nuts3_sf, overwrite = T)
+
+nuts <- nuts3_sf %>%
   dplyr::rename("id_code" = "NUTS_ID")
 
 # raw.mort.rates.nuts3
@@ -1125,6 +1145,12 @@ usethis::use_data(GCAM_reg_EUR_NUTS3, overwrite = T)
 mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
   gcamdata::left_join_error_no_match(iso_ihme_rfasst,
                                      by = "location_id")
+
+
+# ISO numeric codes
+isonum <- read.csv('inst/extdata/isonum.csv', stringsAsFactors = F, na.strings = "")
+usethis::use_data(isonum, overwrite = T)
+
 
 # RFASST reg mortality rates (by region, age, disease, and sex) --------------------------------------------------
 raw.mort.rates.plus1 <- mort.rates.country %>%
@@ -1260,7 +1286,7 @@ raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::mutate(rate_2020 = rate[year == 2020],
                 fluc = (rate - rate_2020) / rate_2020) %>%
   dplyr::ungroup() %>%
-  dplyr::select(-rate) %>%
+  dplyr::select(-rate, -rate_2020) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
@@ -1371,7 +1397,7 @@ raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::mutate(rate_2020 = rate[year == 2020],
                 fluc = (rate - rate_2020) / rate_2020) %>%
   dplyr::ungroup() %>%
-  dplyr::select(-rate) %>%
+  dplyr::select(-rate, -rate_2020) %>%
   dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
   dplyr::left_join(iso_ihme_rfasst %>%
                      dplyr::select(iso, region = `FASST region`) %>%
