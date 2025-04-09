@@ -273,14 +273,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       # First, adjust population
       pop_fin_str <- pop.all.str %>%
-        dplyr::filter(!age %in% c("0-4","10-14","15-19","20-24")) %>% # only pop > 25y considered
+        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
                       year = as.numeric(year)) %>%
         dplyr::select(-scenario, -unit, -value)
 
       pop_fin_allages <- pop.all.str %>%
-        dplyr::filter(!age %in% c("0-4","10-14","15-19","20-24")) %>% # only pop > 25y considered
+        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::group_by(region, year, sex) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
