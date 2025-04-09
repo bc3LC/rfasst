@@ -121,6 +121,31 @@ data_query = function(type, db_path, db_name, prj_name, scenarios,
 
 
 
+
+calc_pop_grid <- function(ssp = 'SSP2') {
+  extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
+
+  pm.pre <- terra::rast(paste0('inst/extdata/pm25_weights_rast.tif'))
+  pm.pre <- terra::crop(pm.pre, extent_raster)
+
+  pop.all.grid_mat <- list()
+  for (yy in rfasst::all_years[rfasst::all_years > 2005]) {
+    if (yy %in% c(2010, 2020)) {
+      # # https://hub.worldpop.org/geodata/summary?id=24776
+      pop.pre <- terra::rast(paste0('inst/extdata/pop_rasters/ppp_',yy,'_1km_Aggregated.tif'))
+    } else if (yy > 2020) {
+      # https://www.nature.com/articles/s41597-022-01675-x#Sec9;
+      # https://figshare.com/articles/dataset/Projecting_1_km-grid_population_distributions_from_2020_to_2100_globally_under_shared_socioeconomic_pathways/19608594/3?file=34829370
+      pop.pre <- terra::rast(paste0('inst/extdata/data/pop_rasters/SSP2/SSP2_',yy,'.tif'))
+    }
+    pop.pre <- terra::crop(pop.pre, extent_raster)
+    pop.all.str.resampled <- terra::resample(pop.pre, pm.pre, method = "bilinear")
+    pop.all.grid_mat[[as.character(yy)]] <- as.matrix(pop.all.str.resampled)
+  }
+  return(pop.all.grid_mat)
+}
+
+
 #' calc_pop
 #'
 #' Get population data and shares of population under 5 Years and above 30 Years from the SSP database (SSP_database_v9).To be consistent we make use of the IIASA-WIC Model/scenarios. Given that IIASA-WIC does not report data for Taiwan, we use data from "OECD_Env-Growth" for this region.

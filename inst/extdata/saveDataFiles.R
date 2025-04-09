@@ -529,22 +529,18 @@ usethis::use_data(pop.all.ctry_ctry.str.SSP4, overwrite = T)
 pop.all.ctry_ctry.str.SSP5 = calc_pop_ctry_ctry_str(ssp = 'SSP5')
 usethis::use_data(pop.all.ctry_ctry.str.SSP5, overwrite = T)
 
-pop.all.grid_SSP2_mat <- list()
-extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
-for (yy in rfasst::all_years) {
-  if (yy %in% c(2010, 2020)) {
-    # # https://hub.worldpop.org/geodata/summary?id=24776
-    pop.pre <- terra::rast(paste0('inst/extdata/pop_rasters/ppp_',yy,'_1km_Aggregated.tif'))
-  } else if (yy > 2020) {
-    # https://www.nature.com/articles/s41597-022-01675-x#Sec9;
-    # https://figshare.com/articles/dataset/Projecting_1_km-grid_population_distributions_from_2020_to_2100_globally_under_shared_socioeconomic_pathways/19608594/3?file=34829370
-    pop.pre <- terra::rast(paste0('inst/extdata/pop_rasters/SSP2/SSP2_',y,'.tif'))
-  }
-  pop.pre <- terra::crop(pop.pre, extent_raster)
-  pop.all.str.resampled <- terra::resample(pop.pre, pm.pre, method = "bilinear")
-  pop.all.grid_SSP2_mat[[as.character(yy)]] <- as.matrix(pop.all.str.resampled)
-}
-usethis::use_data(pop.all.grid_SSP2_mat, overwrite = T)
+
+pop.all.grid_mat.SSP1 = calc_pop_grid(ssp = 'SSP1')
+usethis::use_data(pop.all.grid_mat.SSP1, overwrite = T)
+pop.all.grid_mat.SSP2 = calc_pop_grid(ssp = 'SSP2')
+usethis::use_data(pop.all.grid_mat.SSP2, overwrite = T)
+pop.all.grid_mat.SSP3 = calc_pop_grid(ssp = 'SSP3')
+usethis::use_data(pop.all.grid_mat.SSP3, overwrite = T)
+pop.all.grid_mat.SSP4 = calc_pop_grid(ssp = 'SSP4')
+usethis::use_data(pop.all.grid_mat.SSP4, overwrite = T)
+pop.all.grid_mat.SSP5 = calc_pop_grid(ssp = 'SSP5')
+usethis::use_data(pop.all.grid_mat.SSP5, overwrite = T)
+
 
 
 # ssp gdp

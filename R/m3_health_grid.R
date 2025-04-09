@@ -53,10 +53,6 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     if (!dir.exists("output/maps/m3")) dir.create("output/maps/m3")
     if (!dir.exists("output/maps/m3/maps_pm25_mort")) dir.create("output/maps/m3/maps_pm25_mort")
     if (!dir.exists("output/maps/m3/maps_pm25_mort/EUR_grid")) dir.create("output/maps/m3/maps_pm25_mort/EUR_grid")
-    y = 2050
-    aa.1 = 20
-    aa.2 = ">25"
-    dd = 'copd'
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
@@ -76,12 +72,11 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     rlang::inform('Computing premature deaths ...')
 
     ######## rfasst original code
-    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
-                                                          max(as.numeric(as.character(y))))]
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year)]
     all_years<-all_years[all_years>2005]
 
     # Get grided population
-    pop.all.grid_SSP2_mat <- rfasst::pop.all.grid_SSP2_mat
+    pop.all.grid_mat <- get(paste0('pop.all.grid_mat.',ssp), envir = asNamespace("gcamreport"))
 
 
     # Get PM2.5
@@ -94,7 +89,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     }
 
     # Population weights by age
-    pop.all.ctry_nuts3.str.SSP2_w <- get(paste0('pop.all.ctry_nuts3.str.',ssp), envir = asNamespace("gcamreport")) %>%
+    pop.all.ctry_nuts3.str.SSP_w <- get(paste0('pop.all.ctry_nuts3.str.',ssp), envir = asNamespace("gcamreport")) %>%
       dplyr::filter(sex == 'Both', !age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
       dplyr::group_by(scenario, region, year, sex, unit) %>%
       dplyr::mutate(total = sum(value)) %>%
@@ -117,7 +112,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     mort.rates_iso <- mort.rates_iso_pre %>%
       dplyr::filter(age != '>25') %>%
       dplyr::mutate(year = as.character(year)) %>%
-      dplyr::left_join(pop.all.ctry_nuts3.str.SSP2_w,
+      dplyr::left_join(pop.all.ctry_nuts3.str.SSP_w,
                        by = c('year','age','NUTS3'='region'),
                        relationship = "many-to-many") %>%
       dplyr::mutate(rate = rate * w) %>%
@@ -157,7 +152,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     # Get average relative risk parameters (pop weighted)
     GBD <- raw.rr.gbd.param %>%
       dplyr::filter(age != '>25') %>%
-      dplyr::left_join(pop.all.ctry_nuts3.str.SSP2_w,
+      dplyr::left_join(pop.all.ctry_nuts3.str.SSP_w,
                        by = 'age',
                        relationship = "many-to-many") %>%
       dplyr::mutate(alpha = alpha * w,
@@ -173,7 +168,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::mutate(age = '>25') %>%
       rbind(raw.rr.gbd.param %>%
               dplyr::filter(age == '>25') %>%
-              dplyr::cross_join(pop.all.ctry_nuts3.str.SSP2_w %>%
+              dplyr::cross_join(pop.all.ctry_nuts3.str.SSP_w %>%
                                  dplyr::select(region, year) %>%
                                  dplyr::distinct()))
     GBD_sf <- rfasst::nuts3_sf %>%
@@ -225,9 +220,9 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       for (yy in na.omit(unique(GBD_sf$year))) {
         print(yy)
         rr.gbd <- 1 + GBD_tmp[[as.character(yy)]]$alpha * (1 - exp(-GBD_tmp[[as.character(yy)]]$beta * (pmax(0, pm.pre_mat[[yy]] - GBD_tmp[[as.character(yy)]]$zcf) ^ GBD_tmp[[as.character(yy)]]$delta)))
-        pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_SSP2_mat[[yy]]
+        pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]]
         if (normalize) {
-          pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_SSP2_mat[[yy]] * 1e6
+          pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] * 1e6
         }
         pm.mort_yy[[as.character(yy)]] <- pm.mort.allages_mat_tmp
       }
