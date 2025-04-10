@@ -147,7 +147,14 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & exists('m3_get_mort_pm25.output')) {
+  if (downscale && !agg_grid) {
+    m3_get_mort_grid_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries,
+                          final_db_year = final_db_year, recompute = recompute,
+                          map = map, anim = anim, gcam_eur = gcam_eur,
+                          downscale = downscale, saveRaster_grid = saveRaster_grid,
+                          agg_grid = agg_grid, save_AggGrid = save_AggGrid)
+    return(NULL)
+  } else if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
   } else {
 
