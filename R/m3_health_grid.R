@@ -54,19 +54,6 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     if (!dir.exists("output/maps/m3/maps_pm25_mort")) dir.create("output/maps/m3/maps_pm25_mort")
     if (!dir.exists("output/maps/m3/maps_pm25_mort/EUR_grid")) dir.create("output/maps/m3/maps_pm25_mort/EUR_grid")
 
-    # Ancillary Functions
-    `%!in%` = Negate(`%in%`)
-
-    # Shape subset for maps
-    fasstSubset <- rmap::mapCountries
-
-    fasstSubset<-as.data.frame(fasstSubset) %>%
-      dplyr::mutate(subRegionAlt = as.character(subRegionAlt)) %>%
-      dplyr::left_join(rfasst::fasst_reg, by = "subRegionAlt") %>%
-      dplyr::select(-subRegion) %>%
-      dplyr::rename(subRegion = fasst_region) %>%
-      dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
-
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
@@ -79,7 +66,20 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     pop.all.grid_mat <- get(paste0('pop.all.grid_mat.',ssp), envir = asNamespace("gcamreport"))
 
 
-    # Get PM2.5
+    # Get PM2.5 ----------------------------------------------------------------
+    # Compute if necessary
+    m2_needs_computation <- F
+    for (yy in all_years) {
+      if (!m2_needs_computation && !file.exists(paste0('output/m2/pm25_gridded/raster_grid/',yy,'_pm25_fin_weighted.tif'))) m2_needs_computation <- T
+    }
+    if (m2_needs_computation || recompute) {
+      m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                       final_db_year = final_db_year, recompute = recompute,
+                       map = map, anim = anim, gcam_eur = gcam_eur,
+                       downscale = downscale, saveRaster_grid = saveRaster_grid,
+                       agg_grid = agg_grid, save_AggGrid = save_AggGrid)
+    }
+    # Consider PM2.5 as matrix
     pm.pre_mat <- list()
     extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
     for (yy in all_years) {
@@ -88,7 +88,8 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       pm.pre_mat[[as.character(yy)]] <- as.matrix(pm.pre)
     }
 
-    # Population weights by age
+
+    # Get Population weights by age --------------------------------------------
     pop.all.ctry_nuts3.str.SSP_w <- get(paste0('pop.all.ctry_nuts3.str.',ssp), envir = asNamespace("gcamreport")) %>%
       dplyr::filter(sex == 'Both', !age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
       dplyr::group_by(scenario, region, year, sex, unit) %>%
@@ -98,7 +99,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       dplyr::select(region, year, age, w)
 
 
-    # Get baseline mortality rates
+    # Get baseline mortality rates (pop weighted) ------------------------------
     mort.rates<-calc_mort_rates(downscale, agg_grid)
 
     mort.rates_iso_pre <- rfasst::Regions_EUR %>%
@@ -135,7 +136,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     for (dd in na.omit(unique(mort.rates_iso_sf$disease))) {
       print(dd)
       mort.rates_mat_yy <- list()
-      for (yy in na.omit(unique(mort.rates_iso_sf$year))) {
+      for (yy in all_years) {
         print(yy)
 
         mort.rates_rast <- terra::rasterize(mort.rates_iso_sf %>%
@@ -145,11 +146,12 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
         mort.rates_mat_yy[[as.character(yy)]] <- as.matrix(mort.rates_rast)
 
       }
-      save(mort.rates_mat_yy, file = paste0('output/m3/pm25_gridded/mort.rates_mat_',dd,'.RData'))
+      save(mort.rates_mat_yy, file = paste0('output/m3/pm25_gridded/computed_data/mort.rates_mat_',dd,'.RData'))
       rm(mort.rates_mat_yy);gc()
     }
+    rm(mort.rates_rast);gc()
 
-    # Get average relative risk parameters (pop weighted)
+    # Get average relative risk parameters (pop weighted)  ---------------------
     GBD <- raw.rr.gbd.param %>%
       dplyr::filter(age != '>25') %>%
       dplyr::left_join(pop.all.ctry_nuts3.str.SSP_w,
@@ -180,11 +182,11 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     GBD_sf <- sf::st_sf(GBD_sf, geometry = GBD_sf$geometry)
     for (dd in na.omit(unique(GBD_sf$disease))) {
       print(dd)
-      if (file.exists(paste0('GBD_mat_',dd,'.RData'))) {
-        assign(paste0('GBD_mat_',dd), get(load(paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData'))))
+      if (file.exists(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))) {
+        assign(paste0('GBD_mat_',dd), get(load(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))))
       } else {
         GBD_mat_yy <- list()
-        for (yy in na.omit(unique(GBD_sf$year))) {
+        for (yy in all_years) {
           print(yy)
 
           GBD_mat_param <- list()
@@ -199,25 +201,27 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
           GBD_mat_yy[[as.character(yy)]] <- GBD_mat_param
         }
-        save(GBD_mat_yy, file = paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData'))
+        save(GBD_mat_yy, file = paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))
         rm(GBD_mat_yy); gc()
       }
 
     }
+    rm(GBD_mat_param); rm(GBD_mat_yy); gc()
 
 
-    # Mortality units
+    # Mortality units ----------------------------------------------------------
     normalize_pm_mort <- dplyr::if_else(!normalize, '', '_norm_100k')
 
+    # Compute Relative Risk ----------------------------------------------------
     for (dd in unique(GBD$disease)) {
       print(dd)
       pm.mort_yy <- list()
-      GBD_tmp <- get(load(paste0('output/m3/pm25_gridded/GBD_mat_',dd,'.RData')))
-      rm(list = c(paste0('GBD_mat_',dd))); gc()
-      mort.rates_tmp <- get(load(paste0('output/m3/pm25_gridded/mort.rates_mat_',dd,'.RData')))
+      GBD_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData')))
+      rm(list = c(paste0('GBD_mat_yy'))); gc()
+      mort.rates_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/mort.rates_mat_',dd,'.RData')))
       rm(list = c(paste0('mort.rates_mat_yy'))); gc()
 
-      for (yy in na.omit(unique(GBD_sf$year))) {
+      for (yy in all_years) {
         print(yy)
         rr.gbd <- 1 + GBD_tmp[[as.character(yy)]]$alpha * (1 - exp(-GBD_tmp[[as.character(yy)]]$beta * (pmax(0, pm.pre_mat[[yy]] - GBD_tmp[[as.character(yy)]]$zcf) ^ GBD_tmp[[as.character(yy)]]$delta)))
         pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]]
@@ -228,7 +232,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       }
 
       save(pm.mort_yy, file = paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',dd,normalize_pm_mort,'.RData'))
-      rm(pm.mort_yy); rm(GBD_tmp); rm(mort.rates_tmp); gc()
+      rm(pm.mort_yy); rm(GBD_tmp); rm(mort.rates_tmp); rm(pm.mort.allages_mat_tmp); gc()
     }
 
 
@@ -236,14 +240,13 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
-    if(map && downscale){
-
+    if(map){
 
       pm.mort_yy <- get(load(paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',dd,normalize_pm_mort,'.RData')))
       for (yy in all_years) {
         vec <- as.vector(pm.mort_yy[[yy]])
         pm.mort_rast <- terra::setValues(pm.pre, vec)
-        pm.mort_rast_masked <- terra::ifel(pm.mort_rast < quantile(a, probs = 0.75, na.rm = TRUE), pm.mort_rast, NA)
+        pm.mort_rast_masked <- terra::ifel(pm.mort_rast < quantile(vec, probs = 0.75, na.rm = TRUE), pm.mort_rast, NA)
         png(paste0('output/maps/m3/maps_pm25_mort/EUR_grid/pm_mortality_map_',yy,normalize_pm_mort,'.png'), width = 800, height = 600)
         terra::plot(pm.mort_rast)
         dev.off()

@@ -454,14 +454,14 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           }
 
-          if(saveRaster_grid == T){
+          # if(saveRaster_grid == T){ # otherwise m3-grid will not work
 
             if (!dir.exists("output/m2/pm25_gridded/raster_grid")) dir.create("output/m2/pm25_gridded/raster_grid")
 
             terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , unique(df$year),"_pm25_fin_weighted.tif"),
                                overwrite=TRUE)
 
-          }
+          # }
 
           if(agg_grid == "NUTS3"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
