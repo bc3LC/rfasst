@@ -118,8 +118,6 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       print(dd)
       mort.rates_mat_yy <- list()
       for (yy in all_years) {
-        print(yy)
-
         mort.rates_rast <- terra::rasterize(mort.rates_iso_sf %>%
                                               dplyr::filter(year == yy,
                                                             disease == dd),
@@ -128,9 +126,9 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
       }
       save(mort.rates_mat_yy, file = paste0('output/m3/pm25_gridded/computed_data/mort.rates_mat_',dd,'.RData'))
-      rm(mort.rates_mat_yy);gc()
+      rm(mort.rates_mat_yy); rm(mort.rates_rast); gc()
     }
-    rm(mort.rates_rast);gc()
+    rm(mort.rates_iso_pre); rm(mort.rates_iso); rm(mort.rates_iso_sf); gc()
 
     # Get average relative risk parameters (pop weighted)  ---------------------
     GBD <- raw.rr.gbd.param %>%
@@ -163,9 +161,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     GBD_sf <- sf::st_sf(GBD_sf, geometry = GBD_sf$geometry)
     for (dd in na.omit(unique(GBD_sf$disease))) {
       print(dd)
-      if (file.exists(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))) {
-        assign(paste0('GBD_mat_',dd), get(load(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))))
-      } else {
+      if (!file.exists(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))) {
         GBD_mat_yy <- list()
         for (yy in all_years) {
           print(yy)
@@ -183,11 +179,11 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
           GBD_mat_yy[[as.character(yy)]] <- GBD_mat_param
         }
         save(GBD_mat_yy, file = paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData'))
-        rm(GBD_mat_yy); gc()
+        rm(GBD_mat_param); rm(GBD_mat_yy); rm(GBD_rast); gc()
       }
 
     }
-    rm(GBD_mat_param); rm(GBD_mat_yy); gc()
+    rm(GBD_sf); gc()
 
 
     # Mortality units ----------------------------------------------------------
@@ -195,21 +191,21 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
 
     # Get PM2.5 ----------------------------------------------------------------
-    # Compute if necessary
-    m2_needs_computation <- F
-    for (yy in all_years) {
-      if (!m2_needs_computation && !file.exists(paste0('output/m2/pm25_gridded/raster_grid/', sc, '_', yy,'_pm25_fin_weighted.tif'))) m2_needs_computation <- T
-    }
-    if (m2_needs_computation || recompute) {
-      m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
-                       final_db_year = final_db_year, recompute = recompute,
-                       map = map, anim = anim, gcam_eur = gcam_eur,
-                       downscale = downscale, saveRaster_grid = saveRaster_grid,
-                       agg_grid = agg_grid, save_AggGrid = save_AggGrid)
-    }
-
     for (sc in scen_name) {
       print(sc)
+      # Compute if necessary
+      m2_needs_computation <- F
+      for (yy in all_years) {
+        if (!m2_needs_computation && !file.exists(paste0('output/m2/pm25_gridded/raster_grid/', sc, '_', yy,'_pm25_fin_weighted.tif'))) m2_needs_computation <- T
+      }
+      if (m2_needs_computation || recompute) {
+        m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name = sc, queries, saveOutput = F,
+                         final_db_year = final_db_year, recompute = recompute,
+                         map = map, anim = anim, gcam_eur = gcam_eur,
+                         downscale = downscale, saveRaster_grid = saveRaster_grid,
+                         agg_grid = agg_grid, save_AggGrid = save_AggGrid)
+      }
+
 
       # Get PM2.5 and transform it as a matrix
       pm.pre_mat <- list()
@@ -262,7 +258,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
           dev.off()
         }
 
-        cat('Maps saved at output/m3/pm25_gridded/EUR_grid')
+        cat('Maps saved at output/maps/m3/maps_pm25_mort/EUR_grid')
       }
     }
 

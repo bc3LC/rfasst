@@ -465,6 +465,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           # }
 
+          agg_grid_df <- NULL
           if(agg_grid == "NUTS3"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
             if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3")) dir.create("output/m2/pm25_gridded/agg_NUTS3")
@@ -626,112 +627,118 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
-      pm<-dplyr::bind_rows(pm25.agg.list) %>%
-        dplyr::mutate(scenario = sc)
-      m2_get_conc_pm25.output.list <- append(m2_get_conc_pm25.output.list, list(pm))
+      if (!downscale || (downscale && agg_grid != F)) {
+        pm<-dplyr::bind_rows(pm25.agg.list) %>%
+          dplyr::mutate(scenario = sc)
+        m2_get_conc_pm25.output.list <- append(m2_get_conc_pm25.output.list, list(pm))
 
-      m2_nat_prim_sec_pm25.output.list <- rbind(m2_nat_prim_sec_pm25.output.list,
-                                                pm25_pr_sec_wide %>%
-                                                  dplyr::mutate(scenario = sc))
+        m2_nat_prim_sec_pm25.output.list <- rbind(m2_nat_prim_sec_pm25.output.list,
+                                                  pm25_pr_sec_wide %>%
+                                                    dplyr::mutate(scenario = sc))
+
+        if (length(pm25.ctry_nuts3.list) != 0) {
+          pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
+            dplyr::mutate(scenario = sc)
+          m2_get_conc_pm25.ctry_agg.output.list <- append(m2_get_conc_pm25.ctry_agg.output.list, list(pm.ctry_nuts))
+        }
+      }
+
+    }
+
+    if (!downscale || (downscale && agg_grid != F)) {
+
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # Bind the results
+
+      m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
 
       if (length(pm25.ctry_nuts3.list) != 0) {
-        pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
-          dplyr::mutate(scenario = sc)
-        m2_get_conc_pm25.ctry_agg.output.list <- append(m2_get_conc_pm25.ctry_agg.output.list, list(pm.ctry_nuts))
+        m2_get_conc_pm25.ctry_agg.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output.list) %>%
+          dplyr::mutate(units = "ug/m3") %>%
+          dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
       }
 
 
-    }
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # If map=T, it produces a map with the calculated outcomes
 
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # Bind the results
+      if(map==T){
 
-    m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
+        pm25.map<-m2_get_conc_pm25.output %>%
+          dplyr::rename(subRegion=region)%>%
+          dplyr::filter(subRegion != "RUE") %>%
+          dplyr::mutate(units="ug/m3",
+                        year=as.numeric(as.character(year)))
 
-    if (length(pm25.ctry_nuts3.list) != 0) {
-      m2_get_conc_pm25.ctry_agg.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output.list) %>%
-        dplyr::mutate(units = "ug/m3") %>%
-        dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
-    }
+        rmap::map(data = pm25.map,
+                  shape = fasstSubset,
+                  folder = "output/maps/m2/maps_pm2.5",
+                  legendType = "pretty",
+                  background  = T,
+                  animate = anim)
 
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If map=T, it produces a map with the calculated outcomes
-
-    if(map==T){
-
-      pm25.map<-m2_get_conc_pm25.output %>%
-        dplyr::rename(subRegion=region)%>%
-        dplyr::filter(subRegion != "RUE") %>%
-        dplyr::mutate(units="ug/m3",
-                      year=as.numeric(as.character(year)))
-
-      rmap::map(data = pm25.map,
-                shape = fasstSubset,
-                folder = "output/maps/m2/maps_pm2.5",
-                legendType = "pretty",
-                background  = T,
-                animate = anim)
-
-    }
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
-
-    if(saveOutput==T) {
-      pm25.list<-split(m2_nat_prim_sec_pm25.output.list,m2_nat_prim_sec_pm25.output.list$year)
-
-      pm25.write<-function(df){
-        df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
       }
 
-      lapply(pm25.list,pm25.write)
-    }
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
 
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
+      if(saveOutput==T) {
+        pm25.list<-split(m2_nat_prim_sec_pm25.output.list,m2_nat_prim_sec_pm25.output.list$year)
 
-    if(saveOutput==T) {
-      pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
+        pm25.write<-function(df){
+          df<-as.data.frame(dplyr::bind_rows(df))
+          write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        }
 
-      pm25.agg.write<-function(df){
-        df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        lapply(pm25.list,pm25.write)
       }
 
-      lapply(pm25.agg.list,pm25.agg.write)
-    }
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If saveOutput=T,  writes aggregated PM2.5 values per CTRY-NUTS3 region
+      if(saveOutput==T) {
+        pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
 
-    if(saveOutput==T & agg_grid != F) {
-      pm25.ctry_nuts.list<-split(m2_get_conc_pm25.ctry_agg.output,m2_get_conc_pm25.ctry_agg.output$year)
+        pm25.agg.write<-function(df){
+          df<-as.data.frame(dplyr::bind_rows(df))
+          write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        }
 
-      pm25.ctry_nuts.write<-function(df){
-        df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","PM2.5_WORLD-",agg_grid,"_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        lapply(pm25.agg.list,pm25.agg.write)
       }
 
-      lapply(pm25.ctry_nuts.list,pm25.ctry_nuts.write)
-    }
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # If saveOutput=T,  writes aggregated PM2.5 values per CTRY-NUTS3 region
 
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # Return output
-    m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
-      dplyr::mutate(level = paste0('WORLD-',agg_grid))
-    m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
-      dplyr::mutate(level = 'regions')
+      if(saveOutput==T & agg_grid != F) {
+        pm25.ctry_nuts.list<-split(m2_get_conc_pm25.ctry_agg.output,m2_get_conc_pm25.ctry_agg.output$year)
 
-    if (agg_grid != F) {
-      return(invisible(m2_get_conc_pm25.ctry_agg.output))
+        pm25.ctry_nuts.write<-function(df){
+          df<-as.data.frame(dplyr::bind_rows(df))
+          write.csv(df,paste0("output/","m2/","PM2.5_WORLD-",agg_grid,"_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+        }
+
+        lapply(pm25.ctry_nuts.list,pm25.ctry_nuts.write)
+      }
+
+      #----------------------------------------------------------------------
+      #----------------------------------------------------------------------
+      # Return output
+      m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
+        dplyr::mutate(level = paste0('WORLD-',agg_grid))
+      m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
+        dplyr::mutate(level = 'regions')
+
+      if (agg_grid != F) {
+        return(invisible(m2_get_conc_pm25.ctry_agg.output))
+      }
+    } else {
+      m2_get_conc_pm25.output <- NULL
     }
     return(invisible(m2_get_conc_pm25.output))
   }
