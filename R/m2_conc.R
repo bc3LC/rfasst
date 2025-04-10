@@ -444,22 +444,24 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
 
-            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.png"))
+            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , sc, '_', unique(df$year),"_pm25_fin_weighted.png"))
             terra::plot(pm25_weighted, col = grDevices::terrain.colors(50))
             dev.off()
 
-            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_logpm25_fin_weighted.png"))
+            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , sc, '_', unique(df$year),"_logpm25_fin_weighted.png"))
             terra::plot(pm25_weighted_log, col = grDevices::terrain.colors(50))
             dev.off()
 
+            cat('PM2.5 raster figure saved at output/m2/pm25_gridded')
           }
 
           # if(saveRaster_grid == T){ # otherwise m3-grid will not work
 
             if (!dir.exists("output/m2/pm25_gridded/raster_grid")) dir.create("output/m2/pm25_gridded/raster_grid")
 
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , unique(df$year),"_pm25_fin_weighted.tif"),
+            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , sc, '_', unique(df$year),"_pm25_fin_weighted.tif"),
                                overwrite=TRUE)
+            cat('PM2.5 raster file saved at output/m2/pm25_gridded/raster_grid')
 
           # }
 
@@ -489,8 +491,10 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year),"_WORLD-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year),"_WORLD-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
                               width = 500, height = 400, units = 'mm')
+
+              cat('PM2.5 raster map aggregated at NUTS3 level saved at output/m2/pm25_gridded/agg_NUTS3')
 
             }
 
@@ -505,9 +509,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
               if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3/raster_grid")) dir.create("output/m2/pm25_gridded/agg_NUTS3/raster_grid")
 
-              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/raster_grid/", unique(df$year), "_WORLD-NUTS3_pm25_avg.gpkg"),
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/raster_grid/", sc, '_', unique(df$year), "_WORLD-NUTS3_pm25_avg.gpkg"),
                                  overwrite=TRUE)
-              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
                         row.names = F)
 
             }
@@ -531,7 +535,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                                   palette = "Oranges"
                 )
 
-              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
+              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
                               width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
@@ -563,7 +567,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", unique(df$year),"_WORLD-CTRY_pm25_avg.pdf"), plot_ctry_nuts,
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year),"_WORLD-CTRY_pm25_avg.pdf"), plot_ctry_nuts,
                               width = 500, height = 400, units = 'mm')
 
             }
@@ -579,9 +583,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
               if (!dir.exists("output/m2/pm25_gridded/agg_CTRY/raster_grid")) dir.create("output/m2/pm25_gridded/agg_CTRY/raster_grid")
 
-              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/raster_grid/", unique(df$year), "_WORLD-CTRY_pm25_avg.gpkg"),
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/raster_grid/", sc, '_', unique(df$year), "_WORLD-CTRY_pm25_avg.gpkg"),
                                  overwrite=TRUE)
-              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/", unique(df$year), "_WORLD-CTRY_pm25_avg.csv"),
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year), "_WORLD-CTRY_pm25_avg.csv"),
                         row.names = F)
 
             }
@@ -605,7 +609,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                                   palette = "Oranges"
                 )
 
-              tmap::tmap_save(plot_ctry, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", unique(df$year),"_EUR-CTRY_pm25_avg.pdf"),
+              tmap::tmap_save(plot_ctry, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year),"_EUR-CTRY_pm25_avg.pdf"),
                               width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
