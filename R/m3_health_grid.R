@@ -216,28 +216,32 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       }
 
       # Compute Relative Risk ----------------------------------------------------
-      for (dd in unique(GBD$disease)) {
-        print(dd)
+      for (yy in all_years) {
+        print(yy)
         pm.mort_yy <- list()
-        GBD_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData')))
-        rm(list = c(paste0('GBD_mat_yy'))); gc()
-        mort.rates_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/mort.rates_mat_',dd,'.RData')))
-        rm(list = c(paste0('mort.rates_mat_yy'))); gc()
+        pm.mort_yy[[as.character('total')]] <- rep(0, 24851050)
 
-        for (yy in all_years) {
-          print(yy)
+        for (dd in unique(GBD$disease)) {
+          print(dd)
+
+          GBD_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/GBD_mat_',dd,'.RData')))
+          rm(list = c(paste0('GBD_mat_yy'))); gc()
+          mort.rates_tmp <- get(load(paste0('output/m3/pm25_gridded/computed_data/mort.rates_mat_',dd,'.RData')))
+          rm(list = c(paste0('mort.rates_mat_yy'))); gc()
+
           rr.gbd <- 1 + GBD_tmp[[as.character(yy)]]$alpha * (1 - exp(-GBD_tmp[[as.character(yy)]]$beta * (pmax(0, pm.pre_mat[[yy]] - GBD_tmp[[as.character(yy)]]$zcf) ^ GBD_tmp[[as.character(yy)]]$delta)))
           pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]]
           if (normalize) {
             pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] * 1e6
           }
-          pm.mort_yy[[as.character(yy)]] <- pm.mort.allages_mat_tmp
+          pm.mort_yy[[as.character(dd)]] <- pm.mort.allages_mat_tmp
+          pm.mort_yy[[as.character('total')]] <- pm.mort_yy[[as.character('total')]] + pm.mort.allages_mat_tmp
         }
 
-        save(pm.mort_yy, file = paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',dd,normalize_pm_mort,'_',sc,'.RData'))
+        save(pm.mort_yy, file = paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',yy,normalize_pm_mort,'_',sc,'.RData'))
         rm(pm.mort_yy); rm(GBD_tmp); rm(mort.rates_tmp); rm(pm.mort.allages_mat_tmp); gc()
       }
-
+      rm(pop.all.grid_mat); rm(pm.pre_mat); gc()
 
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -245,16 +249,16 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
       if(map){
 
-        pm.mort_yy <- get(load(paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',dd,normalize_pm_mort,'_',sc,'.RData')))
         for (yy in all_years) {
-          vec <- as.vector(pm.mort_yy[[yy]])
+          pm.mort_yy <- get(load(paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',yy,normalize_pm_mort,'_',sc,'.RData')))
+
+          vec <- as.vector(pm.mort_yy[['total']])
           pm.mort_rast <- terra::setValues(pm.pre, vec)
-          pm.mort_rast_masked <- terra::ifel(pm.mort_rast < quantile(vec, probs = 0.75, na.rm = TRUE), pm.mort_rast, NA)
           png(paste0('output/maps/m3/maps_pm25_mort/EUR_grid/pm_mortality_map_',yy,normalize_pm_mort,'_',sc,'.png'), width = 800, height = 600)
-          terra::plot(pm.mort_rast)
-          dev.off()
-          png(paste0('output/maps/m3/maps_pm25_mort/EUR_grid/pm_mortality_map_',yy,normalize_pm_mort,'_masked','_',sc,'.png'), width = 800, height = 600)
-          terra::plot(pm.mort_rast_masked)
+          terra::plot(pm.mort_rast,
+                      col = c("#D3D3D3", "#FFF9C4", "#FFEB3B", "#FF9800", "#e64602", "#ab0000", "#4d0073"),
+                      breaks = c(0, 1, 1000, 5000, 10000, 100000, 1e6, max(terra::values(pm.mort_rast), na.rm = TRUE)),
+                      legend = TRUE)
           dev.off()
         }
 
