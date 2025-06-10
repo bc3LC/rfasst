@@ -34,7 +34,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     if (agg_grid == 'CTRY') {
       return(m2_get_conc_pm25.ctry_agg.output)
     } else if (agg_grid == 'NUTS3') {
-      return(m2_get_conc_pm25.ctry_nuts.output)
+      return(m2_get_conc_pm25.ctry_agg.output)
     } else {
       return(m2_get_conc_pm25.output)
     }
@@ -461,13 +461,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , sc, '_', unique(df$year),"_pm25_fin_weighted.tif"),
                                overwrite=TRUE)
-            cat('PM2.5 raster file saved at output/m2/pm25_gridded/raster_grid')
+            cat('PM2.5 raster file saved at output/m2/pm25_gridded/raster_grid \n')
 
           # }
 
           agg_grid_df <- NULL
           if(agg_grid == "NUTS3"){
-            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
+            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...\n'))
             if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3")) dir.create("output/m2/pm25_gridded/agg_NUTS3")
 
             ctry_nuts_sf <- rfasst::ctry_nuts_sf
@@ -495,7 +495,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
               ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year),"_WORLD-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
                               width = 500, height = 400, units = 'mm')
 
-              cat('PM2.5 raster map aggregated at NUTS3 level saved at output/m2/pm25_gridded/agg_NUTS3')
+              cat('PM2.5 raster map aggregated at NUTS3 level saved at output/m2/pm25_gridded/agg_NUTS3 \n')
 
             }
 
@@ -540,6 +540,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                               width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
+
 
           } else if(agg_grid == "CTRY"){
             rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))

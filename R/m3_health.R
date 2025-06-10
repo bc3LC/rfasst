@@ -147,7 +147,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (downscale && !agg_grid) {
+  if (downscale && agg_grid == F) {
     m3_get_mort_grid_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries,
                           final_db_year = final_db_year, recompute = recompute,
                           map = map, anim = anim, gcam_eur = gcam_eur,
@@ -262,7 +262,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       }
 
-      pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
+      pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr)) %>%
+        dplyr::distinct()
 
       # The FUSION model needs age-groups, so the calculation is slightly different
       pm.rr.fusion <- pm.rr.pre %>%
@@ -430,7 +431,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
-    } else if(map && downscale == 'NUTS3'){
+    } else if(map && downscale && agg_grid == 'NUTS3'){
       if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
       if (!dir.exists("output/m3/pm25_gridded/agg_NUTS3")) dir.create("output/m3/pm25_gridded/agg_NUTS3")
 
@@ -447,7 +448,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            dplyr::mutate(units = "Mortalities",
                                          year = as.numeric(as.character(year))) %>%
                            tibble::as_tibble(),
-                         by = 'id_code')
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
 
       # Europe
       m3_get_mort_pm25.output_EUR_sf <- as(rfasst::nuts_europe_sf, "SpatVector") %>%
@@ -462,7 +464,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            dplyr::mutate(units = "Mortalities",
                                          year = as.numeric(as.character(year))) %>%
                            tibble::as_tibble(),
-                         by = 'id_code')
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
 
 
       for (y in unique(m3_get_mort_pm25.output$year)) {
@@ -493,8 +496,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
       }
-      cat('Maps saved at output/m3/pm25_gridded/agg_NUTS3')
-    } else if(map && downscale == 'CTRY'){
+      cat('Maps saved at output/m3/pm25_gridded/agg_NUTS3 \n')
+    } else if(map && downscale && agg_grid == 'CTRY'){
       if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
       if (!dir.exists("output/m3/pm25_gridded/agg_CTRY")) dir.create("output/m3/pm25_gridded/agg_CTRY")
 
@@ -511,7 +514,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            dplyr::mutate(units = "Mortalities",
                                          year = as.numeric(as.character(year))) %>%
                            tibble::as_tibble(),
-                         by = 'id_code')
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
 
       # Europe
       m3_get_mort_pm25.output_EUR_sf <- as(rfasst::ctry_nuts_sf %>%
@@ -528,7 +532,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            dplyr::mutate(units = "Mortalities",
                                          year = as.numeric(as.character(year))) %>%
                            tibble::as_tibble(),
-                         by = 'id_code')
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
 
 
       for (y in unique(m3_get_mort_pm25.output$year)) {
@@ -559,7 +564,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
       }
-      cat('Maps saved at output/m3/pm25_gridded/agg_CTRY')
+      cat('Maps saved at output/m3/pm25_gridded/agg_CTRY \n')
     }
 
 

@@ -1202,7 +1202,7 @@ raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1))
 
 # 2. add this fluctuations into raw.mort.rates.plus
-raw.mort.rates.plus2 <-  dplyr::select(raw.mort.rates, disease, age) %>%
+raw.mort.rates.plus2 <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::distinct() %>%
   dplyr::left_join(raw.mort.rates.plus1 %>%
                      tidyr::complete(tidyr::nesting(region, age, sex, disease),

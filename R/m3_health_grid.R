@@ -62,7 +62,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year)]
     all_years<-all_years[all_years>2005]
 
-    # Get grided population
+    # Get grided population (nº of people)
     pop.all.grid_mat <- get(paste0('pop.all.grid_mat.',ssp), envir = asNamespace("gcamreport"))
 
     # Get Population weights by age --------------------------------------------
@@ -81,14 +81,15 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     pm.grid_ref <- terra::crop(pm.grid_ref, extent_raster)
 
     # Get baseline mortality rates (pop weighted) ------------------------------
-    mort.rates<-calc_mort_rates(downscale, agg_grid)
-
     mort.rates_iso_pre <- rfasst::Regions_EUR %>%
-      dplyr::rename(region = 'FASST region') %>%
-      gcamreport::left_join_strict(mort.rates, by = 'region') %>%
+      dplyr::rename('region' = 'ISO3') %>%
+      gcamreport::left_join_strict(calc_mort_rates(downscale, 'CTRY'), by = 'region') %>%
+      dplyr::rename('ISO3' = 'region') %>%
       dplyr::left_join(rfasst::isonum, by = 'ISO3') %>%
       dplyr::mutate(ISO3 = dplyr::if_else(ISO3 == 'ROU','ROM',ISO3)) %>%
-      dplyr::left_join(rfasst::ctry_nuts3_codes, by = c('ISO3','ISO2')) %>%
+      dplyr::mutate(ISO2 = dplyr::if_else(ISO3 == 'GBR','UK',ISO2)) %>%
+      dplyr::left_join(rfasst::ctry_nuts3_codes, by = c('ISO3','ISO2'),
+                       relationship = "many-to-many") %>%
       dplyr::filter(sex == 'Both')
 
     mort.rates_iso <- mort.rates_iso_pre %>%
@@ -230,9 +231,9 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
           rm(list = c(paste0('mort.rates_mat_yy'))); gc()
 
           rr.gbd <- 1 + GBD_tmp[[as.character(yy)]]$alpha * (1 - exp(-GBD_tmp[[as.character(yy)]]$beta * (pmax(0, pm.pre_mat[[yy]] - GBD_tmp[[as.character(yy)]]$zcf) ^ GBD_tmp[[as.character(yy)]]$delta)))
-          pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]]
+          pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]] / 1e5
           if (normalize) {
-            pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] * 1e6
+            pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] * 1e6 # deaths / 1Mpeople
           }
           pm.mort_yy[[as.character(dd)]] <- pm.mort.allages_mat_tmp
           pm.mort_yy[[as.character('total')]] <- pm.mort_yy[[as.character('total')]] + pm.mort.allages_mat_tmp
@@ -251,13 +252,13 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
         for (yy in all_years) {
           pm.mort_yy <- get(load(paste0('output/m3/pm25_gridded/EUR_grid/pm.mort_mat_',yy,normalize_pm_mort,'_',sc,'.RData')))
-
           vec <- as.vector(pm.mort_yy[['total']])
           pm.mort_rast <- terra::setValues(pm.pre, vec)
+
           png(paste0('output/maps/m3/maps_pm25_mort/EUR_grid/pm_mortality_map_',yy,normalize_pm_mort,'_',sc,'.png'), width = 800, height = 600)
           terra::plot(pm.mort_rast,
                       col = c("#D3D3D3", "#FFF9C4", "#FFEB3B", "#FF9800", "#e64602", "#ab0000", "#4d0073"),
-                      breaks = c(0, 1, 1000, 5000, 10000, 100000, 1e6, max(terra::values(pm.mort_rast), na.rm = TRUE)),
+                      breaks = c(0, 0.1, 0.5, 1, 5, 10, 50, max(terra::values(pm.mort_rast), na.rm = TRUE)),
                       legend = TRUE)
           dev.off()
         }
