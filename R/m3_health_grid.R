@@ -83,12 +83,15 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
     # Get baseline mortality rates (pop weighted) ------------------------------
     mort.rates_iso_pre <- rfasst::Regions_EUR %>%
       dplyr::rename('region' = 'ISO3') %>%
-      gcamreport::left_join_strict(calc_mort_rates(downscale, 'CTRY'), by = 'region') %>%
+      dplyr::left_join(calc_mort_rates(downscale, 'CTRY'), by = 'region') %>%
       dplyr::rename('ISO3' = 'region') %>%
       dplyr::left_join(rfasst::isonum, by = 'ISO3') %>%
       dplyr::mutate(ISO3 = dplyr::if_else(ISO3 == 'ROU','ROM',ISO3)) %>%
       dplyr::mutate(ISO2 = dplyr::if_else(ISO3 == 'GBR','UK',ISO2)) %>%
-      dplyr::left_join(rfasst::ctry_nuts3_codes, by = c('ISO3','ISO2'),
+      dplyr::left_join(rfasst::ctry_nuts3_codes %>%
+                         dplyr::mutate(ISO2 = dplyr::if_else(ISO2 == 'EL' & ISO3 == 'GRC',
+                                                             'GR', ISO2)),
+                       by = c('ISO3','ISO2'),
                        relationship = "many-to-many") %>%
       dplyr::filter(sex == 'Both')
 
@@ -188,7 +191,8 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
 
     # Mortality units ----------------------------------------------------------
-    normalize_pm_mort <- dplyr::if_else(!normalize, '', '_norm_100k')
+    normalize_pm_mort <- dplyr::if_else(!normalize, '', '_norm')
+    # normalize_pm_mort <- dplyr::if_else(!normalize, '', '_norm_100k')
 
 
     # Get PM2.5 ----------------------------------------------------------------
@@ -217,7 +221,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
       }
 
       # Compute Relative Risk ----------------------------------------------------
-      for (yy in all_years) {
+      for (yy in as.character(all_years)) {
         print(yy)
         pm.mort_yy <- list()
         pm.mort_yy[[as.character('total')]] <- rep(0, 24851050)
@@ -233,7 +237,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
           rr.gbd <- 1 + GBD_tmp[[as.character(yy)]]$alpha * (1 - exp(-GBD_tmp[[as.character(yy)]]$beta * (pmax(0, pm.pre_mat[[yy]] - GBD_tmp[[as.character(yy)]]$zcf) ^ GBD_tmp[[as.character(yy)]]$delta)))
           pm.mort.allages_mat_tmp <- (1 - 1/ rr.gbd) * mort.rates_tmp[[yy]] * pop.all.grid_mat[[yy]] / 1e5
           if (normalize) {
-            pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] * 1e6 # deaths / 1Mpeople
+            pm.mort.allages_mat_tmp <- pm.mort.allages_mat_tmp / pop.all.grid_mat[[yy]] # deaths; if: result * 1e6, deaths / 1Mpeople
           }
           pm.mort_yy[[as.character(dd)]] <- pm.mort.allages_mat_tmp
           pm.mort_yy[[as.character('total')]] <- pm.mort_yy[[as.character('total')]] + pm.mort.allages_mat_tmp

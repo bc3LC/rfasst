@@ -730,12 +730,12 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
       # Return output
-      m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
-        dplyr::mutate(level = paste0('WORLD-',agg_grid))
       m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
         dplyr::mutate(level = 'regions')
 
       if (agg_grid != F) {
+        m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
+          dplyr::mutate(level = paste0('WORLD-',agg_grid))
         return(invisible(m2_get_conc_pm25.ctry_agg.output))
       }
     } else {
