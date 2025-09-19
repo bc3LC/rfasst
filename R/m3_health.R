@@ -143,9 +143,7 @@ calc_daly_o3<-function(){
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
                            ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
-                           normalize = F,
-                           downscale = F, saveRaster_grid = F,
-                           agg_grid = F, save_AggGrid = F){
+                           normalize = F, downscale = F, saveRaster_grid = F, agg_grid = F, save_AggGrid = F){
 
   if (downscale && agg_grid == F) {
     m3_get_mort_grid_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries,

@@ -30,14 +30,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & (exists('m2_get_conc_pm25.output') | exists('m2_get_conc_pm25.ctry_agg.output') | exists('m2_get_conc_pm25.ctry_nuts.output'))) {
-    if (agg_grid == 'CTRY') {
-      return(m2_get_conc_pm25.ctry_agg.output)
-    } else if (agg_grid == 'NUTS3') {
-      return(m2_get_conc_pm25.ctry_agg.output)
-    } else {
+  if (!recompute & (exists('m2_get_conc_pm25.output'))) {
       return(m2_get_conc_pm25.output)
-    }
   } else {
 
     #----------------------------------------------------------------------
@@ -628,6 +622,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
+      # Bind the results
       if (!downscale || (downscale && agg_grid != F)) {
         pm<-dplyr::bind_rows(pm25.agg.list) %>%
           dplyr::mutate(scenario = sc)
@@ -641,21 +636,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
             dplyr::mutate(scenario = sc)
           m2_get_conc_pm25.ctry_agg.output.list <- append(m2_get_conc_pm25.ctry_agg.output.list, list(pm.ctry_nuts))
-        }
-
-
-        #----------------------------------------------------------------------
-        #----------------------------------------------------------------------
-        # Bind the results
-
-        m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
-
-        if (length(pm25.ctry_nuts3.list) != 0) {
           m2_get_conc_pm25.ctry_agg.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output.list) %>%
             dplyr::mutate(units = "ug/m3") %>%
             dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
+          m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output)
+        } else {
+          m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
         }
-
 
         #----------------------------------------------------------------------
         #----------------------------------------------------------------------
@@ -741,13 +728,12 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         #----------------------------------------------------------------------
         #----------------------------------------------------------------------
         # Return output
-        m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
-          dplyr::mutate(level = 'regions')
-
         if (agg_grid != F) {
-          m2_get_conc_pm25.ctry_agg.output <- m2_get_conc_pm25.ctry_agg.output %>%
+          m2_get_conc_pm25.output <- m2_get_conc_pm25.ctry_agg.output %>%
             dplyr::mutate(level = paste0('WORLD-',agg_grid))
-          return(invisible(m2_get_conc_pm25.ctry_agg.output))
+        } else {
+          m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
+            dplyr::mutate(level = 'regions')
         }
     } else {
       m2_get_conc_pm25.output <- NULL

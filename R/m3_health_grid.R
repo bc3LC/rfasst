@@ -267,7 +267,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
           dev.off()
         }
 
-        cat('Maps saved at output/maps/m3/maps_pm25_mort/EUR_grid')
+        cat('Maps saved at output/maps/m3/maps_pm25_mort/EUR_grid \n')
       }
     }
 
