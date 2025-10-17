@@ -102,12 +102,16 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     }
     all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                                           max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)'),
+                                                gcam_eur)
+    Percen <- ct_gcamversion_regions[3][[1]]
     rlang::inform('Computing emissions ...')
 
 
     # Generate the adjusted emission database +air and ship emissions
     # Emission data (scen)
     scen_sct <- rgcam::getQuery(prj,"nonCO2 emissions by sector (excluding resource production)") %>%
+      check_byu() %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
       gcamdata::left_join_error_no_match(rfasst::my_pol %>%
@@ -121,6 +125,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::ungroup()
 
     scen_rsc <- rgcam::getQuery(prj,"nonCO2 emissions by resource production") %>%
+      check_byu() %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
       gcamdata::left_join_error_no_match(rfasst::my_pol %>%
@@ -180,6 +185,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Aviation:
     air <- rgcam::getQuery(prj,"International Aviation emissions") %>%
+      check_byu() %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg), "SO2", as.character(ghg))) %>%
@@ -215,6 +221,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Shipping:
     ship <- rgcam::getQuery(prj,"International Shipping emissions") %>%
+      check_byu() %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg),"SO2", as.character(ghg))) %>%
@@ -248,7 +255,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     ship <- ship %>%
       dplyr::select(scenario,year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
-    final_df_wide<-dplyr::left_join(get(paste0('Percen',EUR), envir = asNamespace("rfasst")) %>%
+    final_df_wide<-dplyr::left_join(Percen %>%
                                       dplyr::filter(year %in% all_years,
                                                     Pollutant != "CO2") %>%
                                       dplyr::mutate(`GCAM Region`=as.factor(`GCAM Region`)),

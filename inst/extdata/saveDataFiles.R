@@ -180,14 +180,18 @@ fasst_reg<-read.csv("inst/extdata/mapping/fasst_reg.csv") %>%
 usethis::use_data(fasst_reg, overwrite = T)
 
 # Regions in GCAM - iso3
-GCAM_reg<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
+GCAM_reg_vlt8.2<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
   dplyr::rename(`ISO 3` = ISO.3,
                 `GCAM Region` = GCAM.Region)
-usethis::use_data(GCAM_reg, overwrite = T)
+usethis::use_data(GCAM_reg_vlt8.2, overwrite = T)
 GCAM_reg_EUR<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
   dplyr::rename(`ISO 3` = ISO.3,
                 `GCAM Region` = GCAM.Region)
 usethis::use_data(GCAM_reg_EUR, overwrite = T)
+GCAM_reg_vgt8.2<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
+  dplyr::rename(`ISO 3` = ISO.3,
+                `GCAM Region` = GCAM.Region)
+usethis::use_data(GCAM_reg_vgt8.2, overwrite = T)
 
 # Countries - iso3
 country_iso<-read.csv("inst/extdata/mapping/country_iso.csv") %>%
@@ -203,7 +207,7 @@ adj_rus<-read.csv("inst/extdata/mapping/Adj_Russia.csv") %>%
 usethis::use_data(adj_rus, overwrite = T)
 
 # Percentages to downscale GCAM emissions to country-level
-Percen_ap<-tibble::as_tibble(dplyr::bind_rows(
+Percen_ap_vlt8.2<-tibble::as_tibble(dplyr::bind_rows(
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_CO_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "CO"),
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NH3_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NH3"),
@@ -227,7 +231,7 @@ Percen_ap<-tibble::as_tibble(dplyr::bind_rows(
   dplyr::mutate(Percentage = value / value_reg)
 
 
-Percen_ghg<-tibble::as_tibble(dplyr::bind_rows(
+Percen_ghg_vlt8.2<-tibble::as_tibble(dplyr::bind_rows(
   read.csv("inst/extdata/mapping/CH4_1970_2021.csv", skip = 9),
   read.csv("inst/extdata/mapping/CO2_1970_2021.csv", skip = 9),
   read.csv("inst/extdata/mapping/N2O_1970_2021.csv", skip = 9))) %>%
@@ -248,7 +252,7 @@ Percen_ghg<-tibble::as_tibble(dplyr::bind_rows(
   dplyr::mutate(Percentage = value / value_reg)
 
 
-Percen<-dplyr::bind_rows(Percen_ap,Percen_ghg) %>%
+Percen_vlt8.2<-dplyr::bind_rows(Percen_ap_vlt8.2,Percen_ghg_vlt8.2) %>%
   dplyr::filter(year %in% c("2005", "2010", "2020")) %>%
   dplyr::select(-value, -value_reg) %>%
   tidyr::complete(tidyr::nesting(iso, country_name, GCAM_region_name, ghg), year = c(2005,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100)) %>%
@@ -261,7 +265,7 @@ Percen<-dplyr::bind_rows(Percen_ap,Percen_ghg) %>%
   dplyr::mutate(Pollutant = dplyr::if_else(Pollutant == "OC", "POM", as.character(Pollutant)),
                 Pollutant = as.factor(Pollutant),
                 year = as.factor(year))
-usethis::use_data(Percen, overwrite = T)
+usethis::use_data(Percen_vlt8.2, overwrite = T)
 
 Percen_ap_EUR<-tibble::as_tibble(dplyr::bind_rows(
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
@@ -323,17 +327,81 @@ Percen_EUR<-dplyr::bind_rows(Percen_ap_EUR,Percen_ghg_EUR) %>%
                 year = as.factor(year))
 usethis::use_data(Percen_EUR, overwrite = T)
 
+Percen_ap_vgt8.2<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_CO_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "CO"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NH3_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NH3"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NMVOC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NMVOC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NOx_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NOx"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_OC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "OC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_SO2_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "SO2"))) %>%
+  tidyr::gather(year, value, -Country_iso, -Sector, -ghg, -Fuel, -Unit) %>%
+  dplyr::mutate(year = as.numeric(gsub("X", "", year))) %>%
+  dplyr::group_by(Country_iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(iso = Country_iso) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_ghg_vgt8.2<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CH4_1970-2021.csv"),
+  read.csv("inst/extdata/mapping/CO2_1970-2021.csv"),
+  read.csv("inst/extdata/mapping/N2O_1970-2021.csv"))) %>%
+  tidyr::gather(year, value, -IPCC_annex, -C_group_IM24_sh, -Country_code_A3, -Name, -Substance,
+                -ipcc_code_2006_for_standard_report, -ipcc_code_2006_for_standard_report_name, -fossil_bio) %>%
+  dplyr::mutate(year = as.numeric(gsub("Y_", "", year))) %>%
+  dplyr::select(iso = Country_code_A3, country_name = Name, ghg = Substance, year, value) %>%
+  dplyr::group_by(iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(iso = tolower(iso)) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_vgt8.2<-dplyr::bind_rows(Percen_ap_vgt8.2,Percen_ghg_vgt8.2) %>%
+  dplyr::filter(year %in% c("2005", "2010", "2020")) %>%
+  dplyr::select(-value, -value_reg) %>%
+  tidyr::complete(tidyr::nesting(iso, country_name, GCAM_region_name, ghg), year = c(2005,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100)) %>%
+  dplyr::group_by(iso, country_name, ghg) %>%
+  dplyr::mutate(Percentage = dplyr::if_else(is.na(Percentage), gcamdata::approx_fun(year, Percentage, rule = 2), Percentage)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(country_name = toupper(country_name),
+                iso = toupper(iso)) %>%
+  dplyr::select(`GCAM Region` = GCAM_region_name, Country = country_name, `ISO 3` = iso, Pollutant = ghg, year, Percentage) %>%
+  dplyr::mutate(Pollutant = dplyr::if_else(Pollutant == "OC", "POM", as.character(Pollutant)),
+                Pollutant = as.factor(Pollutant),
+                year = as.factor(year))
+usethis::use_data(Percen_vgt8.2, overwrite = T)
+
 
 my_pol<- read.csv("inst/extdata/mapping/Pol_Adj.csv")
 usethis::use_data(my_pol, overwrite = T)
 
 
 # Countries to GCAM regions
-d.iso <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name.csv")
-usethis::use_data(d.iso, overwrite = T)
+d.iso_vlt8.2 <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name.csv")
+usethis::use_data(d.iso_vlt8.2, overwrite = T)
 
 d.iso_EUR <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv")
 usethis::use_data(d.iso_EUR, overwrite = T)
+
+d.iso_vgt8.2 <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv")
+usethis::use_data(d.iso_vgt8.2, overwrite = T)
 
 
 # O3 to GCAM commodities (based on their carbon fixation pathways; C3 and C4 categories)
@@ -345,12 +413,12 @@ d.ha <- read.csv("inst/extdata/mapping/area_harvest.csv")
 usethis::use_data(d.ha, overwrite = T)
 
 # Combined regions:
-Regions<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
-                          , GCAM_reg, by="ISO 3") %>%
+Regions_vlt8.2<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                          , GCAM_reg_vlt8.2, by="ISO 3") %>%
   dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
   dplyr::select(-`ISO 3`) %>%
   dplyr::rename(COUNTRY = Country)
-usethis::use_data(Regions, overwrite = T)
+usethis::use_data(Regions_vlt8.2, overwrite = T)
 
 Regions_EUR<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
                               , GCAM_reg_EUR, by="ISO 3") %>%
@@ -366,11 +434,18 @@ Regions_ctry_NUTS3<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRe
   dplyr::rename(COUNTRY = Country)
 usethis::use_data(Regions_ctry_NUTS3, overwrite = T)
 
+Regions_vgt8.2<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                              , GCAM_reg_vgt8.2, by="ISO 3") %>%
+  dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
+  dplyr::select(-`ISO 3`) %>%
+  dplyr::rename(COUNTRY = Country)
+usethis::use_data(Regions_vgt8.2, overwrite = T)
+
 
 # Weights for O3 crops
-d.weight.gcam <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
+d.weight.gcam_vlt8.2 <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
   dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
-  dplyr::full_join(d.iso, by = "iso") %>%
+  dplyr::full_join(d.iso_vlt8.2, by = "iso") %>%
   dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
   dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
   dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
@@ -379,11 +454,11 @@ d.weight.gcam <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harve
   dplyr::ungroup() %>%
   dplyr::select(-harvested.area) %>%
   dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
-usethis::use_data(d.weight.gcam, overwrite = T)
+usethis::use_data(d.weight.gcam_vlt8.2, overwrite = T)
 
 d.weight.gcam_EUR <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
   dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
-  dplyr::full_join(d.iso, by = "iso") %>%
+  dplyr::full_join(d.iso_EUR, by = "iso") %>%
   dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
   dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
   dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
@@ -393,6 +468,19 @@ d.weight.gcam_EUR <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need h
   dplyr::select(-harvested.area) %>%
   dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
 usethis::use_data(d.weight.gcam_EUR, overwrite = T)
+
+d.weight.gcam_vgt8.2 <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
+  dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
+  dplyr::full_join(d.iso_vgt8.2, by = "iso") %>%
+  dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
+  dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
+  dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
+  dplyr::summarise(harvested.area = sum(harvested.area, na.rm = T)) %>%
+  dplyr::mutate(weight = harvested.area / (sum(harvested.area, na.rm = T))) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-harvested.area) %>%
+  dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
+usethis::use_data(d.weight.gcam_vgt8.2, overwrite = T)
 
 # Shape subset for maps
 fasstSubset <- rmap::mapCountries

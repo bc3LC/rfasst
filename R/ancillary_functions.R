@@ -15,6 +15,61 @@ if_complex = function(condition, data1, data2) {
 }
 
 
+#' check_byu
+#'
+#' Check if the data contains GCAM results after the BYU, i.e., with the year 2021
+#' instead of the year 2020, and change the year to match the socioeconomic preloaded data
+#' @param data: dataset
+#' @return dataset with the year 2020 (corresponding to the estimated 2021 if present).
+#' @export
+check_byu = function(data) {
+  if ('year' %in% colnames(data) & "2021" %in% as.character(unique(data$year))) {
+    data <- data %>%
+      dplyr::mutate(year = dplyr::if_else(year == 2021, 2020, year))
+  }
+
+  return(data)
+}
+
+
+#' check_gcamversion
+#'
+#' Check if the data contains GCAM results from GCAM8.2 or newer versions to arrange
+#' the regions (e.g., Ukraine)
+#' @param tmp Dummy dataset (any query from the prj file) to check if the BYU (and regions' update) is implemented in the GCAM considered output.
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions.
+#' @return list of GCAM version region-dependent constants
+#' @export
+check_gcamversion = function(tmp, gcam_eur) {
+
+  # the BYU coincides with the GCAM8.2 version release, that has the difference in the regions' aggregation
+  if (!gcam_eur & 'year' %in% colnames(tmp) & "2021" %in% as.character(unique(tmp$year))) {
+    list_result <- list(
+      rfasst::GCAM_reg_vgt8.2,
+      rfasst::Regions_vgt8.2,
+      rfasst::Percen_vgt8.2,
+      rfasst::d.weight.gcam_vgt8.2
+    )
+  } else if (gcam_eur) {
+    list_result <- list(
+      rfasst::GCAM_reg_EUR,
+      rfasst::Regions_EUR,
+      rfasst::Percen_EUR,
+      rfasst::d.weight.gcam_EUR
+    )
+  } else {
+    list_result <- list(
+      rfasst::GCAM_reg_vlt8.2,
+      rfasst::Regions_vlt8.2,
+      rfasst::Percen_vlt8.2,
+      rfasst::d.weight.gcam_vlt8.2
+    )
+  }
+
+  return(list_result)
+}
+
+
 
 #' clean_pkg_outputs
 #'

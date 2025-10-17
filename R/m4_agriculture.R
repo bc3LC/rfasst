@@ -93,6 +93,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     rlang::inform('Computing ...')
 
     prod <- rgcam::getQuery(prj,"ag production by subsector (land use region)") %>%
+      check_byu() %>%
       dplyr::rename(unit = Units) %>%
       dplyr::mutate(variable="prod_ag",
                     sector = gsub(" ", "_", sector),
@@ -125,7 +126,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     if(saveOutput == T){
       write.csv(prod,"output/m4/production.csv",row.names = F)
-      }
+    }
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
@@ -254,6 +255,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     rlang::inform('Computing ...')
 
     price <- rgcam::getQuery(prj,"Ag Commodity Prices") %>%
+      check_byu() %>%
       dplyr::rename(unit = Units) %>%
       dplyr::mutate(variable = "price_ag",
                     sector = gsub(" ", "_", sector),
@@ -807,7 +809,6 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
-    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -831,6 +832,10 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'Ag Commodity Prices'),
+                                                gcam_eur)
+    Regions <- ct_gcamversion_regions[2][[1]]
+    d.weight.gcam <- ct_gcamversion_regions[4][[1]]
     rlang::inform('Computing agricultural production losses ...')
 
 
@@ -860,7 +865,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       #  downscale the values to country level
       harv<-tibble::as_tibble(d.ha) %>%
-        dplyr::left_join(get(paste0('Regions',EUR), envir = asNamespace("rfasst")) %>%
+        dplyr::left_join(Regions %>%
                            dplyr::rename(iso = ISO3) %>%
                            dplyr::mutate(iso = tolower(iso)),
                          by = "iso") %>%
@@ -908,7 +913,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(get(paste0('d.weight.gcam',EUR), envir = asNamespace("rfasst")), by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop, -weight) %>%
@@ -1067,7 +1072,6 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
-    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -1094,6 +1098,10 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'Ag Commodity Prices'),
+                                                gcam_eur)
+    Regions <- ct_gcamversion_regions[2][[1]]
+    d.weight.gcam <- ct_gcamversion_regions[4][[1]]
     rlang::inform('Computing agricultural revenue losses ...')
 
     m4_get_rev_loss.output.list <- list()
@@ -1144,7 +1152,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       #------------------------------------------------------------------------------------
       #  downscale the values to country level
       harv<-tibble::as_tibble(d.ha) %>%
-        dplyr::left_join(get(paste0('Regions',EUR), envir = asNamespace("rfasst")) %>%
+        dplyr::left_join(Regions %>%
                            dplyr::rename(iso = ISO3) %>%
                            dplyr::mutate(iso = tolower(iso))
                          , by = "iso") %>%
@@ -1192,7 +1200,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                          ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(get(paste0('d.weight.gcam',EUR), envir = asNamespace("rfasst")), by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop,-weight) %>%
