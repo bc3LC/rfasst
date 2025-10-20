@@ -70,6 +70,54 @@ check_gcamversion = function(tmp, gcam_eur) {
 }
 
 
+#' load_prj
+#'
+#' @description Load/Create prj file
+#' @param db_path Path to the GCAM database
+#' @param query_path Path to the query file
+#' @param db_name Name of the GCAM database
+#' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
+#' @param prj rgcam loaded project
+#' @param scen_name Vector names of the GCAM scenarios to be processed
+#' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
+#' @return loaded project
+load_prj <- function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL,
+                     prj_name, prj = NULL, scen_name, queries = "queries_rfasst.xml") {
+  # Load the rgcam project if prj not passed as a parameter:
+  if (is.null(prj)) {
+    if (!is.null(db_path) & !is.null(db_name)) {
+      rlang::inform('Creating project ...')
+      conn <- rgcam::localDBConn(db_path,
+                                 db_name,migabble = FALSE)
+      prj <- rgcam::addScenario(conn,
+                                prj_name,
+                                scen_name,
+                                paste0(query_path,"/",queries),
+                                saveProj = F)
+
+      # add nonCO2 query manually (it is too big to use the usual method)
+      if (!'nonCO2 emissions by sector (excluding resource production)' %in% rgcam::listQueries(prj)) {
+        dt_sec <- data_query('nonCO2 emissions by sector (excluding resource production)',
+                             db_path, db_name, prj_name, scen_name,
+                             query_path, 'queries_rfasst_nonCO2.xml')
+        prj_tmp <- rgcam::addQueryTable(project = prj_name, qdata = dt_sec,
+                                        queryname = 'nonCO2 emissions by sector (excluding resource production)', clobber = FALSE)
+        prj <- rgcam::mergeProjects(prj_name, list(prj,prj_tmp), clobber = TRUE, saveProj = FALSE)
+        rm(prj_tmp); rm(dt_sec)
+      }
+
+      rgcam::saveProject(prj, file = file.path('output',prj_name))
+
+    } else {
+      rlang::inform('Loading project ...')
+      prj <- rgcam::loadProject(prj_name)
+    }
+  } else {
+    rlang::inform('Project already loaded ...')
+  }
+
+  return(prj)
+}
 
 #' clean_pkg_outputs
 #'

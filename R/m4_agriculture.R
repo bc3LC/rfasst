@@ -832,7 +832,8 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
-    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'Ag Commodity Prices'),
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(load_prj(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries),
+                                                                'Ag Commodity Prices'),
                                                 gcam_eur)
     Regions <- ct_gcamversion_regions[2][[1]]
     d.weight.gcam <- ct_gcamversion_regions[4][[1]]
@@ -913,7 +914,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop"), relationship = "many-to-many") %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop, -weight) %>%
@@ -1098,7 +1099,8 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     all_years<-all_years[all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
 
-    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'Ag Commodity Prices'),
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(load_prj(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries),
+                                                                'Ag Commodity Prices'),
                                                 gcam_eur)
     Regions <- ct_gcamversion_regions[2][[1]]
     d.weight.gcam <- ct_gcamversion_regions[4][[1]]
@@ -1200,7 +1202,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                          ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop"), relationship = "many-to-many") %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop,-weight) %>%

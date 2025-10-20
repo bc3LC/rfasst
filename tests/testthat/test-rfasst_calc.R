@@ -3,7 +3,7 @@ library(rfasst); library(testthat); library(magrittr); library(rprojroot)
 
 # Tests for module 1 function
 
-test_that("module 1 fucntion works", {
+test_that("module 1 function works. GCAM 7.0", {
 
   `%!in%` = Negate(`%in%`)
 
@@ -17,12 +17,31 @@ test_that("module 1 fucntion works", {
                                                 saveOutput = F)) %>%
     dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
 
+
    regions_em<-as.numeric(length(unique((em_reg$region))))
 
+   expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
 
-  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+   testthat::expect_equal(regions_em,expectedResult)
 
-  testthat::expect_equal(regions_em,expectedResult)
+})
+
+
+test_that("module 1 function works. GCAM 8.2", {
+
+  `%!in%` = Negate(`%in%`)
+
+  em_reg<-dplyr::bind_rows(m1_emissions_rescale(db_path = NULL,
+                                                query_path="./inst/extdata",
+                                                db_name = NULL,
+                                                prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam8.dat"),
+                                                scen_name = "Reference",
+                                                queries ="queries_rfasst.xml",
+                                                final_db_year = 2030,
+                                                saveOutput = F)) %>%
+    dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
+
+  testthat::expect_equal(sum(is.na(em_reg)), 0)
 
 })
 
@@ -30,7 +49,7 @@ test_that("module 1 fucntion works", {
 # Tests for module 2 functions.
 # Test for PM2.5 and O3 concentration levels. Additional indicators (M6M, AOT40 and Mi) have the same structure
 
-test_that("m2 calculates PM2.5 concentration", {
+test_that("m2 calculates PM2.5 concentration. GCAM 7.0", {
 
   `%!in%` = Negate(`%in%`)
 
@@ -50,6 +69,33 @@ test_that("m2 calculates PM2.5 concentration", {
   expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
 
   testthat::expect_equal(regions_pm25,expectedResult)
+
+})
+
+
+test_that("m2 calculates PM2.5 concentration. GCAM 8.2", {
+
+  `%!in%` = Negate(`%in%`)
+
+  pm25_reg<-dplyr::bind_rows(m2_get_conc_pm25(db_path = NULL,
+                                              query_path="./inst/extdata",
+                                              db_name = NULL,
+                                              prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam8.dat"),
+                                              scen_name = "Reference",
+                                              queries ="queries_rfasst.xml",
+                                              final_db_year = 2030,
+                                              saveOutput = F)) %>%
+    dplyr::filter(region %!in% c("RUE","AIR","SHIP"))
+
+  regions_pm25<-as.numeric(length(unique((pm25_reg$region))))
+  years_pm25<-sort(unique((pm25_reg$year)))
+
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+  testthat::expect_equal(regions_pm25,expectedResult)
+
+  expectedResult = c("2005","2010","2020","2030")
+  testthat::expect_equal(as.character(years_pm25),expectedResult)
 
 })
 

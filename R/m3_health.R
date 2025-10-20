@@ -1077,10 +1077,10 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         gcamdata::left_join_error_no_match(pop.all, by = c("region","year")) %>%
         dplyr::mutate(pop_af = pop_tot * 1E6 ,
                       year = as.numeric(year)) %>%
-        gcamdata::left_join_error_no_match(mort.rates.o3 %>%
-                                             dplyr::filter(year >= 2010) %>%
-                                             dplyr::rename(mr_resp = rate),
-                                           by=c("region", "year", "disease")) %>%
+        gcamreport::left_join_strict(mort.rates.o3 %>%
+                                       dplyr::filter(year >= 2010) %>%
+                                       dplyr::rename(mr_resp = rate),
+                                     by=c("region", "year", "disease")) %>%
         dplyr::mutate(adj_jer_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_med / 100000),
                       adj_jer_med = dplyr::if_else(adj_jer_med < 0, 0, adj_jer_med),
                       mort_o3_jer_med = round(pop_af * mr_resp * adj_jer_med, 0),

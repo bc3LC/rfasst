@@ -803,7 +803,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, scen_name, queries, saveOutput = F,
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name = prj_name, prj = prj, scen_name, queries, saveOutput = F,
                                   final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
     all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,

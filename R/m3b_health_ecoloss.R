@@ -104,7 +104,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
       dplyr::mutate(vsl_lb = adj * vsl_eu_2005_lb,
                     vsl_ub = adj * vsl_eu_2005_ub,
                     vsl_med = (vsl_lb + vsl_ub) / 2) %>%
-      dplyr::select(scenario, region, sex, year, vsl_med, vsl_lb, vsl_ub) %>%
+      dplyr::select(scenario, region, year, vsl_med, vsl_lb, vsl_ub) %>%
       dplyr::mutate(vsl_med = vsl_med * 1E-6,
                     vsl_lb = vsl_lb * 1E-6,
                     vsl_ub = vsl_ub * 1E-6) %>%
@@ -121,7 +121,7 @@ m3_get_pm25_ecoloss_vsl<-function(db_path = NULL, query_path = "./inst/extdata",
         dplyr::filter(scenario == sc) %>%
         dplyr::select(-scenario) %>%
         # some NUTS3 are not present in the VSL data - TODO: find or estimate them
-        dplyr::left_join(vsl, by=c("region", "year", "sex")) %>%
+        dplyr::left_join(vsl, by=c("region", "year")) %>%
         dplyr::filter(rowSums(is.na(.)) == 0) %>%
         dplyr::select(-scenario) %>%
         # Calculate the median damages
