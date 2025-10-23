@@ -239,7 +239,7 @@ calc_pop_grid <- function(ssp = 'SSP2') {
     } else if (yy > 2020) {
       # https://www.nature.com/articles/s41597-022-01675-x#Sec9;
       # https://figshare.com/articles/dataset/Projecting_1_km-grid_population_distributions_from_2020_to_2100_globally_under_shared_socioeconomic_pathways/19608594/3?file=34829370
-      pop.pre <- terra::rast(paste0('inst/extdata/data/pop_rasters/SSP2/SSP2_',yy,'.tif'))
+      pop.pre <- terra::rast(paste0('inst/extdata/data/pop_rasters/',ssp,'/',ssp,'_',yy,'.tif'))
     }
     pop.pre <- terra::crop(pop.pre, extent_raster)
     pop.all.str.resampled <- terra::resample(pop.pre, pm.pre, method = "bilinear")

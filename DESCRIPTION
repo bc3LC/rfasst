@@ -1,6 +1,6 @@
 Package: rfasst
 Title: rfasst
-Version: 1.3.0
+Version: 2.1.0
 Authors@R: c(person("Jon", "Sampedro", email = "jon.sampedro@bc3research.org", role = c("aut", "cre"),
 		   comment = c(ORCID ="0000-0002-2277-1530")),
 		   person("Zarrar", "Khan", email = "zarrar.khan@pnnl.gov", role = c("aut"),
@@ -13,7 +13,7 @@ Description: A screening Rtool to estimate adverse health and agricultural impac
 URL: https://github.com/bc3LC/rfasst
 BugReports: https://github.com/bc3LC/rfasst/issues
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1)
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
