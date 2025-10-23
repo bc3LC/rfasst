@@ -13,10 +13,10 @@ Description: A screening Rtool to estimate adverse health and agricultural impac
 URL: https://github.com/bc3LC/rfasst
 BugReports: https://github.com/bc3LC/rfasst/issues
 Depends: 
-    R (>= 4.1)
+    R (>= 4.1.0)
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 RoxygenNote: 7.3.2
 Imports:
     usethis,
