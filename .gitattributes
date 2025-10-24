@@ -1,5 +1,31 @@
-*.tif filter=lfs diff=lfs merge=lfs -text
+# R scripts and Rmd files
+*.R  text
+*.r  text
+*.Rmd text
+# R package DESCRIPTION, NAMESPACE, etc.
+DESCRIPTION text
+NAMESPACE text
+R/*.R text
+# Data files (binary)
 *.rda filter=lfs diff=lfs merge=lfs -text
+*.RData filter=lfs diff=lfs merge=lfs -text
+# Raw data, images, etc.
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.tsv text
+*.txt text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+# Ignore common files
+*.log text
+*.bak text
+# LFS
+*.nc filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.xlsx filter=lfs diff=lfs merge=lfs -text
 data/pop.all.grid_mat.SSP1.rda filter=lfs diff=lfs merge=lfs -text
 data/pop.all.grid_mat.SSP2.rda filter=lfs diff=lfs merge=lfs -text
 data/pop.all.grid_mat.SSP3.rda filter=lfs diff=lfs merge=lfs -text
