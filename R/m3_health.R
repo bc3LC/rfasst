@@ -1053,7 +1053,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
     # Get baseline mortality rates
-    mort.rates.o3<-calc_mort_rates(downscale, agg_grid) %>%
+    mort.rates.o3<-calc_mort_rates(downscale = F, agg_grid = F) %>%
       dplyr::ungroup() %>%
       dplyr::filter(disease == "copd") %>%
       dplyr::select(-age) %>%
