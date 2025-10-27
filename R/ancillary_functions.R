@@ -1,3 +1,36 @@
+#' left_join_strict
+#'
+#' ADAPTED FROM GCAMREPORT (https://github.com/bc3LC/gcamreport)
+#' A restrictive version of \code{\link{left_join}} that ensures that all keys in the left dataset have corresponding matches in the right dataset.
+#' If any rows in the left dataset do not have matching keys in the right dataset, the function will throw an error.
+#'
+#' @param left_df A data frame. The left dataset in the join.
+#' @param right_df A data frame. The right dataset in the join.
+#' @param by A character vector of variables to join by. If `NULL`, the function will use all common variables.
+#' @return A data frame resulting from the left join. If any rows in `left_df` do not have matching keys in `right_df`, an error is thrown.
+#' @export
+left_join_strict <- function(left_df, right_df, by = NULL) {
+  # Perform the left join
+  result <- dplyr::left_join(left_df, right_df, by = by)
+
+  # Identify unmatched rows (rows with NA in any of the columns from right_df)
+  unmatched <- result %>%
+    dplyr::filter(dplyr::if_any(-one_of(names(left_df)), is.na))
+
+  # Check if there are any unmatched rows
+  if (nrow(unmatched) > 0) {
+    left_join_strict_details <- unique(unmatched %>%
+                                         dplyr::select(by))
+    left_join_strict_details <<- left_join_strict_details
+    stop(sprintf("Error: Some rows in the left dataset do not have matching keys in the right dataset. Type `left_join_strict_details` to see the full log.",
+                 paste(capture.output(print(left_join_strict_details)), collapse = "\n")))
+  }
+
+  return(result)
+}
+
+
+
 #' if_complex
 #'
 #' Do an if_else to assign data1 or data2 to a dataset

@@ -1077,7 +1077,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         gcamdata::left_join_error_no_match(pop.all, by = c("region","year")) %>%
         dplyr::mutate(pop_af = pop_tot * 1E6 ,
                       year = as.numeric(year)) %>%
-        gcamreport::left_join_strict(mort.rates.o3 %>%
+        left_join_strict(mort.rates.o3 %>%
                                        dplyr::filter(year >= 2010) %>%
                                        dplyr::rename(mr_resp = rate),
                                      by=c("region", "year", "disease")) %>%
