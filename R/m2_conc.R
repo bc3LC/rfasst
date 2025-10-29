@@ -398,6 +398,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       # If downscale = T, the function gives gridded outputs
       pm25.ctry_nuts3.list <- list()
       if(downscale == T){
+        if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
+
+
         rlang::inform('Downscaling PM25 ...')
 
         # Expand data to all countries

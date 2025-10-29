@@ -99,6 +99,30 @@ test_that("m2 calculates PM2.5 concentration. GCAM 8.2", {
 
 })
 
+test_that("m2 calculates PM2.5 downscaled concentration - NUTS3. GCAM 7.0", {
+
+  `%!in%` = Negate(`%in%`)
+
+  pm25_reg<-dplyr::bind_rows(m2_get_conc_pm25(db_path = NULL,
+                                              query_path="./inst/extdata",
+                                              db_name = NULL,
+                                              prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                                              scen_name = "Reference",
+                                              queries ="queries_rfasst.xml",
+                                              final_db_year = 2020,
+                                              saveOutput = F,
+                                              downscale = T,
+                                              agg_grid = 'NUTS3'))
+
+  regions_pm25<-as.numeric(length(unique((pm25_reg$region))))
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::ctry_nuts3_codes$NUTS3))))
+
+  testthat::expect_gt(regions_pm25,expectedResult)
+
+})
+
+
 test_that("m2 calculates O3 concentration", {
 
   `%!in%` = Negate(`%in%`)
