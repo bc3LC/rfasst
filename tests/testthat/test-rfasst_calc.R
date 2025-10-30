@@ -240,6 +240,43 @@ test_that("m3 calculates PM2.5-premature mortality", {
 
 })
 
+
+test_that("m3 calculates PM2.5 downscaled premature mortality - NUTS3. GCAM 7.0", {
+
+  `%!in%` = Negate(`%in%`)
+# TODO cont from here
+  pm25_mort_reg<-dplyr::bind_rows(m3_get_mort_pm25(db_path = NULL,
+                                                   query_path="./inst/extdata",
+                                                   db_name = NULL,
+                                                   prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
+                                                   scen_name = "Reference",
+                                                   queries ="queries_rfasst.xml",
+                                                   final_db_year = 2030,
+                                                   saveOutput = F,
+                                                   downscale = T,
+                                                   agg_grid = 'NUTS3'))
+
+  regions_pm25_mort<-as.numeric(length(unique(pm25_mort_reg$region)))
+
+  tmp_rfasst <- rfasst::ctry_nuts3_codes %>%
+    dplyr::mutate(NUTS3 = as.character(NUTS3)) %>%
+    dplyr::filter(nchar(NUTS3) > 3) %>%
+    dplyr::pull(NUTS3)
+
+  tmp_result <- pm25_mort_reg %>%
+    dplyr::mutate(region = as.character(region)) %>%
+    dplyr::filter(nchar(region) > 3) %>%
+    dplyr::pull(region)
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::ctry_nuts3_codes$NUTS3))))
+
+  expectedResult = as.numeric(length(unique(as.factor(rfasst::fasst_reg$fasst_region))))
+
+  testthat::expect_gt(as.numeric(length(unique(as.factor(tmp_rfasst)))),
+                      as.numeric(length(unique(as.factor(tmp_result)))))
+
+})
+
 test_that("m3 calculates O3-premature mortality", {
 
   `%!in%` = Negate(`%in%`)
