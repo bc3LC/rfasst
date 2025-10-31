@@ -1278,7 +1278,7 @@ raw.mort.rates.plus1 <- mort.rates.country %>%
 # 1. 5-year step rate fluctuation by rfasst region
 raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::distinct() %>%
-  gcamreport::left_join_strict(raw.mort.rates,
+  left_join_strict(raw.mort.rates,
                                by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%
@@ -1364,7 +1364,7 @@ raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
 # 1. 5-year step rate fluctuation by rfasst region
 raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::distinct() %>%
-  gcamreport::left_join_strict(raw.mort.rates,
+  left_join_strict(raw.mort.rates,
                                by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%
@@ -1475,7 +1475,7 @@ raw.mort.rates.ctry_ctry1 <- mort.rates.country %>%
 # 1. 5-year step rate fluctuation by rfasst region
 raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
   dplyr::distinct() %>%
-  gcamreport::left_join_strict(raw.mort.rates,
+  left_join_strict(raw.mort.rates,
                                by = c('disease', 'age')) %>%
   dplyr::group_by(region, age, disease) %>%
   dplyr::arrange(year, .by_group = TRUE) %>%

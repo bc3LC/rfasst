@@ -130,6 +130,7 @@ calc_daly_o3<-function(){
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param by_sex If set to T, the output is stored separately by sex ("Female", "Male", and "Both"). If set to F, (default), only the "Both" category is saved.
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @param normalize Adjust the output to represent the number of deaths per 100K people. By default = F
@@ -142,7 +143,7 @@ calc_daly_o3<-function(){
 
 m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
+                           ssp = "SSP2", saveOutput = T, map = F, anim = T, by_sex = F, recompute = F, gcam_eur = F,
                            normalize = F, downscale = F, saveRaster_grid = F, agg_grid = F, save_AggGrid = F){
 
   if (downscale && agg_grid == F) {
@@ -389,13 +390,22 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       lapply(split(m3_get_mort_pm25.output, pm.mort$year),pm.mort.write)
 
-      pm.mort.agg <- m3_get_mort_pm25.output %>%
-        dplyr::filter(sex == 'Both') %>%
-        dplyr::group_by(region, year, scenario) %>%
-        dplyr::summarise(FUSION = sum(FUSION),
-                         GBD = sum(GBD),
-                         GEMM = sum(GEMM)) %>%
-        dplyr::ungroup()
+      if (by_sex) {
+        pm.mort.agg <- m3_get_mort_pm25.output %>%
+          dplyr::group_by(region, year, scenario, sex) %>%
+          dplyr::summarise(FUSION = sum(FUSION),
+                           GBD = sum(GBD),
+                           GEMM = sum(GEMM)) %>%
+          dplyr::ungroup()
+      } else {
+        pm.mort.agg <- m3_get_mort_pm25.output %>%
+          dplyr::filter(sex == 'Both') %>%
+          dplyr::group_by(region, year, scenario) %>%
+          dplyr::summarise(FUSION = sum(FUSION),
+                           GBD = sum(GBD),
+                           GEMM = sum(GEMM)) %>%
+          dplyr::ungroup()
+      }
       lapply(split(pm.mort.agg, pm.mort.agg$year),pm.mort.agg.write)
 
     }
