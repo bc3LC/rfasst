@@ -3,7 +3,7 @@
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]--></head><body data-spy="scroll" data-target="#toc">
-    
+
 
     <div class="container template-reference-topic">
       <header><div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">rfasst</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.3.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.1.0</span>
       </span>
     </div>
 
@@ -25,15 +25,15 @@
       <ul class="nav navbar-nav"><li>
   <a href="../index.html">
     <span class="fa fa-home"></span>
-     
+
   </a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     <span class="fas fa-clipboard-list"></span>
-     
+
     Guides
-     
+
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
@@ -55,28 +55,28 @@
 <li>
   <a href="../reference/index.html">
     <span class="fa fa-file-code-o"></span>
-     
+
     Reference
   </a>
 </li>
 <li>
   <a href="../news/index.html">
     <span class="fa fa-newspaper-o"></span>
-     
+
     News
   </a>
 </li>
       </ul><ul class="nav navbar-nav navbar-right"><li>
   <a href="https://github.com/bc3LC/rfasst" class="external-link">
     <span class="fa fa-github fa-lg"></span>
-     
+
   </a>
 </li>
       </ul></div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
 
-      
+
 
       </header><div class="row">
   <div class="col-md-9 contents">
@@ -95,16 +95,16 @@
 <span>  db_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  query_path <span class="op">=</span> <span class="st">"./inst/extdata"</span>,</span>
 <span>  db_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  prj_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">prj_name</span>,</span>
 <span>  prj <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  rdata_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">scen_name</span>,</span>
 <span>  queries <span class="op">=</span> <span class="st">"queries_rfasst.xml"</span>,</span>
 <span>  final_db_year <span class="op">=</span> <span class="fl">2100</span>,</span>
 <span>  saveOutput <span class="op">=</span> <span class="cn">T</span>,</span>
 <span>  map <span class="op">=</span> <span class="cn">F</span>,</span>
 <span>  anim <span class="op">=</span> <span class="cn">T</span>,</span>
-<span>  recompute <span class="op">=</span> <span class="cn">F</span></span>
+<span>  recompute <span class="op">=</span> <span class="cn">F</span>,</span>
+<span>  gcam_eur <span class="op">=</span> <span class="cn">F</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -114,63 +114,63 @@
     </div>
     <div id="arguments">
     <h2>Arguments</h2>
-    <dl><dt>db_path</dt>
+
+
+<dl><dt id="arg-db-path">db_path<a class="anchor" aria-label="anchor" href="#arg-db-path"></a></dt>
 <dd><p>Path to the GCAM database</p></dd>
 
 
-<dt>query_path</dt>
+<dt id="arg-query-path">query_path<a class="anchor" aria-label="anchor" href="#arg-query-path"></a></dt>
 <dd><p>Path to the query file</p></dd>
 
 
-<dt>db_name</dt>
+<dt id="arg-db-name">db_name<a class="anchor" aria-label="anchor" href="#arg-db-name"></a></dt>
 <dd><p>Name of the GCAM database</p></dd>
 
 
-<dt>prj_name</dt>
+<dt id="arg-prj-name">prj_name<a class="anchor" aria-label="anchor" href="#arg-prj-name"></a></dt>
 <dd><p>Name of the rgcam project. This can be an existing project, or, if not, this will be the name</p></dd>
 
 
-<dt>prj</dt>
+<dt id="arg-prj">prj<a class="anchor" aria-label="anchor" href="#arg-prj"></a></dt>
 <dd><p>rgcam loaded project</p></dd>
 
 
-<dt>rdata_name</dt>
-<dd><p>Name of the RData file. It must contain the queries in a list</p></dd>
-
-
-<dt>scen_name</dt>
+<dt id="arg-scen-name">scen_name<a class="anchor" aria-label="anchor" href="#arg-scen-name"></a></dt>
 <dd><p>Vector names of the GCAM scenarios to be processed</p></dd>
 
 
-<dt>queries</dt>
+<dt id="arg-queries">queries<a class="anchor" aria-label="anchor" href="#arg-queries"></a></dt>
 <dd><p>Name of the GCAM query file. The file by default includes the queries required to run rfasst</p></dd>
 
 
-<dt>final_db_year</dt>
+<dt id="arg-final-db-year">final_db_year<a class="anchor" aria-label="anchor" href="#arg-final-db-year"></a></dt>
 <dd><p>Final year in the GCAM database (this allows to process databases with user-defined "stop periods")</p></dd>
 
 
-<dt>saveOutput</dt>
+<dt id="arg-saveoutput">saveOutput<a class="anchor" aria-label="anchor" href="#arg-saveoutput"></a></dt>
 <dd><p>Writes the emission files.By default=T</p></dd>
 
 
-<dt>map</dt>
+<dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
 <dd><p>Produce the maps. By default=F</p></dd>
 
 
-<dt>anim</dt>
+<dt id="arg-anim">anim<a class="anchor" aria-label="anchor" href="#arg-anim"></a></dt>
 <dd><p>If set to T, produces multi-year animations. By default=T</p></dd>
 
 
-<dt>recompute</dt>
+<dt id="arg-recompute">recompute<a class="anchor" aria-label="anchor" href="#arg-recompute"></a></dt>
 <dd><p>If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F</p></dd>
+
+
+<dt id="arg-gcam-eur">gcam_eur<a class="anchor" aria-label="anchor" href="#arg-gcam-eur"></a></dt>
+<dd><p>If set to T, considers the GCAM-Europe regions. By default=F</p></dd>
 
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    
-
-<p>Future agricultural price levels from GCAM for each GCAM region for all years ($1975/kg). The countries that form each GCAM region are listed in the documentation repository: https://github.com/JGCRI/gcam-doc/blob/gh-pages/overview.md The list of commodities within each category can be found in: Kyle, G.P., Luckow, P., Calvin, K.V., Emanuel, W.R., Nathan, M. and Zhou, Y., 2011. GCAM 3.0 agriculture and land use: data sources and methods (No. PNNL-21025). Pacific Northwest National Lab.(PNNL), Richland, WA (United States), and in Sampedro, J., Waldhoff, S.T., Van de Ven, D.J., Pardo, G., Van Dingenen, R., Arto, I., del Prado, A. and Sanz, M.J., 2020. Future impacts of ozone driven damages on agricultural systems. Atmospheric Environment, 231, p.117538, Table S2.</p>
+    <p>Future agricultural price levels from GCAM for each GCAM region for all years ($1975/kg). The countries that form each GCAM region are listed in the documentation repository: https://github.com/JGCRI/gcam-doc/blob/gh-pages/overview.md The list of commodities within each category can be found in: Kyle, G.P., Luckow, P., Calvin, K.V., Emanuel, W.R., Nathan, M. and Zhou, Y., 2011. GCAM 3.0 agriculture and land use: data sources and methods (No. PNNL-21025). Pacific Northwest National Lab.(PNNL), Richland, WA (United States), and in Sampedro, J., Waldhoff, S.T., Van de Ven, D.J., Pardo, G., Van Dingenen, R., Arto, I., del Prado, A. and Sanz, M.J., 2020. Future impacts of ozone driven damages on agricultural systems. Atmospheric Environment, 231, p.117538, Table S2.</p>
     </div>
 
   </div>
@@ -185,15 +185,15 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.9.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>
 
-  
 
 
-  
+
+
 
   </body></html>
 
