@@ -244,17 +244,18 @@ test_that("m3 calculates PM2.5-premature mortality", {
 test_that("m3 calculates PM2.5 downscaled premature mortality - NUTS3. GCAM 7.0", {
 
   `%!in%` = Negate(`%in%`)
-# TODO cont from here
+
   pm25_mort_reg<-dplyr::bind_rows(m3_get_mort_pm25(db_path = NULL,
                                                    query_path="./inst/extdata",
                                                    db_name = NULL,
                                                    prj_name = paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"),
                                                    scen_name = "Reference",
                                                    queries ="queries_rfasst.xml",
-                                                   final_db_year = 2030,
+                                                   final_db_year = 2020,
                                                    saveOutput = F,
                                                    downscale = T,
-                                                   agg_grid = 'NUTS3'))
+                                                   agg_grid = 'NUTS3',
+                                                   save_AggGrid = F))
 
   regions_pm25_mort<-as.numeric(length(unique(pm25_mort_reg$region)))
 
