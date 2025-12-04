@@ -77,7 +77,7 @@ m3_get_mort_grid_pm25<-function(db_path = NULL, query_path = "./inst/extdata", d
 
     # Reference pm grid
     extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
-    pm.grid_ref <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+    pm.grid_ref <- terra::rast("inst/extdata/pm25_weights_rast_rfasstReg.tif")
     pm.grid_ref <- terra::crop(pm.grid_ref, extent_raster)
 
     # Get baseline mortality rates (pop weighted) ------------------------------

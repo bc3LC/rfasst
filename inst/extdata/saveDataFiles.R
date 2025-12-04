@@ -1585,7 +1585,7 @@ terra::saveRDS(wrap(rast_country), "rast_country.rds")
 # rast_country <- rast(readRDS("rast_country.rds"))
 
 
-pm25_weights <- terra::rast("pm25_weights_rast.tif")
+pm25_weights <- terra::rast("pm25_weights_rast_rfasstReg.tif")
 terra::saveRDS(wrap(pm25_weights), "pm25_weights.rds")
 # To read:
 # pm25_weights <- rast(readRDS("pm25_weights.rds"))

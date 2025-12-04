@@ -98,7 +98,7 @@ The new release of rfasst (rfasst-v2.0) allows the user to get high-resolution (
 The gridded PM2.5 maps are based on a static downscaling approach, based on observed PM2.5 data from [Hammer et al 2020](https://sedac.ciesin.columbia.edu/data/set/sdei-global-annual-gwr-pm2-5-modis-misr-seawifs-aod-v4-gl-03).
 As indicated in their publication, this dataset includes "annual concentrations (micrograms per cubic meter) of all composition ground-level fine particulate matter (PM2.5). This data set combines "AOD retrievals from multiple satellite algorithms including the NASA MODerate resolution Imaging Spectroradiometer Collection 6.1 (MODIS C6.1), Multi-angle Imaging SpectroRadiometer Version 23 (MISRv23), MODIS Multi-Angle Implementation of Atmospheric Correction Collection 6 (MAIAC C6), and the Sea-Viewing Wide Field-of-View Sensor (SeaWiFS) Deep Blue Version 4."
 
-We use this data to compute static "grid-to-region" coefficients that are saved as a raster file and provided with the package (`pm25_weights_rast`).
+We use this data to compute static "grid-to-region" coefficients that are saved as a raster file and provided with the package (`pm25_weights_rast_rfasstReg`).
 
 Once the region-level PM2.5 concentration levels are calculated (using the `m2_get_conc_pm25` function), the obtained dataframe can be rasterized to a 0.01 x 0.01 resolution grid map.
 

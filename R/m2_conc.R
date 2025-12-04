@@ -416,7 +416,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
 
         # Load pm2.5 grid to country weights
-        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast_rfasstReg.tif")
 
         # Create a function
         generate_gridded_output <- function(df){

@@ -261,7 +261,7 @@ data_query = function(type, db_path, db_name, prj_name, scenarios,
 calc_pop_grid <- function(ssp = 'SSP2') {
   extent_raster <- terra::ext(-26.276, 40.215, 32.633, 71.141)
 
-  pm.pre <- terra::rast(paste0('inst/extdata/pm25_weights_rast.tif'))
+  pm.pre <- terra::rast(paste0('inst/extdata/pm25_weights_rast_rfasstReg.tif'))
   pm.pre <- terra::crop(pm.pre, extent_raster)
 
   pop.all.grid_mat <- list()

@@ -63,3 +63,4 @@ tmp_*
 /inst/extdata/High-resolution_Downscaling
 GBD_mat*.RData
 mort.rates_mat*.RData
+/docs
