@@ -7,9 +7,18 @@
 #' @importFrom magrittr %>%
 #' @export
 
-calc_mort_rates<-function(){
-  mort.rates <- raw.mort.rates %>%
-    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate))
+calc_mort_rates<-function(downscale = F, agg_grid = F){
+
+    if (downscale & agg_grid == 'NUTS3') {
+      mort.rates <- rfasst::raw.mort.rates.ctry_nuts3
+    } else if (downscale & agg_grid == 'CTRY') {
+      mort.rates <- rfasst::raw.mort.rates.ctry_ctry
+    } else {
+      mort.rates <- rfasst::raw.mort.rates.plus
+    }
+  mort.rates <- mort.rates %>%
+    dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate)) %>%
+    dplyr::mutate(age = dplyr::if_else(age == "All Ages", ">25", age))
 
   invisible(mort.rates)
 }
@@ -25,8 +34,6 @@ calc_mort_rates<-function(){
 #' @return DALY-to-Mortality ratios for TM5-FASST regions for all years and PM2.5-related causes (ALRI, COPD, LC, IHD, STROKE).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
 #' @importFrom magrittr %>%
 #' @export
-
-
 
 calc_daly_pm25<-function(){
 
@@ -72,7 +79,6 @@ calc_daly_pm25<-function(){
 #' @importFrom magrittr %>%
 #' @export
 
-
 calc_daly_o3<-function(){
 
   daly_calc_o3<-tibble::as_tibble(raw.daly) %>%
@@ -116,7 +122,6 @@ calc_daly_o3<-function(){
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -125,15 +130,30 @@ calc_daly_o3<-function(){
 #' @param ssp Set the ssp narrative associated to the GCAM scenario. c("SSP1","SSP2","SSP3","SSP4","SSP5"). By default is SSP2
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
+#' @param by_sex If set to T, the output is stored separately by sex ("Female", "Male", and "Both"). If set to F, (default), only the "Both" category is saved.
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
+#' @param normalize Adjust the output to represent the number of deaths per 100K people. By default = F
+#' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
+#' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available
+#' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+                           ssp = "SSP2", saveOutput = T, map = F, anim = T, by_sex = F, recompute = F, gcam_eur = F,
+                           normalize = F, downscale = F, saveRaster_grid = F, agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & exists('m3_get_mort_pm25.output')) {
+  if (downscale && agg_grid == F) {
+    m3_get_mort_grid_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries,
+                          final_db_year = final_db_year, recompute = recompute,
+                          map = map, anim = anim, gcam_eur = gcam_eur,
+                          downscale = downscale, saveRaster_grid = saveRaster_grid,
+                          agg_grid = agg_grid, save_AggGrid = save_AggGrid)
+    return(NULL)
+  } else if (!recompute & exists('m3_get_mort_pm25.output')) {
     return(m3_get_mort_pm25.output)
   } else {
 
@@ -145,8 +165,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -168,20 +186,30 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    # Get PM2.5
-    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries,
-                             saveOutput = F, final_db_year = final_db_year, recompute = recompute)
-    str(pm.pre)
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     rlang::inform('Computing premature deaths ...')
 
-
     # Get population with age groups
-    pop.all.str<-get(paste0('pop.all.str.',ssp))
+    pop.all.str <- get(
+      if (downscale & agg_grid == 'NUTS3') { paste0('pop.all.ctry_nuts3.str.', ssp)
+      } else if (downscale & agg_grid == 'CTRY') { paste0('pop.all.ctry_ctry.str.', ssp)
+      } else { paste0('pop.all.str.', ssp)
+      }, envir = asNamespace("rfasst")
+    )
     # Get baseline mortality rates
-    mort.rates<-calc_mort_rates() %>%
-      dplyr::mutate(age = dplyr::if_else(age == "All Ages", ">25", age))
+    mort.rates<-calc_mort_rates(downscale, agg_grid)
+
+    # Get PM2.5
+    pm.pre<-m2_get_conc_pm25(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                             final_db_year = final_db_year, recompute = recompute,
+                             map = map, anim = anim, gcam_eur = gcam_eur,
+                             downscale = downscale, saveRaster_grid = saveRaster_grid,
+                             agg_grid = agg_grid, save_AggGrid = save_AggGrid) %>%
+      dplyr::filter(region %in% unique(pop.all.str$region)) # only regions from which we have population data
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(as.numeric(as.character(unique(pm.pre$year)))))]
 
 
     # Get relative risk parameters
@@ -189,6 +217,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     GEMM <- raw.rr.gemm.param %>%
       rbind(c(">25", 0, 0, 0, 2.4, 0, "dm"))
 
+    # Mortality units
+    normalize_pm_mort <- dplyr::if_else(!normalize, 'pm_mort', 'pm_mort_norm_100k')
 
     m3_get_mort_pm25.output.list <- list()
     for (sc in scen_name) {
@@ -198,7 +228,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm<- tibble::as_tibble(pm.pre %>%
                                dplyr::filter(scenario == sc)) %>%
         gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','stroke'))) %>%
-        gcamdata::repeat_add_columns(tibble::tibble(age = unique(raw.rr.gbd.param$age))) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(age = unique(rfasst::raw.rr.gbd.param$age))) %>%
         dplyr::filter(year != ">25") %>%
         dplyr::bind_rows(tibble::as_tibble(pm.pre %>%
                                              dplyr::filter(scenario == sc)) %>%
@@ -222,7 +252,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         nu = as.numeric(nu),
                         cf_pm = as.numeric(cf_pm)
           ) %>%
-          dplyr::mutate(GEMM_rr =exp(theta * log(max(0, value - cf_pm)/ alpha + 1) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu)))) %>%
+          dplyr::mutate(GEMM_rr = dplyr::if_else(value - cf_pm <= 0, 0,
+                                                 exp(theta * log(max(0, value - cf_pm)/ (alpha + 1)) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu))))) %>%
           dplyr::select(-theta, -alpha, - mu, -nu, -cf_pm) %>%
           dplyr::rename(pm_conc = value)
 
@@ -230,32 +261,34 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       }
 
-      pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr))
+      pm.rr.pre<-dplyr::bind_rows(lapply(pm.list.dis,calc_rr)) %>%
+        dplyr::distinct()
 
       # The FUSION model needs age-groups, so the calculation is slightly different
       pm.rr.fusion <- pm.rr.pre %>%
-        dplyr::select(region, year, units, pm_conc, disease, age) %>%
+        dplyr::select(region, level, year, units, pm_conc, disease, age) %>%
         dplyr::mutate(z = round(pm_conc, 1)) %>%
-        #dplyr::left_join(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
-        gcamdata::left_join_error_no_match(raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
-        dplyr::select(region, year, units, pm_conc, disease, age, FUSION_rr = rr)
+        gcamdata::left_join_error_no_match(rfasst::raw.rr.fusion, by = c('disease', 'age', 'z')) %>%
+        dplyr::select(region, level, year, units, pm_conc, disease, age, FUSION_rr = rr)
 
       pm.rr <- pm.rr.pre %>%
         gcamdata::left_join_error_no_match(pm.rr.fusion,
-                                           by = c('region', 'year', 'units', 'pm_conc', 'disease', 'age'))
+                                           by = c('region', 'level', 'year', 'units', 'pm_conc', 'disease', 'age'))
 
 
       #------------------------------------------------------------------------------------
       #------------------------------------------------------------------------------------
       # First, adjust population
       pop_fin_str <- pop.all.str %>%
+        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
                       year = as.numeric(year)) %>%
         dplyr::select(-scenario, -unit, -value)
 
       pop_fin_allages <- pop.all.str %>%
-        dplyr::group_by(region, year) %>%
+        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
+        dplyr::group_by(region, year, sex) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
         dplyr::mutate(pop_1K = value * 1E3,
@@ -276,29 +309,43 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       pm.mort.str <- pm.mort.pre %>%
         dplyr::filter(disease %in% c("ihd", "stroke")) %>%
         dplyr::mutate(year = as.numeric(as.character(year))) %>%
-        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_str, by = c('region', 'year', 'age')) %>%
+        # add sex columns
+        tidyr::uncount(weights = 3) %>%
+        dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
+        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
+        dplyr::left_join(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
-                      mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+                      mort = round(mort, 0),
+                      mort = dplyr::if_else(is.na(mort), 0, mort)) %>%
+        dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
+        # adjust missing value for dm in the GEMM model
+        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0),
+                      pm_mort_norm_100k = dplyr::if_else(is.finite(pm_mort_norm_100k), pm_mort_norm_100k, 0)) %>%
+        dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
-                           values_from = pm_mort)
+                           values_from = !!rlang::sym(normalize_pm_mort))
 
       pm.mort.allages <- pm.mort.pre %>%
         dplyr::filter(disease %!in% c("ihd", "stroke")) %>%
         dplyr::mutate(year = as.numeric(as.character(year))) %>%
-        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age')) %>%
-        gcamdata::left_join_error_no_match(pop_fin_allages, by = c('region', 'year')) %>%
+        # add sex columns
+        tidyr::uncount(weights = 3) %>%
+        dplyr::mutate(sex = rep(unique(mort.rates$sex), length.out = dplyr::n())) %>%
+        gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
+        dplyr::left_join(pop_fin_allages, by = c('region', 'year', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0)) %>%
-        dplyr::select(region, year, age, disease, pm_mort = mort, rr) %>%
+        dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
+        dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
         # adjust missing value for dm in the GEMM model
-        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0)) %>%
+        dplyr::mutate(pm_mort = dplyr::if_else(is.finite(pm_mort), pm_mort, 0),
+                      pm_mort_norm_100k = dplyr::if_else(is.finite(pm_mort_norm_100k), pm_mort_norm_100k, 0)) %>%
+        dplyr::select(-one_of(setdiff(c('pm_mort', 'pm_mort_norm_100k'), normalize_pm_mort))) %>%
         tidyr::pivot_wider(names_from = rr,
-                           values_from = pm_mort)
-
+                           values_from = !!rlang::sym(normalize_pm_mort))
 
 
       pm.mort <- dplyr::bind_rows(pm.mort.allages,
@@ -310,7 +357,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       # Write results
 
       pm.mort<-pm.mort %>%
-        dplyr::mutate(scenario = sc)
+        dplyr::mutate(scenario = sc) %>%
+        dplyr::arrange(year,disease,region)
       m3_get_mort_pm25.output.list <- append(m3_get_mort_pm25.output.list, list(pm.mort))
 
     }
@@ -326,26 +374,38 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
 
+    normalize_tag <- dplyr::if_else(normalize, '_norm100k', '')
+
     pm.mort.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, "_", agg_grid, ".csv"), row.names = F)
     }
 
     pm.mort.agg.write<-function(df){
       df<-as.data.frame(df)
-      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year),".csv"), row.names = F)
+      write.csv(df,paste0("output/", "m3/", "PM25_MORT_AGG_", paste(scen_name, collapse = "-"), "_", unique(df$year), normalize_tag, "_", agg_grid, ".csv"), row.names = F)
     }
 
     if(saveOutput == T){
 
       lapply(split(m3_get_mort_pm25.output, pm.mort$year),pm.mort.write)
 
-      pm.mort.agg <- m3_get_mort_pm25.output %>%
-        dplyr::group_by(region, year, scenario) %>%
-        dplyr::summarise(FUSION = sum(FUSION),
-                         GBD = sum(GBD),
-                         GEMM = sum(GEMM)) %>%
-        dplyr::ungroup()
+      if (by_sex) {
+        pm.mort.agg <- m3_get_mort_pm25.output %>%
+          dplyr::group_by(region, year, scenario, sex) %>%
+          dplyr::summarise(FUSION = sum(FUSION),
+                           GBD = sum(GBD),
+                           GEMM = sum(GEMM)) %>%
+          dplyr::ungroup()
+      } else {
+        pm.mort.agg <- m3_get_mort_pm25.output %>%
+          dplyr::filter(sex == 'Both') %>%
+          dplyr::group_by(region, year, scenario) %>%
+          dplyr::summarise(FUSION = sum(FUSION),
+                           GBD = sum(GBD),
+                           GEMM = sum(GEMM)) %>%
+          dplyr::ungroup()
+      }
       lapply(split(pm.mort.agg, pm.mort.agg$year),pm.mort.agg.write)
 
     }
@@ -354,9 +414,10 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # If map=T, it produces a map with the calculated outcomes
 
-    if(map==T){
+    if(map && !downscale){
 
       pm.mort.agg <- m3_get_mort_pm25.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(FUSION = sum(FUSION),
                          GBD = sum(GBD),
@@ -373,18 +434,152 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       rmap::map(data = pm.mort.map,
                 shape = fasstSubset,
-                folder ="output/maps/m3/maps_pm25_mort",
+                folder = paste0("output/maps/m3/maps_pm25_mort/",normalize_tag),
                 ncol = 3,
                 legendType = "pretty",
                 background  = T,
                 animate = anim)
+    } else if(map && downscale && agg_grid == 'NUTS3'){
+      if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
+      if (!dir.exists("output/m3/pm25_gridded/agg_NUTS3")) dir.create("output/m3/pm25_gridded/agg_NUTS3")
+
+      # Global
+      m3_get_mort_pm25.output_sf <- as(rfasst::ctry_nuts_sf, "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
+
+      # Europe
+      m3_get_mort_pm25.output_EUR_sf <- as(rfasst::nuts_europe_sf, "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
+
+
+      for (y in unique(m3_get_mort_pm25.output$year)) {
+
+        # Global
+        plot_ctry_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_sf %>%
+                                            dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_WORLD-NUTS3_PM25mort_avg", normalize_tag, ".pdf"), plot_ctry_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+        # Europe
+        plot_eur_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_EUR_sf %>%
+                                           dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_NUTS3/", y, "_EUR-NUTS3_PM25mort_avg", normalize_tag, ".pdf"), plot_eur_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+
+      }
+      cat('Maps saved at output/m3/pm25_gridded/agg_NUTS3 \n')
+    } else if(map && downscale && agg_grid == 'CTRY'){
+      if (!dir.exists("output/m3/pm25_gridded")) dir.create("output/m3/pm25_gridded")
+      if (!dir.exists("output/m3/pm25_gridded/agg_CTRY")) dir.create("output/m3/pm25_gridded/agg_CTRY")
+
+      # Global
+      m3_get_mort_pm25.output_sf <- as(rfasst::ctry_nuts_sf, "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
+
+      # Europe
+      m3_get_mort_pm25.output_EUR_sf <- as(rfasst::ctry_nuts_sf %>%
+                                             dplyr::filter(region_type == 'CTRY'),
+                                           "SpatVector") %>%
+        dplyr::left_join(m3_get_mort_pm25.output %>%
+                           dplyr::group_by(region, year, scenario, sex) %>%
+                           dplyr::summarise(FUSION = sum(FUSION, na.rm = T),
+                                            GBD = sum(GBD, na.rm = T),
+                                            GEMM = sum(GEMM, na.rm = T)) %>%
+                           dplyr::ungroup() %>%
+                           dplyr::select(id_code = region, year, all_of(mort_param), sex, scenario) %>%
+                           dplyr::rename(value = all_of(mort_param)) %>%
+                           dplyr::mutate(units = "Mortalities",
+                                         year = as.numeric(as.character(year))) %>%
+                           tibble::as_tibble(),
+                         by = 'id_code') %>%
+        dplyr::filter(sex == 'Both')
+
+
+      for (y in unique(m3_get_mort_pm25.output$year)) {
+
+        # Global
+        plot_ctry_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_sf %>%
+                                            dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_CTRY/", y, "_WORLD-CTRY_PM25mort_avg", normalize_tag, ".pdf"), plot_ctry_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+        # Europe
+        plot_eur_nuts <- ggplot2::ggplot(data = m3_get_mort_pm25.output_EUR_sf %>%
+                                           dplyr::filter(year == y)) +
+          tidyterra::geom_spatvector(ggplot2::aes(fill = value), size = 0.1) +
+          ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+          ggplot2::theme_bw() +
+          ggplot2::theme(legend.title = ggplot2::element_blank())
+
+        ggplot2::ggsave(paste0(here::here(),"/output/m3/pm25_gridded/agg_CTRY/", y, "_EUR-CTRY_PM25mort_avg", normalize_tag, ".pdf"), plot_eur_nuts,
+                        width = 500, height = 400, units = 'mm')
+
+
+
+      }
+      cat('Maps saved at output/m3/pm25_gridded/agg_CTRY \n')
     }
+
 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Return output
-
     return(invisible(m3_get_mort_pm25.output))
 
   }
@@ -401,7 +596,6 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -411,12 +605,13 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+                          ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_yll_pm25.output')) {
     return(m3_get_yll_pm25.output)
@@ -430,8 +625,6 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -454,9 +647,11 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(pm.mort$year)))))]
 
 
     m3_get_yll_pm25.output.list <- list()
@@ -527,7 +722,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_pm25.output <<- dplyr::bind_rows(m3_get_yll_pm25.output.list)
+    m3_get_yll_pm25.output <- dplyr::bind_rows(m3_get_yll_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -615,7 +810,6 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -625,12 +819,13 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
-                           ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "GBD",
+                           ssp="SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
 
   if (!recompute & exists('m3_get_daly_pm25.output')) {
@@ -645,8 +840,6 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -672,9 +865,11 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     daly_calc_pm<-calc_daly_pm25()
 
     # Get pm.mort
-    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    pm.mort<-m3_get_mort_pm25(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                               queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
 
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(pm.mort$year)))))]
 
     m3_get_daly_pm25.output.list <- list()
     for (sc in scen_name) {
@@ -719,7 +914,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_pm25.output <<- dplyr::bind_rows(m3_get_daly_pm25.output.list)
+    m3_get_daly_pm25.output <- dplyr::bind_rows(m3_get_daly_pm25.output.list)
 
 
     #----------------------------------------------------------------------
@@ -807,7 +1002,6 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -817,12 +1011,13 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
-                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_mort_o3.output')) {
     return(m3_get_mort_o3.output)
@@ -836,8 +1031,6 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -860,12 +1053,16 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
     # Get M6M
-    m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    m6m <- m2_get_conc_m6m(db_path, query_path, db_name, prj_name, prj,  scen_name, queries, saveOutput = F,
+                           final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(m6m$year)))))]
 
     # Get population
     pop.all<-get(paste0('pop.all.',ssp))
     # Get baseline mortality rates
-    mort.rates.o3<-calc_mort_rates() %>%
+    mort.rates.o3<-calc_mort_rates(downscale = F, agg_grid = F) %>%
       dplyr::ungroup() %>%
       dplyr::filter(disease == "copd") %>%
       dplyr::select(-age) %>%
@@ -889,10 +1086,10 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         gcamdata::left_join_error_no_match(pop.all, by = c("region","year")) %>%
         dplyr::mutate(pop_af = pop_tot * 1E6 ,
                       year = as.numeric(year)) %>%
-        gcamdata::left_join_error_no_match(mort.rates.o3 %>%
-                                             dplyr::filter(year >= 2010) %>%
-                                             dplyr::rename(mr_resp = rate),
-                                           by=c("region", "year", "disease")) %>%
+        left_join_strict(mort.rates.o3 %>%
+                                       dplyr::filter(year >= 2010) %>%
+                                       dplyr::rename(mr_resp = rate),
+                                     by=c("region", "year", "disease")) %>%
         dplyr::mutate(adj_jer_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_Jerret2009_med / 100000),
                       adj_jer_med = dplyr::if_else(adj_jer_med < 0, 0, adj_jer_med),
                       mort_o3_jer_med = round(pop_af * mr_resp * adj_jer_med, 0),
@@ -914,7 +1111,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_mort_o3.output <<- dplyr::bind_rows(m3_get_mort_o3.output.list)
+    m3_get_mort_o3.output <- dplyr::bind_rows(m3_get_mort_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -975,7 +1172,6 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -985,12 +1181,13 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
-                        ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                        scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+                        ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m3_get_yll_o3.output')) {
     return(m3_get_yll_o3.output)
@@ -1003,8 +1200,6 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1027,8 +1222,11 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get pm.mort
-    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
+    o3.mort<-m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
                             queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_yll_o3.output.list <- list()
     for (sc in scen_name) {
@@ -1091,7 +1289,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_yll_o3.output <<- dplyr::bind_rows(m3_get_yll_o3.output.list)
+    m3_get_yll_o3.output <- dplyr::bind_rows(m3_get_yll_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1154,7 +1352,6 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1164,12 +1361,13 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
-                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F){
+m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100, mort_param = "Jerret2009",
+                         ssp = "SSP2", saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = G){
 
   if (!recompute & exists('m3_get_daly_o3.output')) {
     return(m3_get_daly_o3.output)
@@ -1183,8 +1381,6 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1210,8 +1406,11 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     daly_calc_o3<-calc_daly_o3()
 
     # Get pm.mort
-    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, rdata_name = rdata_name, query_path = query_path,
-                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    o3.mort <- m3_get_mort_o3(db_path = db_path, db_name = db_name, prj_name = prj_name, prj = prj, scen_name = scen_name, query_path = query_path,
+                            queries = queries, ssp = ssp, saveOutput = F, final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(o3.mort$year)))))]
 
     m3_get_daly_o3.output.list <- list()
     for (sc in scen_name) {
@@ -1257,7 +1456,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     # Bind the results
 
-    m3_get_daly_o3.output <<- dplyr::bind_rows(m3_get_daly_o3.output.list)
+    m3_get_daly_o3.output <- dplyr::bind_rows(m3_get_daly_o3.output.list)
 
 
     #----------------------------------------------------------------------

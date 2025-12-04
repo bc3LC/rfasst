@@ -2,13 +2,13 @@
 #'
 #' Produce fine particulate matter (PM2.5) concentration levels for TM5-FASST regions based on re-scaled emission pathways.
 #' @keywords module_2, concentration, PM2.5
-#' @return Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
+#' @return Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3). The dataset is aggregated at the grid level (0.01 x 0.01 km), NUTS3 level, or regional level.
+#' The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
 #' @param db_path Path to the GCAM database
 #' @param query_path Path to the query file
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -18,19 +18,20 @@
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
 #' @param downscale If set to T, produces gridded PM2.5 outputs and plots By default=F
 #' @param saveRaster_grid If set to T, writes the raster file with weighted PM25 By default=F
-#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available
+#' @param agg_grid Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available
 #' @param save_AggGrid If set to T, writes the raster file with the reaggregated PM25 By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F,
+m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F,
                            downscale = F, saveRaster_grid = F,
                            agg_grid = F, save_AggGrid = F){
 
-  if (!recompute & exists('m2_get_conc_pm25.output')) {
-    return(m2_get_conc_pm25.output)
+  if (!recompute & (exists('m2_get_conc_pm25.output'))) {
+      return(m2_get_conc_pm25.output)
   } else {
 
     #----------------------------------------------------------------------
@@ -38,17 +39,16 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     # Assert that the parameters of the function are okay
 
     if(saveRaster_grid == T) assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to save the raster grid')
-    if(identical(agg_grid, TRUE)) stop('Specify the downscaled PM25 aggretagion. Currently only `NUTS3` is allowed, i.e., `agg_grid = "NUTS3"`')
+    if(identical(agg_grid, TRUE)) stop('Specify the downscaled PM25 aggretagion. Currently only `NUTS3` and `CTRY` are allowed, i.e., set `agg_grid = "NUTS3"` or `agg_grid = "CTRY"`')
     if(agg_grid == "NUTS3") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to NUTS3')
-    if(save_AggGrid == T) assertthat::assert_that(agg_grid  == "NUTS3" & downscale == T,
-                                                  msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` to save the aggregated raster grid')
+    if(agg_grid == "CTRY") assertthat::assert_that(downscale == T, msg = 'Set `downscale` to TRUE to aggregate the downscaled PM2.5 to CTRY')
+    if(save_AggGrid == T) assertthat::assert_that(agg_grid %in% c("NUTS3","CTRY") & downscale == T,
+                                                  msg = 'Set `downscale` to TRUE and agg_grid to `NUTS3` or `CTRY` to save the aggregated raster grid')
     if(is.null(prj_name)) assertthat::assert_that(!is.null(prj), msg = 'Specify the project name or pass an uploaded project as parameter')
 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -70,7 +70,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -126,6 +130,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     m2_get_conc_pm25.output.list <- list()
     m2_nat_prim_sec_pm25.output.list <- NULL
+    m2_get_conc_pm25.ctry_agg.output.list <- list()
     for (sc in scen_name) {
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -159,7 +164,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::mutate(delta_em = replace(delta_em, is.nan(delta_em), 0),
                       delta_em = replace(delta_em, !is.finite(delta_em), 0)) %>%
         dplyr::mutate(region = gsub("AIR","Air",region),
-               region = gsub("SHIP","Ship",region))  %>%
+                      region = gsub("SHIP","Ship",region))  %>%
         #not consider air and ship as in delta_Em_SR in the excel
         dplyr::mutate(delta_em = dplyr::if_else(region %in% c("Air","Ship"),0,delta_em))
 
@@ -176,8 +181,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            tidyr::gather(receptor,value,-COUNTRY) %>%
                            dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(no3_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -200,11 +205,11 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         tidyr::gather(receptor,value,-COUNTRY) %>%
         dplyr::mutate(pollutant="NOX") %>%
         dplyr::bind_rows(so4_so2 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="SO2")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(so4_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -230,8 +235,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                            tidyr::gather(receptor,value,-COUNTRY) %>%
                            dplyr::mutate(pollutant="SO2")) %>%
         dplyr::bind_rows(nh4_nh3 %>%
-                          tidyr::gather(receptor,value,-COUNTRY) %>%
-                          dplyr::mutate(pollutant="NH3")) %>%
+                           tidyr::gather(receptor,value,-COUNTRY) %>%
+                           dplyr::mutate(pollutant="NH3")) %>%
         dplyr::rename(region=COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
@@ -391,23 +396,31 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
       # If downscale = T, the function gives gridded outputs
+      pm25.ctry_nuts3.list <- list()
       if(downscale == T){
+        if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
+
+
         rlang::inform('Downscaling PM25 ...')
 
         # Expand data to all countries
         pm25_agg_fin_grid <- pm25_agg_fin %>%
-        dplyr::filter(region != "RUE") %>%
+          dplyr::filter(region != "RUE") %>%
           dplyr::rename(n = 'region',
                         rfasst_pm25 = 'value') %>%
           dplyr::left_join(countries, by = "n", multiple = "all") %>%
           dplyr::select(-n) %>%
           dplyr::arrange(ISO3V10)
 
+        # Create a list with the outputs by year
+        pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
+
         # Load pm2.5 grid to country weights
-        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast.tif")
+        pm25_weights_rast <- terra::rast("inst/extdata/pm25_weights_rast_rfasstReg.tif")
 
         # Create a function
         generate_gridded_output <- function(df){
+          df = data.table::as.data.table(df)
 
           # Add iso and rasterize the output
           ssPDF_pm25_agg_fin_grid <- rworldmap::joinCountryData2Map(df, joinCode = "ISO3", nameJoinColumn = "ISO3V10", verbose = F)
@@ -415,9 +428,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
           # Rasterize the output
           out <- raster::rasterize(ssPDF_pm25_agg_fin_grid, out, field = 'rfasst_pm25')
-
-          # create a list with the outputs by year
-          pm25_agg_fin_grid.list <- split(pm25_agg_fin_grid, pm25_agg_fin_grid$year)
 
           # Compute calculations
           out_rast <- as(out, "SpatRaster")
@@ -431,155 +441,311 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
             if (!dir.exists("output/m2/pm25_gridded")) dir.create("output/m2/pm25_gridded")
 
-            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.png"))
+            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , sc, '_', unique(df$year),"_pm25_fin_weighted.png"))
             terra::plot(pm25_weighted, col = grDevices::terrain.colors(50))
             dev.off()
 
-            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_logpm25_fin_weighted.png"))
+            png(filename = paste0(here::here(),"/output/m2/pm25_gridded/" , sc, '_', unique(df$year),"_logpm25_fin_weighted.png"))
             terra::plot(pm25_weighted_log, col = grDevices::terrain.colors(50))
             dev.off()
 
+            cat('PM2.5 raster figure saved at output/m2/pm25_gridded')
           }
 
-          if(saveRaster_grid == T){
+          # if(saveRaster_grid == T){ # otherwise m3-grid will not work
 
-            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_pm25_fin_weighted.tif"))
+            if (!dir.exists("output/m2/pm25_gridded/raster_grid")) dir.create("output/m2/pm25_gridded/raster_grid")
 
-          }
+            terra::writeRaster(pm25_weighted, file = paste0(here::here(),"/output/m2/pm25_gridded/raster_grid/" , sc, '_', unique(df$year),"_pm25_fin_weighted.tif"),
+                               overwrite=TRUE)
+            cat('PM2.5 raster file saved at output/m2/pm25_gridded/raster_grid \n')
 
+          # }
+
+          agg_grid_df <- NULL
           if(agg_grid == "NUTS3"){
-            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
+            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...\n'))
+            if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3")) dir.create("output/m2/pm25_gridded/agg_NUTS3")
 
-            # Load NUTS-3 map
-            nuts3_sf<- sf::read_sf("inst/extdata/NUTS_RG_20M_2021_4326.shp") %>%
-              dplyr::filter(LEVL_CODE == 3) %>%
-              dplyr::filter(!NUTS_ID %in% c("FRY2", "FRY20", "FRY1", "FRY10", "FRY3", "FRY30", "FRY4", "FRY40", "FR5", "FRY50",
-                                     "PT2", "PT20", "PT3", "PT30", "PT300"))
+            ctry_nuts_sf <- rfasst::ctry_nuts_sf
 
-            nuts3_ext <- terra::ext(nuts3_sf)
+            ctry_nuts_ext <- terra::ext(ctry_nuts_sf)
 
             # Crop and mask PM25 to NUTS-3 extent
-            pm25_weighted_nuts3 <- terra::crop(pm25_weighted, nuts3_ext)
-            pm25_weighted_nuts3 <- terra::mask(pm25_weighted_nuts3, terra::vect(nuts3_sf))
+            pm25_weighted_nuts3 <- terra::crop(pm25_weighted, ctry_nuts_ext)
+            pm25_weighted_nuts3 <- terra::mask(pm25_weighted, terra::vect(ctry_nuts_ext))
 
-            nuts3 <- as(nuts3_sf, "SpatVector")
-
-            #terra::plot(pm25_weighted_nuts3)
-            #terra::plot(nuts3, add = TRUE)
+            ctry_nuts <- as(ctry_nuts_sf, "SpatVector")
 
             # Average raster values by polygon
-            nuts3$pm25_avg <- terra::extract(pm25_weighted_nuts3, nuts3, mean, na.rm = TRUE)$layer
+            ctry_nuts$pm25_avg <- terra::extract(pm25_weighted_nuts3, ctry_nuts, mean, na.rm = TRUE)$layer
 
             # Plot average raster values within polygons
             if(map) {
 
-              plot_nuts3 <- ggplot2::ggplot(data = nuts3) +
-                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg)) +
+              plot_ctry_nuts <- ggplot2::ggplot(data = ctry_nuts) +
+                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
                 ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
                 ggplot2::theme_bw() +
                 ggplot2::theme(legend.title = ggplot2::element_blank())
 
-              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.png"), plot_nuts3, device = "png")
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year),"_WORLD-NUTS3_pm25_avg.pdf"), plot_ctry_nuts,
+                              width = 500, height = 400, units = 'mm')
+
+              cat('PM2.5 raster map aggregated at NUTS3 level saved at output/m2/pm25_gridded/agg_NUTS3 \n')
 
             }
 
+            # Write df with NUTS3-average values
+            agg_grid_df <- as.data.frame(ctry_nuts) %>%
+              dplyr::mutate(year = unique(df$year)) %>%
+              # remove non accounted NUTS3
+              dplyr::filter(!is.na(pm25_avg))
+
+
             if(save_AggGrid == T){
 
-              # Write df with NUTS3-averagre values
-              nuts3_df <- as.data.frame(nuts3)
-              write.csv(nuts3_df, paste0(here::here(),"/output/m2/pm25_gridded/" , unique(df$year),"_NUTS3_pm25_avg.csv"), row.names =  F)
+              if (!dir.exists("output/m2/pm25_gridded/agg_NUTS3/raster_grid")) dir.create("output/m2/pm25_gridded/agg_NUTS3/raster_grid")
+
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/raster_grid/", sc, '_', unique(df$year), "_WORLD-NUTS3_pm25_avg.gpkg"),
+                                 overwrite=TRUE)
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year), "_WORLD-NUTS3_pm25_avg.csv"),
+                        row.names = F)
+
+            }
+
+            if(map) {
+
+              # Crop to the European region
+              toplot_nuts_europe <- ctry_nuts %>%
+                dplyr::filter(id_code %in% (rfasst::nuts_europe_sf %>%
+                                              dplyr::pull(id_code)))
+
+              plot_nuts3 <- tmap::tm_shape(ctry_nuts_sf,
+                                           projection = "EPSG:3035",
+                                           xlim = c(2400000, 6500000),
+                                           ylim = c(1320000, 5650000)
+              ) +
+                tmap::tm_fill("lightgrey") +
+                tmap::tm_shape(sf::st_as_sf(toplot_nuts_europe)) +
+                tmap::tm_polygons("pm25_avg",
+                                  title = paste("PM2.5 concentration,", unique(df$year)),
+                                  palette = "Oranges"
+                )
+
+              tmap::tmap_save(plot_nuts3, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_NUTS3/", sc, '_', unique(df$year),"_EUR-NUTS3_pm25_avg.pdf"),
+                              width = 500, height = 300, units = 'mm', dpi = 300)
+
+            }
+
+
+          } else if(agg_grid == "CTRY"){
+            rlang::inform(paste0('Aggregating downscale PM25 to ', agg_grid, ' ...'))
+            if (!dir.exists("output/m2/pm25_gridded/agg_CTRY")) dir.create("output/m2/pm25_gridded/agg_CTRY")
+
+            ctry_ctry_sf <- rfasst::ctry_nuts_sf %>%
+              dplyr::filter(region_type == 'CTRY')
+
+            ctry_ctry_ext <- terra::ext(ctry_ctry_sf)
+
+            # Crop and mask PM25 to NUTS-3 extent
+            pm25_weighted_ctry <- terra::crop(pm25_weighted, ctry_ctry_ext)
+            pm25_weighted_ctry <- terra::mask(pm25_weighted, terra::vect(ctry_ctry_ext))
+
+            ctry_nuts <- as(ctry_ctry_sf, "SpatVector")
+
+            # Average raster values by polygon
+            ctry_nuts$pm25_avg <- terra::extract(pm25_weighted_ctry, ctry_nuts, mean, na.rm = TRUE)$layer
+
+            # Plot average raster values within polygons
+            if(map) {
+
+              plot_ctry_nuts <- ggplot2::ggplot(data = ctry_nuts) +
+                tidyterra::geom_spatvector(ggplot2::aes(fill = pm25_avg), size = 0.1) +
+                ggplot2::scale_fill_distiller(palette = "OrRd", direction = 1) +
+                ggplot2::theme_bw() +
+                ggplot2::theme(legend.title = ggplot2::element_blank())
+
+              ggplot2::ggsave(paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year),"_WORLD-CTRY_pm25_avg.pdf"), plot_ctry_nuts,
+                              width = 500, height = 400, units = 'mm')
+
+            }
+
+            # Write df with CTRY-average values
+            agg_grid_df <- as.data.frame(ctry_nuts) %>%
+              dplyr::mutate(year = unique(df$year)) %>%
+              # remove non accounted CTRY
+              dplyr::filter(!is.na(pm25_avg))
+
+
+            if(save_AggGrid == T){
+
+              if (!dir.exists("output/m2/pm25_gridded/agg_CTRY/raster_grid")) dir.create("output/m2/pm25_gridded/agg_CTRY/raster_grid")
+
+              terra::writeVector(ctry_nuts, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/raster_grid/", sc, '_', unique(df$year), "_WORLD-CTRY_pm25_avg.gpkg"),
+                                 overwrite=TRUE)
+              write.csv(agg_grid_df, paste0(here::here(), "/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year), "_WORLD-CTRY_pm25_avg.csv"),
+                        row.names = F)
+
+            }
+
+            if(map) {
+
+              # Crop to the European region
+              toplot_ctry_europe <- ctry_nuts %>%
+                dplyr::filter(!id_code %in% (rfasst::nuts_europe_sf %>%
+                                               dplyr::pull(id_code)))
+
+              plot_ctry <- tmap::tm_shape(ctry_nuts_sf,
+                                           projection = "EPSG:3035",
+                                           xlim = c(2400000, 6500000),
+                                           ylim = c(1320000, 5650000)
+              ) +
+                tmap::tm_fill("lightgrey") +
+                tmap::tm_shape(sf::st_as_sf(toplot_ctry_europe)) +
+                tmap::tm_polygons("pm25_avg",
+                                  title = paste("PM2.5 concentration,", unique(df$year)),
+                                  palette = "Oranges"
+                )
+
+              tmap::tmap_save(plot_ctry, filename = paste0(here::here(),"/output/m2/pm25_gridded/agg_CTRY/", sc, '_', unique(df$year),"_EUR-CTRY_pm25_avg.pdf"),
+                              width = 500, height = 300, units = 'mm', dpi = 300)
 
             }
 
           }
 
-          return(invisible(pm25_weighted))
+          return(invisible(agg_grid_df))
         }
 
-        lapply(pm25_agg_fin_grid.list, generate_gridded_output)
+        pm25.ctry_nuts3.list = lapply(pm25_agg_fin_grid.list, generate_gridded_output)
 
       }
 
 
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
-      pm<-dplyr::bind_rows(pm25.agg.list) %>%
-        dplyr::mutate(scenario = sc)
-      m2_get_conc_pm25.output.list <- append(m2_get_conc_pm25.output.list, list(pm))
+      # Bind the results
+      if (!downscale || (downscale && agg_grid != F)) {
+        pm<-dplyr::bind_rows(pm25.agg.list) %>%
+          dplyr::mutate(scenario = sc)
+        m2_get_conc_pm25.output.list <- append(m2_get_conc_pm25.output.list, list(pm))
 
-      m2_nat_prim_sec_pm25.output.list <- rbind(m2_nat_prim_sec_pm25.output.list,
-                                                pm25_pr_sec_wide %>%
-                                                  dplyr::mutate(scenario = sc))
+        m2_nat_prim_sec_pm25.output.list <- rbind(m2_nat_prim_sec_pm25.output.list,
+                                                  pm25_pr_sec_wide %>%
+                                                    dplyr::mutate(scenario = sc))
 
+        if (length(pm25.ctry_nuts3.list) != 0) {
+          pm.ctry_nuts<-dplyr::bind_rows(pm25.ctry_nuts3.list) %>%
+            dplyr::mutate(scenario = sc)
+          m2_get_conc_pm25.ctry_agg.output.list <- append(m2_get_conc_pm25.ctry_agg.output.list, list(pm.ctry_nuts))
+          m2_get_conc_pm25.ctry_agg.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output.list) %>%
+            dplyr::mutate(units = "ug/m3") %>%
+            dplyr::select(region = id_code, year, units, value = pm25_avg, scenario)
+          m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.ctry_agg.output)
+        } else {
+          m2_get_conc_pm25.output <- dplyr::bind_rows(m2_get_conc_pm25.output.list)
+        }
+
+        #----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # If map=T, it produces a map with the calculated outcomes
+
+        if(map==T){
+
+          pm25.map<-m2_get_conc_pm25.output %>%
+            dplyr::rename(subRegion=region)%>%
+            dplyr::filter(subRegion != "RUE") %>%
+            dplyr::mutate(units="ug/m3",
+                          year=as.numeric(as.character(year)))
+
+          rmap::map(data = pm25.map,
+                    shape = fasstSubset,
+                    folder = "output/maps/m2/maps_pm2.5",
+                    legendType = "pretty",
+                    background  = T,
+                    animate = anim)
+
+        }
+
+        #----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
+
+        if(saveOutput==T) {
+          pm25.list<-split(m2_nat_prim_sec_pm25.output.list,m2_nat_prim_sec_pm25.output.list$year)
+
+          pm25.write<-function(df){
+            df<-as.data.frame(dplyr::bind_rows(df))
+            write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+          }
+
+          lapply(pm25.list,pm25.write)
+        }
+
+        #----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
+
+        if(saveOutput==T) {
+          pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
+
+          pm25.agg.write<-function(df){
+            df<-as.data.frame(dplyr::bind_rows(df))
+            write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
+          }
+
+          lapply(pm25.agg.list,pm25.agg.write)
+        }
+
+        #----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # If saveOutput=T,  writes aggregated PM2.5 values per CTRY-NUTS3 region
+
+        if(saveOutput==T & agg_grid != F) {
+          pm25.ctry_nuts.list <- split(
+            m2_get_conc_pm25.ctry_agg.output,
+            m2_get_conc_pm25.ctry_agg.output$year
+          )
+
+          # Function to write out dataframes, handling empty ones
+          pm25.ctry_nuts.write <- function(df, year_name) {
+            df <- as.data.frame(dplyr::bind_rows(df))
+
+            # if empty -> use list name; else use unique(df$year)
+            year_val <- if (nrow(df) == 0) {
+              year_name
+            } else {
+              as.character(unique(df$year))
+            }
+
+            out_file <- paste0("output/m2/PM2.5_WORLD-",agg_grid, "_",paste(scen_name, collapse = "-"), "_",year_val, ".csv")
+
+            write.csv(df, out_file, row.names = FALSE)
+          }
+
+          # Apply over list with names
+          mapply(pm25.ctry_nuts.write, pm25.ctry_nuts.list, names(pm25.ctry_nuts.list))
+        }
+
+        #----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # Return output
+        if (agg_grid != F) {
+          m2_get_conc_pm25.output <- m2_get_conc_pm25.ctry_agg.output %>%
+            dplyr::mutate(level = paste0('WORLD-',agg_grid))
+        } else {
+          m2_get_conc_pm25.output <- m2_get_conc_pm25.output %>%
+            dplyr::mutate(level = 'regions')
+        }
+    } else {
+      m2_get_conc_pm25.output <- NULL
+      cat("m2 return empty dataset. All gridded outputs are stored in the `output/m2/` folder.")
     }
-
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # Bind the results
-
-    m2_get_conc_pm25.output <<- dplyr::bind_rows(m2_get_conc_pm25.output.list)
-
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If map=T, it produces a map with the calculated outcomes
-
-    if(map==T){
-
-      pm25.map<-m2_get_conc_pm25.output %>%
-        dplyr::rename(subRegion=region)%>%
-        dplyr::filter(subRegion != "RUE") %>%
-        dplyr::mutate(units="ug/m3",
-                      year=as.numeric(as.character(year)))
-
-      rmap::map(data = pm25.map,
-                shape = fasstSubset,
-                folder = "output/maps/m2/maps_pm2.5",
-                legendType = "pretty",
-                background  = T,
-                animate = anim)
-
-    }
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If saveOutput=T,  writes average PM2.5 values per TM5-FASST region, using the "Primary, secondary and natural" disaggregation.
-
-    if(saveOutput==T) {
-      pm25.list<-split(m2_nat_prim_sec_pm25.output.list,m2_nat_prim_sec_pm25.output.list$year)
-
-      pm25.write<-function(df){
-        df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","NAT_PRIM_SEC_PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
-      }
-
-      lapply(pm25.list,pm25.write)
-    }
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # If saveOutput=T,  writes aggregated PM2.5 values per TM5-FASST region
-
-    if(saveOutput==T) {
-      pm25.agg.list<-split(m2_get_conc_pm25.output,m2_get_conc_pm25.output$year)
-
-      pm25.agg.write<-function(df){
-        df<-as.data.frame(dplyr::bind_rows(df))
-        write.csv(df,paste0("output/","m2/","PM2.5_",paste(scen_name, collapse = "-"),"_",unique(df$year),".csv"),row.names = F)
-      }
-
-      lapply(pm25.agg.list,pm25.agg.write)
-    }
-
-    #----------------------------------------------------------------------
-    #----------------------------------------------------------------------
-    # Return output
-
     return(invisible(m2_get_conc_pm25.output))
+    }
   }
-
- }
+}
 
 
 #' m2_get_conc_o3
@@ -592,7 +758,6 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -601,12 +766,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, ch4_o3 = T, map = F, anim = T, recompute = F){
+m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                         saveOutput = T, ch4_o3 = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_o3.output')) {
     return(m2_get_conc_o3.output)
@@ -619,8 +785,6 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -642,7 +806,11 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name = prj_name, prj = prj, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
@@ -718,9 +886,9 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(o3_so2 %>%
-                          dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(o3_nmvoc %>%
                            dplyr::filter(COUNTRY %!in% c("Ocean","EUR")) %>%
                            tidyr::gather(receptor, value, -COUNTRY) %>%
@@ -744,37 +912,37 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
 
       delta_o3_ch4<-tibble::as_tibble (o3_ch4) %>%
-       tidyr::gather(receptor, value, -COUNTRY) %>%
-       dplyr::mutate(pollutant = "CH4_HTAP") %>%
-       dplyr::rename(region = COUNTRY) %>%
-       dplyr::arrange(region) %>%
-       gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
-       dplyr::mutate(year = as.factor(as.character(year))) %>%
-       dplyr::filter(region %!in% c("Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
-       gcamdata::left_join_error_no_match(delta_em %>%
-                                            dplyr::filter(pollutant %in% c("CH4_HTAP")),
-                                          by = c("pollutant","year","region")) %>%
-       dplyr::mutate(delta_o3 = value * delta_em) %>%
-       dplyr::group_by(receptor, year) %>%
-       dplyr::summarise(delta_o3=sum(delta_o3)) %>%
-       dplyr::ungroup() %>%
-       dplyr::rename(region = receptor) %>%
-       dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
-       dplyr::rename(value = delta_o3) %>%
-       dplyr::mutate(pollutant = "O3")
+        tidyr::gather(receptor, value, -COUNTRY) %>%
+        dplyr::mutate(pollutant = "CH4_HTAP") %>%
+        dplyr::rename(region = COUNTRY) %>%
+        dplyr::arrange(region) %>%
+        gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
+        dplyr::mutate(year = as.factor(as.character(year))) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
+        gcamdata::left_join_error_no_match(delta_em %>%
+                                             dplyr::filter(pollutant %in% c("CH4_HTAP")),
+                                           by = c("pollutant","year","region")) %>%
+        dplyr::mutate(delta_o3 = value * delta_em) %>%
+        dplyr::group_by(receptor, year) %>%
+        dplyr::summarise(delta_o3=sum(delta_o3)) %>%
+        dplyr::ungroup() %>%
+        dplyr::rename(region = receptor) %>%
+        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR","ARCTIC_LAND","ARCTIC_SEA")) %>%
+        dplyr::rename(value = delta_o3) %>%
+        dplyr::mutate(pollutant = "O3")
       #----------------------------------------------------------------------
       if(ch4_o3==T){
 
-       delta_o3<-dplyr::bind_rows(delta_o3_noch4, delta_o3_ch4) %>%
-        dplyr::group_by(region, year, pollutant) %>%
-        dplyr::summarise(value = sum(value)) %>%
-        dplyr::ungroup()
+        delta_o3<-dplyr::bind_rows(delta_o3_noch4, delta_o3_ch4) %>%
+          dplyr::group_by(region, year, pollutant) %>%
+          dplyr::summarise(value = sum(value)) %>%
+          dplyr::ungroup()
 
-       } else {
+      } else {
 
-         delta_o3<-delta_o3_noch4
+        delta_o3<-delta_o3_noch4
 
-       }
+      }
 
 
       #----------------------------------------------------------------------
@@ -799,7 +967,7 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
     # Bind the results
-    m2_get_conc_o3.output <<- dplyr::bind_rows(m2_get_conc_o3.output.list)
+    m2_get_conc_o3.output <- dplyr::bind_rows(m2_get_conc_o3.output.list)
 
 
     #----------------------------------------------------------------------
@@ -858,7 +1026,6 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -866,12 +1033,13 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_m6m.output')) {
     return(m2_get_conc_m6m.output)
@@ -884,8 +1052,6 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -907,7 +1073,11 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,rdata_name,scen_name,queries,saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path,db_name,prj_name,prj,scen_name,queries,saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
     base_conc<-raw.base_conc %>%
@@ -1149,7 +1319,6 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1157,13 +1326,14 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
 
-m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                            rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                            saveOutput = T, map = F, anim = T, recompute = F){
+m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                            scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                            saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_aot40.output')) {
     return(m2_get_conc_aot40.output)
@@ -1177,8 +1347,6 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1200,7 +1368,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1293,11 +1465,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(wheat_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(wheat_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1349,11 +1521,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(rice_aot40_so2 %>%
-                            tidyr::gather(receptor, value, -COUNTRY) %>%
-                            dplyr::mutate(pollutant = "SO2",value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2",value = as.numeric(value))) %>%
         dplyr::bind_rows(rice_aot40_nmvoc %>%
-                            tidyr::gather(receptor, value, -COUNTRY) %>%
-                            dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1404,11 +1576,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(maize_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(maize_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1459,11 +1631,11 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(soy_aot40_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(soy_aot40_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1512,7 +1684,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
       delta_aot<-dplyr::bind_rows(delta_aot40_wheat, delta_aot40_rice, delta_aot40_maize, delta_aot40_soy)
       #----------------------------------------------------------------------
 
-        # AOT (base+delta)
+      # AOT (base+delta)
       aot<-tibble::as_tibble(delta_aot) %>%
         gcamdata::left_join_error_no_match(base_aot %>%
                                              dplyr::select(-year),
@@ -1532,7 +1704,7 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
         write.csv(df,paste0("output/","m2/","AOT40_",sc,"_",unique(df$year),".csv"),row.names = F)
       }
 
-        if(saveOutput == T){
+      if(saveOutput == T){
 
         lapply(aot.list,aot_write)
 
@@ -1552,22 +1724,22 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
         aot.map.list<-split(aot.map,aot.map$pollutant)
 
-       make.map.aot40<-function(df){
+        make.map.aot40<-function(df){
 
-         df<-df %>%
-           dplyr::rename(crop = pollutant) %>%
-           dplyr::mutate(crop = gsub("AOT_","",crop))
+          df<-df %>%
+            dplyr::rename(crop = pollutant) %>%
+            dplyr::mutate(crop = gsub("AOT_","",crop))
 
-         rmap::map(data = df,
-                  shape = fasstSubset,
-                  folder =paste0("output/maps/m2/maps_aot40/maps_aot40_",unique(df$crop)),
-                  legendType = "pretty",
-                  background  = T,
-                  animate = anim)
+          rmap::map(data = df,
+                    shape = fasstSubset,
+                    folder =paste0("output/maps/m2/maps_aot40/maps_aot40_",unique(df$crop)),
+                    legendType = "pretty",
+                    background  = T,
+                    animate = anim)
 
-       }
+        }
 
-       lapply(aot.map.list, make.map.aot40)
+        lapply(aot.map.list, make.map.aot40)
 
       }
       #----------------------------------------------------------------------
@@ -1602,7 +1774,6 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1610,12 +1781,13 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, map = F, anim = T, recompute = F){
+m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                         saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m2_get_conc_mi.output')) {
     return(m2_get_conc_mi.output)
@@ -1629,8 +1801,6 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1652,7 +1822,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, saveOutput = F, final_db_year = final_db_year, recompute = recompute)
+    em.list<-m1_emissions_rescale(db_path,query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+                                  final_db_year = final_db_year, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
 
@@ -1744,11 +1918,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(wheat_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(wheat_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1799,11 +1973,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(rice_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(rice_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1853,11 +2027,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(maize_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(maize_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%
@@ -1907,11 +2081,11 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         tidyr::gather(receptor, value, -COUNTRY) %>%
         dplyr::mutate(pollutant = "NOX") %>%
         dplyr::bind_rows(soy_mi_so2 %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "SO2", value = as.numeric(value))) %>%
         dplyr::bind_rows(soy_mi_nmvoc %>%
-                          tidyr::gather(receptor, value, -COUNTRY) %>%
-                          dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
+                           tidyr::gather(receptor, value, -COUNTRY) %>%
+                           dplyr::mutate(pollutant = "VOC", value = as.numeric(value))) %>%
         dplyr::rename(region = COUNTRY) %>%
         dplyr::arrange(region) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year = all_years)) %>%

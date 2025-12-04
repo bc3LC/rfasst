@@ -8,9 +8,8 @@ m2_get_conc_pm25(
   db_path = NULL,
   query_path = "./inst/extdata",
   db_name = NULL,
-  prj_name = NULL,
+  prj_name,
   prj = NULL,
-  rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
@@ -18,6 +17,7 @@ m2_get_conc_pm25(
   map = F,
   anim = T,
   recompute = F,
+  gcam_eur = F,
   downscale = F,
   saveRaster_grid = F,
   agg_grid = F,
@@ -35,8 +35,6 @@ m2_get_conc_pm25(
 
 \item{prj}{rgcam loaded project}
 
-\item{rdata_name}{Name of the RData file. It must contain the queries in a list}
-
 \item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
 \item{queries}{Name of the GCAM query file. The file by default includes the queries required to run rfasst}
@@ -51,16 +49,19 @@ m2_get_conc_pm25(
 
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
 
+\item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
+
 \item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
 
 \item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
 
-\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" available}
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available}
 
 \item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }
 \value{
-Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3).The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
+Particulate matter (PM2.5) concentration levels for each TM5-FASST regions for all years (ug/m3). The dataset is aggregated at the grid level (0.01 x 0.01 km), NUTS3 level, or regional level.
+The list of countries that form each region and the full name of the region can be found in Table S2.2 in the TM5-FASST documentation paper: Van Dingenen, R., Dentener, F., Crippa, M., Leitao, J., Marmer, E., Rao, S., Solazzo, E. and Valentini, L., 2018. TM5-FASST: a global atmospheric source-receptor model for rapid impact analysis of emission changes on air quality and short-lived climate pollutants. Atmospheric Chemistry and Physics, 18(21), pp.16173-16211.
 }
 \description{
 Produce fine particulate matter (PM2.5) concentration levels for TM5-FASST regions based on re-scaled emission pathways.

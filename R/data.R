@@ -53,6 +53,55 @@
 #' }
 "raw.gdp"
 
+
+#' GDP-SSP database
+#'
+#' @description Population data from Eurostat 2021 by NUTS0, NUTS1, NUTS2, and NUTS3.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.nuts.pop
+#' }
+"raw.nuts.pop"
+
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weights by each European country based on Eurostat data 2021.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop
+#' }
+"weight.nuts.pop"
+
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weights by each European country based on Eurostat data 2021 over F, M and T sex.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop.sex
+#' }
+"weight.nuts.pop.sex"
+
+#' GDP-SSP database
+#'
+#' @description NUTS3 population weight mean by age among all European countries based on Eurostat data 2021 over F, M and T sex.
+#' @source https://doi.org/10.2908/CENS_21AGR3
+#' @format .tsv.gz
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::weight.nuts.pop.nuts3
+#' }
+"weight.nuts.pop.nuts3"
+
 #'GDP-SSP database
 #'
 #' @description Filtered GDP data per SSP1 (SSP_database_v9.csv). To be consistent we make use of the IIASA Model/scenarios
@@ -112,6 +161,71 @@
 #'  rfasst::gdp_pc.SSP5
 #' }
 "gdp_pc.SSP5"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP1
+#' }
+"gdp_pc.ctry_nuts3.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP2
+#' }
+"gdp_pc.ctry_nuts3.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP3
+#' }
+"gdp_pc.ctry_nuts3.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP4 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP4
+#' }
+"gdp_pc.ctry_nuts3.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered GDP data per SSP5 (SSP_database_v9.csv).
+#' To be consistent we make use of the IIASA Model/scenarios. Data aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::gdp_pc.ctry_nuts3.SSP5
+#' }
+"gdp_pc.ctry_nuts3.SSP5"
 
 #'GDP-SSP database
 #'
@@ -235,6 +349,207 @@
 #' }
 "pop.all.SSP5"
 
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP1 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP1
+#' }
+"pop.all.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP2 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.SSP2
+#' }
+"pop.all.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP3 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP3
+#' }
+"pop.all.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP4 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP4
+#' }
+"pop.all.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex. To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.str.SSP5
+#' }
+"pop.all.str.SSP5"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP1
+#' }
+"pop.all.ctry_nuts3.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP2
+#' }
+"pop.all.ctry_nuts3.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP3
+#' }
+"pop.all.ctry_nuts3.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP4
+#' }
+"pop.all.ctry_nuts3.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at NUTS3 level when possible. Otherwise at ISO3 level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_nuts3.str.SSP5
+#' }
+"pop.all.ctry_nuts3.str.SSP5"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP1
+#' }
+"pop.all.ctry_ctry.str.SSP1"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP2
+#' }
+"pop.all.ctry_ctry.str.SSP2"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP3
+#' }
+"pop.all.ctry_ctry.str.SSP3"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP4
+#' }
+"pop.all.ctry_ctry.str.SSP4"
+
+#'GDP-SSP database
+#'
+#' @description Filtered Population data per SSP5 (SSP_database_v9.csv) by age and sex aggregated at CTRY level.
+#' To be consistent we make use of the IIASA Model/scenarios
+#' @source https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=welcome
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::pop.all.ctry_ctry.str.SSP5
+#' }
+"pop.all.ctry_ctry.str.SSP5"
+
+#'ctry_nuts3_codes
+#'
+#' @description A mapping table that links ISO2, ISO3, and NUTS3 codes. For regions outside Europe, the NUTS3 code corresponds to the ISO3 code.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::ctry_nuts3_codes
+#' }
+"ctry_nuts3_codes"
+
 #=========================================================
 # Module 2
 #=========================================================
@@ -298,6 +613,45 @@
 #'  rfasst::raw.base_mi
 #' }
 "raw.base_mi"
+
+#------------------------------------------------------------
+# COUNTRY-NUTS sf
+#------------------------------------------------------------
+#' ctry_nuts_sf
+#'
+#' @description sf object for the entire World containing the NUTS3 region code if avilable (Europe) or the country ISO3 code otherwise
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::ctry_nuts_sf
+#' }
+"ctry_nuts_sf"
+
+#' nuts_sf
+#'
+#' @description sf object for Europe containing the NUTS3 region code
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::nuts_sf
+#' }
+"nuts_sf"
+
+#' nuts_europe_sf
+#'
+#' @description sf object for Europe containing the NUTS3 region code of European continent regions (no overseas)
+#' @source Processing of territorial-units-statistics. Details in saveDataFiles.R
+#' @format sf
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::nuts_europe_sf
+#' }
+"nuts_europe_sf"
 
 #------------------------------------------------------------
 # PM2.5
@@ -990,6 +1344,42 @@
 #' }
 "raw.mort.rates"
 
+#' raw.mort.rates.plus
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.plus
+#' }
+"raw.mort.rates.plus"
+
+#' raw.mort.rates.ctry_nuts3
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex and NUTS3 when possible, CTRY otherwise.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.ctry_nuts3
+#' }
+"raw.mort.rates.ctry_nuts3"
+
+#' raw.mort.rates.ctry_ctry
+#'
+#' @description cause-specific baseline mortalities from stroke, ischemic heart disease (IHD), chronic obstructive pulmonary disease (COPD), acute lower respiratory illness diseases (ALRI), lung cancer (LC), and diabetes mellitus type II (dm) by age and sex and CTRY.
+#' @source TM5-FASST, Global Burden of Disease Study 2021 (GBD 2021) Results; Seattle, United States: Institute for Health Metrics and Evaluation (IHME), 2022.; Available from https://vizhub.healthdata.org/gbd-results/.
+#' @format .csv
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::raw.mort.rates.ctry_ctry
+#' }
+"raw.mort.rates.ctry_ctry"
+
 #' raw.rr.fusion
 #'
 #' @description  Relative risk of death attributable to a change in population-weighted mean pollutant concentration using the FUSION model. From Burnett, R.T., Spadaro, J.V., Garcia, G.R. and Pope, C.A., 2022. Designing health impact functions to assess marginal changes in outdoor fine particulate matter. Environmental Research, 204, p.112245.
@@ -1075,16 +1465,38 @@
 #' }
 "fasst_reg"
 
-#' GCAM_reg
+#' GCAM_reg_vlt8.2
 #'
-#' @description  Mapping of countries to GCAM regions
+#' @description  Mapping of countries to GCAM (version < 8.2) regions
 #' @source GCAM
 #' @examples
 #' \dontrun{
 #'  library(rfasst);
-#'  rfasst::GCAM_reg
+#'  rfasst::GCAM_reg_vlt8.2
 #' }
-"GCAM_reg"
+"GCAM_reg_vlt8.2"
+
+#' GCAM_reg_EUR
+#'
+#' @description  Mapping of countries to GCAM-Europe regions
+#' @source GCAM
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::GCAM_reg_EUR
+#' }
+"GCAM_reg_EUR"
+
+#' GCAM_reg_vgt8.2
+#'
+#' @description  Mapping of countries to GCAM (version >= 8.2) regions
+#' @source GCAM
+#' @examples
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::GCAM_reg_vgt8.2
+#' }
+"GCAM_reg_vgt8.2"
 
 #' country_iso
 #'
@@ -1108,9 +1520,9 @@
 "adj_rus"
 #'
 #'
-#' #' Percen
+#' Percen_vlt8.2
 #'
-#' @description  Percentages to downscale GCAM emissions to country-level
+#' @description  Percentages to downscale GCAM (version < 8.2) emissions to country-level
 #' @source For GHGs: European Commission, Joint Research Centre (EC-JRC)/Netherlands Environmental Assessment Agency (PBL) (EDGARv7.0_GHG website (https://edgar.jrc.ec.europa.eu/dataset_ghg70)).
 #' Emissions Database for Global Atmospheric Research (EDGAR), release EDGAR v7.0_GHG (1970 - 2021) of September 2022. For the energy related sectors the activity data are mainly based on IEA data from IEA (2021) World Energy Balances, www.iea.org/statistics,
 #' Crippa, M., Guizzardi, D., Banja, M., Solazzo, E., Muntean, M., Schaaf, E., Pagani, F., Monforti-Ferrario, F., Olivier, J., Quadrelli, R., Risquez Martin, A., Taghavi-Moharamli, P., Grassi, G., Rossi, S., Jacome Felix Oom, D., Branco, A., San-Miguel-Ayanz, J. and Vignati, E., CO2 emissions of all world countries - 2022 Report, EUR 31182 EN, Publications Office of the European Union, Luxembourg, 2022, doi:10.2760/730164, JRC130363
@@ -1120,11 +1532,47 @@
 #'
 #' \dontrun{
 #'  library(rfasst);
-#'  rfasst::Percen
+#'  rfasst::Percen_vlt8.2
 #' }
 #'
 #'
-"Percen"
+"Percen_vlt8.2"
+
+#' Percen_EUR
+#'
+#' @description  Percentages to downscale GCAM-Europe emissions to country-level
+#' @source For GHGs: European Commission, Joint Research Centre (EC-JRC)/Netherlands Environmental Assessment Agency (PBL) (EDGARv7.0_GHG website (https://edgar.jrc.ec.europa.eu/dataset_ghg70)).
+#' Emissions Database for Global Atmospheric Research (EDGAR), release EDGAR v7.0_GHG (1970 - 2021) of September 2022. For the energy related sectors the activity data are mainly based on IEA data from IEA (2021) World Energy Balances, www.iea.org/statistics,
+#' Crippa, M., Guizzardi, D., Banja, M., Solazzo, E., Muntean, M., Schaaf, E., Pagani, F., Monforti-Ferrario, F., Olivier, J., Quadrelli, R., Risquez Martin, A., Taghavi-Moharamli, P., Grassi, G., Rossi, S., Jacome Felix Oom, D., Branco, A., San-Miguel-Ayanz, J. and Vignati, E., CO2 emissions of all world countries - 2022 Report, EUR 31182 EN, Publications Office of the European Union, Luxembourg, 2022, doi:10.2760/730164, JRC130363
+#' Crippa, M., Guizzardi, D., Solazzo, E., Muntean, M., Schaaf, E., Monforti-Ferrario, F., Banja, M., Olivier, J.G.J., Grassi, G., Rossi, S., Vignati, E.,GHG emissions of all world countries - 2021 Report, EUR 30831 EN, Publications Office of the European Union, Luxembourg, 2021, ISBN 978-92-76-41547-3, doi:10.2760/173513, JRC126363
+#' For APs: https://zenodo.org/record/3754964#.Y3O_lXbMKUk (CEDS-GBD)
+#'
+#'
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Percen_EUR
+#' }
+#'
+#'
+"Percen_EUR"
+
+#' Percen_vgt8.2
+#'
+#' @description  Percentages to downscale GCAM (version >= 8.2) emissions to country-level
+#' @source For GHGs: European Commission, Joint Research Centre (EC-JRC)/Netherlands Environmental Assessment Agency (PBL) (EDGARv7.0_GHG website (https://edgar.jrc.ec.europa.eu/dataset_ghg70)).
+#' Emissions Database for Global Atmospheric Research (EDGAR), release EDGAR v7.0_GHG (1970 - 2021) of September 2022. For the energy related sectors the activity data are mainly based on IEA data from IEA (2021) World Energy Balances, www.iea.org/statistics,
+#' Crippa, M., Guizzardi, D., Banja, M., Solazzo, E., Muntean, M., Schaaf, E., Pagani, F., Monforti-Ferrario, F., Olivier, J., Quadrelli, R., Risquez Martin, A., Taghavi-Moharamli, P., Grassi, G., Rossi, S., Jacome Felix Oom, D., Branco, A., San-Miguel-Ayanz, J. and Vignati, E., CO2 emissions of all world countries - 2022 Report, EUR 31182 EN, Publications Office of the European Union, Luxembourg, 2022, doi:10.2760/730164, JRC130363
+#' Crippa, M., Guizzardi, D., Solazzo, E., Muntean, M., Schaaf, E., Monforti-Ferrario, F., Banja, M., Olivier, J.G.J., Grassi, G., Rossi, S., Vignati, E.,GHG emissions of all world countries - 2021 Report, EUR 30831 EN, Publications Office of the European Union, Luxembourg, 2021, ISBN 978-92-76-41547-3, doi:10.2760/173513, JRC126363
+#' For APs: https://zenodo.org/record/3754964#.Y3O_lXbMKUk (CEDS-GBD)
+#'
+#'
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Percen_vgt8.2
+#' }
+#'
+#'
+"Percen_vgt8.2"
 
 #' #' my_pol
 #'
@@ -1138,16 +1586,38 @@
 #'
 "my_pol"
 
-#' d.iso
+#' d.iso_vlt8.2
 #'
-#' @description  Countries to GCAM regions
+#' @description  Countries to GCAM (version < 8.2) regions
 #' \dontrun{
 #'  library(rfasst);
-#'  rfasst::d.iso
+#'  rfasst::d.iso_vlt8.2
 #' }
 #'
 #'
-"d.iso"
+"d.iso_vlt8.2"
+
+#' d.iso_EUR
+#'
+#' @description  Countries to GCAM-Europe regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.iso_EUR
+#' }
+#'
+#'
+"d.iso_EUR"
+
+#' d.iso_vgt8.2
+#'
+#' @description  Countries to GCAM (version >= 8.2) regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.iso_vgt8.2
+#' }
+#'
+#'
+"d.iso_vgt8.2"
 
 #' d.gcam.commod.o3
 #'
@@ -1173,28 +1643,74 @@
 #'
 "d.ha"
 
-#' Regions
+#' Regions_vlt8.2
 #'
-#' @description  Combined regions
+#' @description  Combined GCAM (version < 8.2)regions
 #' \dontrun{
 #'  library(rfasst);
-#'  rfasst::Regions
+#'  rfasst::Regions_vlt8.2
 #' }
 #'
 #'
-"Regions"
+"Regions_vlt8.2"
 
-#' d.weight.gcam
+#' Regions_EUR
 #'
-#' @description  O3 to GCAM commodities (based on their carbon fixation pathways; C3 and C4 categories)
+#' @description  Combined GCAM-Europe regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Regions_EUR
+#' }
+#'
+#'
+"Regions_EUR"
+
+#' Regions_vgt8.2
+#'
+#' @description  Combined GCAM (version >= 8.2) regions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::Regions_vgt8.2
+#' }
+#'
+#'
+"Regions_vgt8.2"
+
+#' d.weight.gcam_vlt8.2
+#'
+#' @description  O3 to GCAM (version < 8.2) commodities (based on their carbon fixation pathways; C3 and C4 categories)
 #' @source Own assumptions
 #' \dontrun{
 #'  library(rfasst);
-#'  rfasst::d.weight.gcam
+#'  rfasst::d.weight.gcam_vlt8.2
 #' }
 #'
 #'
-"d.weight.gcam"
+"d.weight.gcam_vlt8.2"
+
+#' d.weight.gcam_EUR
+#'
+#' @description  O3 to GCAM-Europe commodities (based on their carbon fixation pathways; C3 and C4 categories)
+#' @source Own assumptions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.weight.gcam_EUR
+#' }
+#'
+#'
+"d.weight.gcam_EUR"
+
+#' d.weight.gcam_vgt8.2
+#'
+#' @description  O3 to GCAM (version >= 8.2) commodities (based on their carbon fixation pathways; C3 and C4 categories)
+#' @source Own assumptions
+#' \dontrun{
+#'  library(rfasst);
+#'  rfasst::d.weight.gcam_vgt8.2
+#' }
+#'
+#'
+"d.weight.gcam_vgt8.2"
 
 #=========================================================
 # Constants

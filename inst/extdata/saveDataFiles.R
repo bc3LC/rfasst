@@ -180,10 +180,18 @@ fasst_reg<-read.csv("inst/extdata/mapping/fasst_reg.csv") %>%
 usethis::use_data(fasst_reg, overwrite = T)
 
 # Regions in GCAM - iso3
-GCAM_reg<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
+GCAM_reg_vlt8.2<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
   dplyr::rename(`ISO 3` = ISO.3,
                 `GCAM Region` = GCAM.Region)
-usethis::use_data(GCAM_reg, overwrite = T)
+usethis::use_data(GCAM_reg_vlt8.2, overwrite = T)
+GCAM_reg_EUR<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
+  dplyr::rename(`ISO 3` = ISO.3,
+                `GCAM Region` = GCAM.Region)
+usethis::use_data(GCAM_reg_EUR, overwrite = T)
+GCAM_reg_vgt8.2<-read.csv("inst/extdata/mapping/GCAM_Reg_Adj.csv") %>%
+  dplyr::rename(`ISO 3` = ISO.3,
+                `GCAM Region` = GCAM.Region)
+usethis::use_data(GCAM_reg_vgt8.2, overwrite = T)
 
 # Countries - iso3
 country_iso<-read.csv("inst/extdata/mapping/country_iso.csv") %>%
@@ -199,7 +207,7 @@ adj_rus<-read.csv("inst/extdata/mapping/Adj_Russia.csv") %>%
 usethis::use_data(adj_rus, overwrite = T)
 
 # Percentages to downscale GCAM emissions to country-level
-Percen_ap<-tibble::as_tibble(dplyr::bind_rows(
+Percen_ap_vlt8.2<-tibble::as_tibble(dplyr::bind_rows(
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_CO_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "CO"),
   read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NH3_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NH3"),
@@ -223,7 +231,7 @@ Percen_ap<-tibble::as_tibble(dplyr::bind_rows(
   dplyr::mutate(Percentage = value / value_reg)
 
 
-Percen_ghg<-tibble::as_tibble(dplyr::bind_rows(
+Percen_ghg_vlt8.2<-tibble::as_tibble(dplyr::bind_rows(
   read.csv("inst/extdata/mapping/CH4_1970_2021.csv", skip = 9),
   read.csv("inst/extdata/mapping/CO2_1970_2021.csv", skip = 9),
   read.csv("inst/extdata/mapping/N2O_1970_2021.csv", skip = 9))) %>%
@@ -244,7 +252,7 @@ Percen_ghg<-tibble::as_tibble(dplyr::bind_rows(
   dplyr::mutate(Percentage = value / value_reg)
 
 
-Percen<-dplyr::bind_rows(Percen_ap,Percen_ghg) %>%
+Percen_vlt8.2<-dplyr::bind_rows(Percen_ap_vlt8.2,Percen_ghg_vlt8.2) %>%
   dplyr::filter(year %in% c("2005", "2010", "2020")) %>%
   dplyr::select(-value, -value_reg) %>%
   tidyr::complete(tidyr::nesting(iso, country_name, GCAM_region_name, ghg), year = c(2005,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100)) %>%
@@ -257,7 +265,128 @@ Percen<-dplyr::bind_rows(Percen_ap,Percen_ghg) %>%
   dplyr::mutate(Pollutant = dplyr::if_else(Pollutant == "OC", "POM", as.character(Pollutant)),
                 Pollutant = as.factor(Pollutant),
                 year = as.factor(year))
-usethis::use_data(Percen, overwrite = T)
+usethis::use_data(Percen_vlt8.2, overwrite = T)
+
+Percen_ap_EUR<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_CO_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "CO"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NH3_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NH3"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NMVOC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NMVOC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NOx_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NOx"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_OC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "OC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_SO2_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "SO2"))) %>%
+  tidyr::gather(year, value, -Country_iso, -Sector, -ghg, -Fuel, -Unit) %>%
+  dplyr::mutate(year = as.numeric(gsub("X", "", year))) %>%
+  dplyr::group_by(Country_iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(iso = Country_iso) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_ghg_EUR<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CH4_1970_2021.csv", skip = 9),
+  read.csv("inst/extdata/mapping/CO2_1970_2021.csv", skip = 9),
+  read.csv("inst/extdata/mapping/N2O_1970_2021.csv", skip = 9))) %>%
+  tidyr::gather(year, value, -IPCC_annex, -C_group_IM24_sh, -Country_code_A3, -Name, -Substance) %>%
+  dplyr::mutate(year = as.numeric(gsub("Y_", "", year))) %>%
+  dplyr::select(iso = Country_code_A3, country_name = Name, ghg = Substance, year, value) %>%
+  dplyr::group_by(iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(iso = tolower(iso)) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_EUR<-dplyr::bind_rows(Percen_ap_EUR,Percen_ghg_EUR) %>%
+  dplyr::filter(year %in% c("2005", "2010", "2020")) %>%
+  dplyr::select(-value, -value_reg) %>%
+  tidyr::complete(tidyr::nesting(iso, country_name, GCAM_region_name, ghg), year = c(2005,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100)) %>%
+  dplyr::group_by(iso, country_name, ghg) %>%
+  dplyr::mutate(Percentage = dplyr::if_else(is.na(Percentage), gcamdata::approx_fun(year, Percentage, rule = 2), Percentage)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(country_name = toupper(country_name),
+                iso = toupper(iso)) %>%
+  dplyr::select(`GCAM Region` = GCAM_region_name, Country = country_name, `ISO 3` = iso, Pollutant = ghg, year, Percentage) %>%
+  dplyr::mutate(Pollutant = dplyr::if_else(Pollutant == "OC", "POM", as.character(Pollutant)),
+                Pollutant = as.factor(Pollutant),
+                year = as.factor(year))
+usethis::use_data(Percen_EUR, overwrite = T)
+
+Percen_ap_vgt8.2<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_BC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "BC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_CO_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "CO"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NH3_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NH3"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NMVOC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NMVOC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_NOx_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "NOx"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_OC_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "OC"),
+  read.csv("inst/extdata/mapping/CEDS_GBD-MAPS_SO2_global_emissions_by_country_sector_fuel_2020_v1.csv") %>% dplyr::mutate(ghg = "SO2"))) %>%
+  tidyr::gather(year, value, -Country_iso, -Sector, -ghg, -Fuel, -Unit) %>%
+  dplyr::mutate(year = as.numeric(gsub("X", "", year))) %>%
+  dplyr::group_by(Country_iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(iso = Country_iso) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_ghg_vgt8.2<-tibble::as_tibble(dplyr::bind_rows(
+  read.csv("inst/extdata/mapping/CH4_1970-2021.csv"),
+  read.csv("inst/extdata/mapping/CO2_1970-2021.csv"),
+  read.csv("inst/extdata/mapping/N2O_1970-2021.csv"))) %>%
+  tidyr::gather(year, value, -IPCC_annex, -C_group_IM24_sh, -Country_code_A3, -Name, -Substance,
+                -ipcc_code_2006_for_standard_report, -ipcc_code_2006_for_standard_report_name, -fossil_bio) %>%
+  dplyr::mutate(year = as.numeric(gsub("Y_", "", year))) %>%
+  dplyr::select(iso = Country_code_A3, country_name = Name, ghg = Substance, year, value) %>%
+  dplyr::group_by(iso, ghg, year) %>%
+  dplyr::summarise(value = sum(value, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(iso = tolower(iso)) %>%
+  dplyr::left_join(read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv") %>%
+                     dplyr::select(iso, GCAM_region_name, country_name)
+                   , by = "iso") %>%
+  dplyr::filter(complete.cases(.)) %>%
+  dplyr::group_by(GCAM_region_name, ghg, year) %>%
+  dplyr::mutate(value_reg = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(Percentage = value / value_reg)
+
+
+Percen_vgt8.2<-dplyr::bind_rows(Percen_ap_vgt8.2,Percen_ghg_vgt8.2) %>%
+  dplyr::filter(year %in% c("2005", "2010", "2020")) %>%
+  dplyr::select(-value, -value_reg) %>%
+  tidyr::complete(tidyr::nesting(iso, country_name, GCAM_region_name, ghg), year = c(2005,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100)) %>%
+  dplyr::group_by(iso, country_name, ghg) %>%
+  dplyr::mutate(Percentage = dplyr::if_else(is.na(Percentage), gcamdata::approx_fun(year, Percentage, rule = 2), Percentage)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(country_name = toupper(country_name),
+                iso = toupper(iso)) %>%
+  dplyr::select(`GCAM Region` = GCAM_region_name, Country = country_name, `ISO 3` = iso, Pollutant = ghg, year, Percentage) %>%
+  dplyr::mutate(Pollutant = dplyr::if_else(Pollutant == "OC", "POM", as.character(Pollutant)),
+                Pollutant = as.factor(Pollutant),
+                year = as.factor(year))
+usethis::use_data(Percen_vgt8.2, overwrite = T)
 
 
 my_pol<- read.csv("inst/extdata/mapping/Pol_Adj.csv")
@@ -265,8 +394,14 @@ usethis::use_data(my_pol, overwrite = T)
 
 
 # Countries to GCAM regions
-d.iso <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name.csv")
-usethis::use_data(d.iso, overwrite = T)
+d.iso_vlt8.2 <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name.csv")
+usethis::use_data(d.iso_vlt8.2, overwrite = T)
+
+d.iso_EUR <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv")
+usethis::use_data(d.iso_EUR, overwrite = T)
+
+d.iso_vgt8.2 <- read.csv("inst/extdata/mapping/iso_GCAM_regID_name_8.2.csv")
+usethis::use_data(d.iso_vgt8.2, overwrite = T)
 
 
 # O3 to GCAM commodities (based on their carbon fixation pathways; C3 and C4 categories)
@@ -278,18 +413,39 @@ d.ha <- read.csv("inst/extdata/mapping/area_harvest.csv")
 usethis::use_data(d.ha, overwrite = T)
 
 # Combined regions:
-Regions<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
-                          , GCAM_reg, by="ISO 3") %>%
+Regions_vlt8.2<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                          , GCAM_reg_vlt8.2, by="ISO 3") %>%
   dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
   dplyr::select(-`ISO 3`) %>%
   dplyr::rename(COUNTRY = Country)
-usethis::use_data(Regions, overwrite = T)
+usethis::use_data(Regions_vlt8.2, overwrite = T)
+
+Regions_EUR<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                              , GCAM_reg_EUR, by="ISO 3") %>%
+  dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
+  dplyr::select(-`ISO 3`) %>%
+  dplyr::rename(COUNTRY = Country)
+usethis::use_data(Regions_EUR, overwrite = T)
+
+Regions_ctry_NUTS3<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                                     , GCAM_reg_EUR, by="ISO 3") %>%
+  dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
+  dplyr::select(-`ISO 3`) %>%
+  dplyr::rename(COUNTRY = Country)
+usethis::use_data(Regions_ctry_NUTS3, overwrite = T)
+
+Regions_vgt8.2<-dplyr::left_join(fasst_reg %>% dplyr::rename(`ISO 3` = subRegionAlt, `FASST region` = fasst_region)
+                              , GCAM_reg_vgt8.2, by="ISO 3") %>%
+  dplyr::mutate(ISO3 = as.factor(`ISO 3`)) %>%
+  dplyr::select(-`ISO 3`) %>%
+  dplyr::rename(COUNTRY = Country)
+usethis::use_data(Regions_vgt8.2, overwrite = T)
 
 
 # Weights for O3 crops
-d.weight.gcam <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
+d.weight.gcam_vlt8.2 <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
   dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
-  dplyr::full_join(d.iso, by = "iso") %>%
+  dplyr::full_join(d.iso_vlt8.2, by = "iso") %>%
   dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
   dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
   dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
@@ -298,7 +454,33 @@ d.weight.gcam <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harve
   dplyr::ungroup() %>%
   dplyr::select(-harvested.area) %>%
   dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
-usethis::use_data(d.weight.gcam, overwrite = T)
+usethis::use_data(d.weight.gcam_vlt8.2, overwrite = T)
+
+d.weight.gcam_EUR <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
+  dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
+  dplyr::full_join(d.iso_EUR, by = "iso") %>%
+  dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
+  dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
+  dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
+  dplyr::summarise(harvested.area = sum(harvested.area, na.rm = T)) %>%
+  dplyr::mutate(weight = harvested.area / (sum(harvested.area, na.rm = T))) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-harvested.area) %>%
+  dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
+usethis::use_data(d.weight.gcam_EUR, overwrite = T)
+
+d.weight.gcam_vgt8.2 <- dplyr::select(d.ha, crop, iso, harvested.area) %>% # Need harvested areas for each crop in each region
+  dplyr::full_join(d.gcam.commod.o3, by = "crop") %>%
+  dplyr::full_join(d.iso_vgt8.2, by = "iso") %>%
+  dplyr::filter(!is.na(GCAM_commod), !is.na(harvested.area)) %>%
+  dplyr::group_by(GCAM_region_name, GCAM_commod, crop) %>%
+  dplyr::select(GCAM_region_name, GCAM_commod, crop, harvested.area) %>%
+  dplyr::summarise(harvested.area = sum(harvested.area, na.rm = T)) %>%
+  dplyr::mutate(weight = harvested.area / (sum(harvested.area, na.rm = T))) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-harvested.area) %>%
+  dplyr::arrange(GCAM_region_name, GCAM_commod, crop)
+usethis::use_data(d.weight.gcam_vgt8.2, overwrite = T)
 
 # Shape subset for maps
 fasstSubset <- rmap::mapCountries
@@ -328,6 +510,68 @@ usethis::use_data(raw.twn.pop, overwrite = T)
 raw.gdp = read.csv(paste0(rawDataFolder_ancillary,"iiasa_GDP_SSP.csv"))
 usethis::use_data(raw.gdp, overwrite = T)
 
+# raw NUTS 2019 pop
+NUTS_2021_2016 <- xlsx::read.xlsx('inst/extdata/NUTS2021.xlsx', sheetName = 'Changes detailed NUTS 2016-2021') %>%
+  dplyr::select(NUTS2016 = Code.2016, NUTS2021 = Code.2021) %>%
+  dplyr::distinct()
+
+raw.nuts.pop <- eurostat::get_eurostat('demo_r_pjangrp3') %>%
+  dplyr::mutate(year = as.numeric(as.character(substr(TIME_PERIOD, 1, 4)))) %>%
+  dplyr::filter(year == 2019, #last year UK values
+                age != 'UNK', #avoid incomplete data (only Macedonia reported some UNK (<33 people))
+                !grepl('XXX',geo),  #avoid non-matching NUTS3
+                nchar(geo) == 5) %>% #consider only NUTS3 codes
+  # modify the nuts3 codes for UK, EE, and IT NUTS3 regions
+  dplyr::left_join(NUTS_2021_2016 %>%
+                     dplyr::rename('geo' = 'NUTS2016'),
+                   by = 'geo') %>%
+  dplyr::mutate(geo = dplyr::if_else(grepl('UK', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021,
+                                     dplyr::if_else(grepl('EE', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021,
+                                                    dplyr::if_else(grepl('IT', geo) & nchar(geo) == 5 & !is.na(NUTS2021), NUTS2021, geo)))) %>%
+  dplyr::select(unit, sex, age, geo, year, value = values) %>%
+  unique() %>%
+  # compute 0-4, GE85 ages
+  tidyr::pivot_wider(names_from = age, values_from = value) %>%
+  dplyr::rename(`Y0-4` = `Y_LT5`,
+                `Y90-94` = `Y_GE90`) %>% # assume all people GE90 has LT95
+  dplyr::mutate(`Y85-89` = dplyr::if_else(!is.na(`Y_GE85`) & is.na(`Y85-89`), `Y_GE85`, `Y85-89`)) %>% # only ALBANIA case
+  dplyr::mutate(`Y90-94` = dplyr::if_else(is.na(`Y90-94`), 0, `Y90-94`)) %>% # only ALBANIA case
+  dplyr::mutate(`Y+95` = dplyr::if_else(!is.na(`Y_GE85`) & !is.na(`Y85-89`) & !is.na(`Y90-94`),
+                                        `Y_GE85` - `Y90-94` - `Y85-89`,
+                                        0)) %>%
+  dplyr::select(-`Y_GE85`) %>%
+  tidyr::pivot_longer(cols = c("TOTAL", "Y0-4", "Y5-9", "Y10-14", "Y15-19",
+                               "Y20-24", "Y25-29", "Y30-34", "Y35-39",
+                               "Y40-44", "Y45-49", "Y50-54", "Y55-59",
+                               "Y60-64", "Y65-69", "Y70-74", "Y75-79",
+                               "Y80-84", "Y85-89", "Y90-94", "Y+95"),
+                      names_to = 'age', values_to = 'value')
+usethis::use_data(raw.nuts.pop, overwrite = T)
+
+# weights by NUTS3 for each country and sex-age
+weight.nuts.pop.sex <- raw.nuts.pop %>%
+  dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
+  dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
+  dplyr::filter(NUTS_LEVEL == 3) %>%
+  dplyr::group_by(sex, age, unit, NUTS_LEVEL, NUTS0) %>%
+  dplyr::mutate(value_nuts0 = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(weight = value / value_nuts0) %>%
+  dplyr::select(NUTS0, geo, NUTS_LEVEL, age, sex, weight)
+usethis::use_data(weight.nuts.pop.sex, overwrite = T)
+
+# weights by NUTS3 for each country
+weight.nuts.pop.nuts3 <- raw.nuts.pop %>%
+  dplyr::mutate(NUTS_LEVEL = nchar(geo)-2) %>%
+  dplyr::mutate(NUTS0 = stringr::str_sub(geo, 1, 2)) %>%
+  dplyr::filter(NUTS_LEVEL == 3, age == 'TOTAL', sex == 'T') %>%
+  dplyr::group_by(NUTS0) %>%
+  dplyr::mutate(value_T = sum(value)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(weight = value / value_T) %>%
+  dplyr::select(geo, weight)
+usethis::use_data(weight.nuts.pop.nuts3, overwrite = T)
+
 # ssp population
 pop.all.SSP1 = calc_pop(ssp = 'SSP1')
 usethis::use_data(pop.all.SSP1, overwrite = T)
@@ -340,17 +584,75 @@ usethis::use_data(pop.all.SSP4, overwrite = T)
 pop.all.SSP5 = calc_pop(ssp = 'SSP5')
 usethis::use_data(pop.all.SSP5, overwrite = T)
 
+pop.all.str.SSP1 = calc_pop_rfasst_reg_str(ssp = 'SSP1')
+usethis::use_data(pop.all.str.SSP1, overwrite = T)
+pop.all.str.SSP2 = calc_pop_rfasst_reg_str(ssp = 'SSP2')
+usethis::use_data(pop.all.str.SSP2, overwrite = T)
+pop.all.str.SSP3 = calc_pop_rfasst_reg_str(ssp = 'SSP3')
+usethis::use_data(pop.all.str.SSP3, overwrite = T)
+pop.all.str.SSP4 = calc_pop_rfasst_reg_str(ssp = 'SSP4')
+usethis::use_data(pop.all.str.SSP4, overwrite = T)
+pop.all.str.SSP5 = calc_pop_rfasst_reg_str(ssp = 'SSP5')
+usethis::use_data(pop.all.str.SSP5, overwrite = T)
+
+pop.all.ctry_nuts3.str.SSP1 = calc_pop_ctry_nuts3_str(ssp = 'SSP1')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP1, overwrite = T)
+pop.all.ctry_nuts3.str.SSP2 = calc_pop_ctry_nuts3_str(ssp = 'SSP2')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP2, overwrite = T)
+pop.all.ctry_nuts3.str.SSP3 = calc_pop_ctry_nuts3_str(ssp = 'SSP3')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP3, overwrite = T)
+pop.all.ctry_nuts3.str.SSP4 = calc_pop_ctry_nuts3_str(ssp = 'SSP4')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP4, overwrite = T)
+pop.all.ctry_nuts3.str.SSP5 = calc_pop_ctry_nuts3_str(ssp = 'SSP5')
+usethis::use_data(pop.all.ctry_nuts3.str.SSP5, overwrite = T)
+
+pop.all.ctry_ctry.str.SSP1 = calc_pop_ctry_ctry_str(ssp = 'SSP1')
+usethis::use_data(pop.all.ctry_ctry.str.SSP1, overwrite = T)
+pop.all.ctry_ctry.str.SSP2 = calc_pop_ctry_ctry_str(ssp = 'SSP2')
+usethis::use_data(pop.all.ctry_ctry.str.SSP2, overwrite = T)
+pop.all.ctry_ctry.str.SSP3 = calc_pop_ctry_ctry_str(ssp = 'SSP3')
+usethis::use_data(pop.all.ctry_ctry.str.SSP3, overwrite = T)
+pop.all.ctry_ctry.str.SSP4 = calc_pop_ctry_ctry_str(ssp = 'SSP4')
+usethis::use_data(pop.all.ctry_ctry.str.SSP4, overwrite = T)
+pop.all.ctry_ctry.str.SSP5 = calc_pop_ctry_ctry_str(ssp = 'SSP5')
+usethis::use_data(pop.all.ctry_ctry.str.SSP5, overwrite = T)
+
+
+pop.all.grid_mat.SSP1 = calc_pop_grid(ssp = 'SSP1')
+usethis::use_data(pop.all.grid_mat.SSP1, overwrite = T)
+pop.all.grid_mat.SSP2 = calc_pop_grid(ssp = 'SSP2')
+usethis::use_data(pop.all.grid_mat.SSP2, overwrite = T)
+pop.all.grid_mat.SSP3 = calc_pop_grid(ssp = 'SSP3')
+usethis::use_data(pop.all.grid_mat.SSP3, overwrite = T)
+pop.all.grid_mat.SSP4 = calc_pop_grid(ssp = 'SSP4')
+usethis::use_data(pop.all.grid_mat.SSP4, overwrite = T)
+pop.all.grid_mat.SSP5 = calc_pop_grid(ssp = 'SSP5')
+usethis::use_data(pop.all.grid_mat.SSP5, overwrite = T)
+
+
+
 # ssp gdp
-gdp_pc.SSP1 = calc_gdp_pc(ssp = 'SSP1')
+gdp_pc.SSP1 = calc_gdp_pc_reg(ssp = 'SSP1')
 usethis::use_data(gdp_pc.SSP1, overwrite = T)
-gdp_pc.SSP2 = calc_gdp_pc(ssp = 'SSP2')
+gdp_pc.SSP2 = calc_gdp_pc_reg(ssp = 'SSP2')
 usethis::use_data(gdp_pc.SSP2, overwrite = T)
-gdp_pc.SSP3 = calc_gdp_pc(ssp = 'SSP3')
+gdp_pc.SSP3 = calc_gdp_pc_reg(ssp = 'SSP3')
 usethis::use_data(gdp_pc.SSP3, overwrite = T)
-gdp_pc.SSP4 = calc_gdp_pc(ssp = 'SSP4')
+gdp_pc.SSP4 = calc_gdp_pc_reg(ssp = 'SSP4')
 usethis::use_data(gdp_pc.SSP4, overwrite = T)
-gdp_pc.SSP5 = calc_gdp_pc(ssp = 'SSP5')
+gdp_pc.SSP5 = calc_gdp_pc_reg(ssp = 'SSP5')
 usethis::use_data(gdp_pc.SSP5, overwrite = T)
+
+gdp_pc.ctry_nuts3.SSP1 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP1')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP1, overwrite = T)
+gdp_pc.ctry_nuts3.SSP2 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP2')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP2, overwrite = T)
+gdp_pc.ctry_nuts3.SSP3 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP3')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP3, overwrite = T)
+gdp_pc.ctry_nuts3.SSP4 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP4')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP4, overwrite = T)
+gdp_pc.ctry_nuts3.SSP5 = calc_gdp_pc_ctry_nuts3(ssp = 'SSP5')
+usethis::use_data(gdp_pc.ctry_nuts3.SSP5, overwrite = T)
 
 # Annual ssp-specific GDP growth rates (for HCL)
 gdp_growth <- raw.gdp %>%
@@ -381,7 +683,7 @@ gdp_growth <- raw.gdp %>%
   dplyr::ungroup() %>%
   dplyr::select(-unit)
 
-  # ADD RUE
+# ADD RUE
 gdp_growth <- gdp_growth %>%
   dplyr::bind_rows(gdp_growth %>%
                      dplyr::filter(region == "RUS") %>%
@@ -428,6 +730,71 @@ usethis::use_data(raw.base_aot, overwrite = T)
 # raw.base_mi
 raw.base_mi = read.csv(paste0(rawDataFolder_m2,"base_mi.csv"))
 usethis::use_data(raw.base_mi, overwrite = T)
+
+
+#------------------------------------------------------------
+# COUNTRY-NUTS sf
+#------------------------------------------------------------
+
+# Load data
+# World Map: Load using rnaturalearth
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf") %>%
+  dplyr::rename("id_code" = "adm0_a3") %>%
+  dplyr::mutate(iso_a2 = dplyr::if_else(iso_a2 == 'GB', 'UK',
+                                        dplyr::if_else(iso_a2 == 'GR', 'EL', iso_a2))) %>%
+  dplyr::mutate(iso_a3 = dplyr::if_else(iso_a3 == 'ROU', 'ROM', iso_a3))
+
+# NUTS Regions: Load using sf
+# Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+# NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
+nuts <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
+  dplyr::select(-FID) %>%
+  dplyr::rename("id_code" = "NUTS_ID")
+
+
+# Filter NUTS regions: Europe
+nuts_europe <- nuts[nuts$CNTR_CODE %in% unique(world$iso_a2[world$region_un == "Europe" | world$iso_a3 == 'TUR']) &
+                      nuts$LEVL_CODE == 3, ]
+
+# Combine data
+# Add a common column for differentiation
+world$region_type <- "CTRY"
+nuts_europe$region_type <- "NUTS"
+
+# Ensure column names match between the two dataframes
+world_subset <- world[, c("region_type", "geometry", "id_code")]
+nuts_europe_subset <- nuts_europe[, c("region_type", "geometry", "id_code")]
+
+# Combine the two sf objects
+ctry_nuts_sf <- rbind(world_subset, nuts_europe_subset)
+
+# Save it
+usethis::use_data(ctry_nuts_sf, overwrite = T)
+
+# Save also NUTS3 sf and NUTS based in the European continent sf
+nuts_sf <- nuts_europe_subset
+usethis::use_data(nuts_sf, overwrite = T)
+nuts_europe_sf <- nuts_europe_subset %>%
+  dplyr::filter(!id_code %in% c("FRY10", "FRY20", "FRY30", "FRY40", "FRY50", # FRA: Reunion
+                                "PT200", "PT300", # POR: Azores & Madeira
+                                "ES703", "ES704", "ES705", "ES706", "ES707", "ES708", "ES709", # ESP: Canary Islands
+                                "NO0B1", "NO0B2")) # NOR: Svalab & Jan Mayen Islands
+usethis::use_data(nuts_europe_sf, overwrite = T)
+
+# ctry_nuts3_codes mapping
+# contains the NUTS3 codes for the European regions, and the ISO3 codes for the rest of the world.
+ctry_nuts3_codes <- as.data.frame(world) %>%
+  dplyr::select(ISO2 = iso_a2, ISO3 = iso_a3) %>%
+  dplyr::distinct() %>%
+  dplyr::filter(!is.na(ISO2)) %>%
+  dplyr::left_join(as.data.frame(nuts_europe) %>%
+                     dplyr::select(ISO2 = CNTR_CODE, NUTS3 = id),
+                   by = 'ISO2') %>%
+  # assing ISO3 code when NUTS3 code not present
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3))
+usethis::use_data(ctry_nuts3_codes, overwrite = T)
+
+
 
 #------------------------------------------------------------
 # PM2.5
@@ -754,7 +1121,7 @@ raw.daly = dplyr::bind_rows(
   dplyr::filter(year == max(as.numeric(year)),
                 cause %in% c("Diabetes mellitus type 2", "Lower respiratory infections", "Ischemic stroke", "Ischemic heart disease", "Tracheal, bronchus, and lung cancer", "Chronic obstructive pulmonary disease"),
                 age %in% (c("All ages", "25-29 years", "30-34 years", "35-39 years", "40-44 years", "45-49 years", "50-54 years","55-59 years","60-64 years",
-                       "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
+                            "65-69 years", "70-74 years", "75-79 years", "80-84", "85-89", "90-94", "95+ years"))) %>%
   dplyr::mutate(age = gsub(" years", "", age)) %>%
   dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 
@@ -771,10 +1138,9 @@ raw.yll.o3 = read.csv("inst/extdata/IHME-GBD_2019_DATA-f0a8f511-1.csv") %>%
   dplyr::mutate(location = dplyr::if_else(location == "CÃ´te d'Ivoire", "Cote d'Ivoire", location))
 usethis::use_data(raw.yll.o3, overwrite = T)
 #------------------
-# New mortality rates
-#raw.mort.rates.old <- raw.mort.rates
-#usethis::use_data(raw.mort.rates.old, overwrite = T)
+# Mortality rates
 
+# Simple mortality rate (by country, age, disease)
 raw.mort.rates <- dplyr::bind_rows(
   read.csv("inst/extdata/mr_stroke.csv"),
   read.csv("inst/extdata/mr_ihd.csv"),
@@ -792,12 +1158,394 @@ raw.mort.rates <- dplyr::bind_rows(
                 year = as.numeric(year)) %>%
   tidyr::complete(tidyr::nesting(region, age, disease), year = seq(1990, 2100, by = 5)) %>%
   dplyr::group_by(region, age, disease) %>%
-  dplyr::mutate(rate = dplyr::if_else(is.na(rate), gcamdata::approx_fun(year, rate, rule = 2), rate))
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), gcamdata::approx_fun(year, rate, rule = 2), rate)) %>%
+  dplyr::ungroup()
 usethis::use_data(raw.mort.rates, overwrite = T)
 
 
+
+# Function to read all CSVs in a single ZIP
+read_csvs_from_zip <- function(zip_file) {
+  print(zip_file)
+  # Get a temporary directory
+  temp_dir <- tempdir()
+  unlink(temp_dir, recursive = TRUE)
+  dir.create(temp_dir)
+  # Unzip files into the temporary directory
+  unzip(zip_file, exdir = temp_dir)
+  # Get all CSV file paths in the extracted folder
+  csv_files <- list.files(temp_dir, pattern = "\\.csv$", full.names = TRUE)
+  # Read all CSV files into a list of data frames
+  csv_data <- lapply(csv_files, read.csv)
+  # Optionally combine into a single data frame (if they share structure)
+  combined_data <- dplyr::bind_rows(csv_data, .id = "source_file")
+
+  return(combined_data)
+}
+
+
+# Complete mortality rates (by country, age, disease, and sex)
+ihme.population = read_csvs_from_zip('inst/extdata/IHME-GBD_2021_DATA-population/IHME-GBD_2021_DATA-768921ab-1.zip')
+ihme.mort <- dplyr::bind_rows(lapply(list.files(path = 'inst/extdata/IHME-GBD_2021_DATA-mort/',
+                                                pattern = "\\.zip$", full.names = TRUE), read_csvs_from_zip))
+
+iso_ihme_rfasst <- gcamdata::left_join_error_no_match(
+  read.csv("inst/extdata/mapping/ihme_localtions.csv") %>% tibble::as_tibble(),
+  read.csv("inst/extdata/mapping/iso_GCAM_regID_name_EUR.csv") %>% tibble::as_tibble(),
+  by = "country_name") %>% gcamdata::left_join_error_no_match(
+    Regions_EUR %>%
+      dplyr::rename(iso = ISO3, GCAM_region_name = `GCAM Region`) %>%
+      dplyr::mutate(iso = tolower(iso)),
+    by = c('iso','GCAM_region_name'))
+
+# NUTS Regions: Load using sf
+# Source: https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/territorial-units-statistics
+# NUTS 2424, SHP, Polygons (RG), 20M, EPSG: 4326
+nuts3_sf <- eurostat::get_eurostat_geospatial(resolution = 3, nuts_level = 3, year = 2021) %>%
+  dplyr::select(-FID)
+usethis::use_data(nuts3_sf, overwrite = T)
+
+nuts <- nuts3_sf %>%
+  dplyr::rename("id_code" = "NUTS_ID")
+
+# raw.mort.rates.nuts3
+# mapping for nuts3 and iso3 codes
+nuts3_data <- nuts %>%
+  tibble::as_tibble() %>%
+  dplyr::filter(LEVL_CODE == 3) %>%
+  dplyr::select(NUTS3 = geo, ISO2 = CNTR_CODE) %>%
+  dplyr::left_join(ctry_nuts3_codes %>%
+                     dplyr::select(ISO2, ISO3) %>%
+                     dplyr::distinct(),
+                   by = 'ISO2')
+
+GCAM_reg_EUR_NUTS3 <- Regions_EUR %>% tibble::as_tibble() %>%
+  dplyr::left_join(nuts3_data, by = 'ISO3') %>%
+  dplyr::mutate(NUTS3 = dplyr::if_else(is.na(NUTS3), ISO3, NUTS3)) %>%
+  dplyr::select(-ISO2, region = `FASST region`, `GCAM Region`, ISO3, NUTS3)
+
+usethis::use_data(GCAM_reg_EUR_NUTS3, overwrite = T)
+
+mort.rates.country <- ihme.mort %>% tibble::as_tibble() %>%
+  gcamdata::left_join_error_no_match(iso_ihme_rfasst,
+                                     by = "location_id")
+
+
+# ISO numeric codes
+isonum <- read.csv('inst/extdata/isonum.csv', stringsAsFactors = F, na.strings = "")
+usethis::use_data(isonum, overwrite = T)
+
+
+# RFASST reg mortality rates (by region, age, disease, and sex) --------------------------------------------------
+raw.mort.rates.plus1 <- mort.rates.country %>%
+  dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
+  dplyr::mutate(age_name = gsub(" years", "", age_name),
+                age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::filter(metric_name == 'Rate', measure_name == 'Deaths') %>% # select only rate values from deaths
+  dplyr::mutate(cause_name = tolower(cause_name),
+                year = as.numeric(year)) %>%
+  dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic stroke','stroke',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
+  ) %>%
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
+  # select only years multiple of 5 and >= 1990
+  dplyr::filter(year %% 5 == 0, year >= 1990) %>%
+  # compute the regional rate
+  gcamdata::left_join_error_no_match(ihme.population %>%
+                                       dplyr::select(pop = val, location_id, sex_id, sex_name, age_id, year),
+                                     by = c('location_id', 'sex_id', 'sex_name', 'age_id', 'year')) %>%
+  dplyr::mutate(val = val * pop) %>%
+  dplyr::group_by(region = `FASST region`, year, age = age_name, sex = sex_name, disease = cause_name) %>%
+  dplyr::summarise(pop = sum(pop),
+                   val = sum(val)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
+  dplyr::select(-pop, -val)
+
+
+# Expand to future years using the previous regression
+
+# 1. 5-year step rate fluctuation by rfasst region
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::arrange(year, .by_group = TRUE) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-rate, -rate_2020) %>%
+  dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
+  tidyr::complete(tidyr::nesting(region, disease, year), age = unique(raw.mort.rates.plus1$age), fill = list('fluc' = 1))
+
+# 2. add this fluctuations into raw.mort.rates.plus
+raw.mort.rates.plus2 <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.plus1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
+                                      max(rate[year == 2020], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  gcamdata::left_join_error_no_match(raw.mort.rates.fluctuation,
+                                     by = c('region','age','disease','year')) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
+                                      max(rate[year == 2040], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-fluc)
+
+raw.mort.rates.plus.rue <- raw.mort.rates.plus2 %>%
+  dplyr::filter(region == 'RUS') %>%
+  dplyr::mutate(region = 'RUE')
+
+raw.mort.rates.plus <- dplyr::bind_rows(
+  raw.mort.rates.plus2,
+  raw.mort.rates.plus.rue
+)
+
+usethis::use_data(raw.mort.rates.plus, overwrite = T)
+
+
+
+# CTRY-NUTS3 mortality rates (by country, age, disease, and sex) --------------------------------------------------
+raw.mort.rates.ctry_nuts1 <- mort.rates.country %>%
+  dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
+  dplyr::mutate(age_name = gsub(" years", "", age_name),
+                age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::filter(metric_name == 'Rate', measure_name == 'Deaths') %>% # select only rate values from deaths
+  dplyr::mutate(cause_name = tolower(cause_name),
+                year = as.numeric(year)) %>%
+  dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic stroke','stroke',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
+  ) %>%
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
+  # select only years multiple of 5 and >= 1990
+  dplyr::filter(year %% 5 == 0, year >= 1990) %>%
+  # compute the regional rate
+  gcamdata::left_join_error_no_match(ihme.population %>%
+                                       dplyr::select(pop = val, location_id, sex_id, sex_name, age_id, year),
+                                     by = c('location_id', 'sex_id', 'sex_name', 'age_id', 'year')) %>%
+  dplyr::mutate(val = val * pop) %>%
+  dplyr::group_by(region = iso, year, age = age_name, sex = sex_name, disease = cause_name) %>%
+  dplyr::summarise(pop = sum(pop),
+                   val = sum(val)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
+  dplyr::select(-pop, -val)
+
+
+# Expand to future years using the previous regression
+
+# 1. 5-year step rate fluctuation by rfasst region
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::arrange(year, .by_group = TRUE) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-rate, -rate_2020) %>%
+  dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
+  dplyr::left_join(iso_ihme_rfasst %>%
+                     dplyr::select(iso, region = `FASST region`) %>%
+                     dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
+                   by = 'region', relationship = "many-to-many") %>%
+  dplyr::mutate(iso = toupper(iso)) %>%
+  dplyr::select(region = iso, disease, year, age, fluc) %>%
+  dplyr::distinct()
+
+# 2. add this fluctuations into raw.mort.rates.plus
+raw.mort.rates.ctry_nuts2 <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.ctry_nuts1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
+                                      max(rate[year == 2020], na.rm = TRUE), rate),
+                region = toupper(region)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.fluctuation,
+                   by = c('region','age','disease','year')) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
+                                      max(rate[year == 2040], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-fluc)
+
+raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts2 %>%
+  dplyr::rename('ISO3' = 'region') %>%
+  dplyr::left_join(ctry_nuts3_codes,
+                   by = "ISO3", relationship = "many-to-many") %>%
+  dplyr::select(-ISO3, -ISO2) %>%
+  dplyr::filter(!is.na(NUTS3)) %>%
+  dplyr::select(region = NUTS3, age, sex, disease, year, rate)
+
+# Add missing countries
+raw.mort.rates.ctry_nuts4 <-
+  tidyr::expand_grid(GCAM_reg_EUR_NUTS3 %>%
+                       dplyr::mutate(NUTS3 = dplyr::if_else(ISO3 == 'CYP', 'CYP', NUTS3)) %>%  # fix Cyprus case
+                       dplyr::select(`Fasst Region` = region, region = NUTS3),
+                     raw.mort.rates.ctry_nuts3 %>%
+                       dplyr::select(age, sex, disease, year) %>%
+                       dplyr::distinct())
+
+raw.mort.rates.ctry_nuts5 <- raw.mort.rates.ctry_nuts4 %>%
+  dplyr::left_join(raw.mort.rates.ctry_nuts3,
+                   by = c('region','age','sex','disease','year')) %>%
+  dplyr::group_by(`Fasst Region`, age, sex, disease, year) %>%
+  dplyr::mutate(mean_rate = mean(rate, na.rm = TRUE)) %>%
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), mean_rate, rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(region, age, sex, disease, year, rate)
+
+raw.mort.rates.ctry_nuts3 <- raw.mort.rates.ctry_nuts5
+usethis::use_data(raw.mort.rates.ctry_nuts3, overwrite = T)
+
+
+# CTRY-CTRY mortality rates (by country, age, disease, and sex) --------------------------------------------------
+raw.mort.rates.ctry_ctry1 <- mort.rates.country %>%
+  dplyr::filter(cause_name != 'Stroke') %>% # remove not accounted cause_name (ischemic stroke considered)
+  dplyr::mutate(age_name = gsub(" years", "", age_name),
+                age_name = gsub(" to ", "-", age_name),
+                age_name = gsub(" plus", "+", age_name)) %>%
+  dplyr::filter(metric_name == 'Rate', measure_name == 'Deaths') %>% # select only rate values from deaths
+  dplyr::mutate(cause_name = tolower(cause_name),
+                year = as.numeric(year)) %>%
+  dplyr::mutate(cause_name = dplyr::if_else(cause_name == 'tracheal, bronchus, and lung cancer','lc',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'lower respiratory infections','lri',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic heart disease','ihd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'ischemic stroke','stroke',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'chronic obstructive pulmonary disease','copd',cause_name),
+                cause_name = dplyr::if_else(cause_name == 'diabetes mellitus type 2','dm',cause_name)
+  ) %>%
+  dplyr::filter(age_name %in% c("<5","5-9","10-14","15-19","20-24",
+                                "25-29","30-34","35-39","40-44","45-49","50-54","55-59",
+                                "60-64","65-69","70-74","75-79","80-84","85-89","90-94",
+                                "95+","All Ages","All ages")) %>%
+  dplyr::mutate(age_name = dplyr::if_else(age_name == 'All ages', 'All Ages', age_name)) %>%
+  # select only years multiple of 5 and >= 1990
+  dplyr::filter(year %% 5 == 0, year >= 1990) %>%
+  # compute the regional rate
+  gcamdata::left_join_error_no_match(ihme.population %>%
+                                       dplyr::select(pop = val, location_id, sex_id, sex_name, age_id, year),
+                                     by = c('location_id', 'sex_id', 'sex_name', 'age_id', 'year')) %>%
+  dplyr::mutate(val = val * pop) %>%
+  dplyr::group_by(region = iso, year, age = age_name, sex = sex_name, disease = cause_name) %>%
+  dplyr::summarise(pop = sum(pop),
+                   val = sum(val)) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(rate = val / pop) %>%
+  dplyr::select(-pop, -val)
+
+
+# Expand to future years using the previous regression
+
+# 1. 5-year step rate fluctuation by rfasst region
+raw.mort.rates.fluctuation <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  left_join_strict(raw.mort.rates,
+                               by = c('disease', 'age')) %>%
+  dplyr::group_by(region, age, disease) %>%
+  dplyr::arrange(year, .by_group = TRUE) %>%
+  dplyr::mutate(rate_2020 = rate[year == 2020],
+                fluc = (rate - rate_2020) / rate_2020) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-rate, -rate_2020) %>%
+  dplyr::mutate(fluc = dplyr::if_else(is.na(fluc) | year <= 2020, 1, fluc)) %>%
+  dplyr::left_join(iso_ihme_rfasst %>%
+                     dplyr::select(iso, region = `FASST region`) %>%
+                     dplyr::mutate(region = dplyr::if_else(iso == 'rus', 'RUE', region)),
+                   by = 'region', relationship = "many-to-many") %>%
+  dplyr::mutate(iso = toupper(iso)) %>%
+  dplyr::select(region = iso, disease, year, age, fluc) %>%
+  dplyr::distinct()
+
+# 2. add this fluctuations into raw.mort.rates.plus
+raw.mort.rates.ctry_ctry2 <- dplyr::select(raw.mort.rates, disease, age) %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.ctry_ctry1 %>%
+                     tidyr::complete(tidyr::nesting(region, age, sex, disease),
+                                     year = seq(1990, 2100, by = 5),
+                                     fill = list('rate')),
+                   by = c('disease','age')) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, # if year > 2020, set 2020 rate
+                                      max(rate[year == 2020], na.rm = TRUE), rate),
+                region = toupper(region)) %>%
+  dplyr::ungroup() %>%
+  dplyr::distinct() %>%
+  dplyr::left_join(raw.mort.rates.fluctuation,
+                   by = c('region','age','disease','year')) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2020, rate + rate * fluc, rate)) %>%
+  dplyr::group_by(region, age, sex, disease) %>%
+  dplyr::mutate(rate = dplyr::if_else(year > 2040, # if year > 2040, set 2040 rate (last year with data)
+                                      max(rate[year == 2040], na.rm = TRUE), rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-fluc)
+
+raw.mort.rates.ctry_ctry3 <- raw.mort.rates.ctry_ctry2 %>%
+  dplyr::rename('ISO3' = 'region') %>%
+  dplyr::left_join(dplyr::select(rfasst::ctry_nuts3_codes, ISO3, ISO2) %>%
+                     dplyr::distinct(),
+                   by = "ISO3") %>%
+  dplyr::filter(!is.na(ISO2)) %>%  # rm overseas regions
+  dplyr::select(region = ISO3, age, sex, disease, year, rate)
+
+# Add missing countries
+raw.mort.rates.ctry_ctry4 <-
+  tidyr::expand_grid(GCAM_reg_EUR_NUTS3 %>%
+                       dplyr::select(`Fasst Region` = region, region = ISO3) %>%
+                       dplyr::distinct(),
+                     raw.mort.rates.ctry_ctry3 %>%
+                       dplyr::select(age, sex, disease, year) %>%
+                       dplyr::distinct())
+
+raw.mort.rates.ctry_ctry5 <- raw.mort.rates.ctry_ctry4 %>%
+  dplyr::left_join(raw.mort.rates.ctry_ctry3,
+                   by = c('region','age','sex','disease','year')) %>%
+  dplyr::group_by(`Fasst Region`, age, sex, disease, year) %>%
+  dplyr::mutate(mean_rate = mean(rate, na.rm = TRUE)) %>%
+  dplyr::mutate(rate = dplyr::if_else(is.na(rate), mean_rate, rate)) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(region, age, sex, disease, year, rate)
+
+raw.mort.rates.ctry_ctry <- raw.mort.rates.ctry_ctry5
+usethis::use_data(raw.mort.rates.ctry_ctry, overwrite = T)
+
+
 #=========================================================
-# Downscalling
+# Downscaling
 #=========================================================
 countries <- rworldmap::countryExData %>%
   dplyr::select(subRegionAlt = ISO3V10) %>%
@@ -836,31 +1584,8 @@ terra::saveRDS(wrap(rast_country), "rast_country.rds")
 # rast_country <- rast(readRDS("rast_country.rds"))
 
 
-pm25_weights <- terra::rast("pm25_weights_rast.tif")
+pm25_weights <- terra::rast("pm25_weights_rast_rfasstReg.tif")
 terra::saveRDS(wrap(pm25_weights), "pm25_weights.rds")
 # To read:
 # pm25_weights <- rast(readRDS("pm25_weights.rds"))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -9,7 +9,6 @@
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -17,11 +16,12 @@
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
-calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                         rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                         saveOutput = T, map = F, anim = T, recompute = F){
+calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                         scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                         saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_prod_gcam.output')) {
     return(calc_prod_gcam.output)
@@ -35,8 +35,6 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -80,27 +78,22 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
         QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
-      } else if (is.null(rdata_name)){
+      } else {
         rlang::inform('Loading project ...')
         prj <- rgcam::loadProject(prj_name)
 
         QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
       }
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, scen_name))
     }
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
+
     rlang::inform('Computing ...')
 
-    prod <- if_complex(is.null(rdata_name),
-                       rgcam::getQuery(prj,"ag production by subsector (land use region)"),
-                       prj_rd$`ag production by subsector (land use region)` %>%
-                         dplyr::filter(scenario %in% scen_name)) %>%
+    prod <- rgcam::getQuery(prj,"ag production by subsector (land use region)") %>%
+      check_byu() %>%
       dplyr::rename(unit = Units) %>%
       dplyr::mutate(variable="prod_ag",
                     sector = gsub(" ", "_", sector),
@@ -133,7 +126,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     if(saveOutput == T){
       write.csv(prod,"output/m4/production.csv",row.names = F)
-      }
+    }
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
@@ -159,7 +152,7 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     }
 
-    calc_prod_gcam.output <<- prod
+    calc_prod_gcam.output <- prod
     return(invisible(prod))
   }
 
@@ -177,7 +170,6 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -185,12 +177,13 @@ calc_prod_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_price_gcam.output')) {
     return(calc_price_gcam.output)
@@ -204,8 +197,6 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -250,27 +241,21 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
         QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else if (is.null(rdata_name)){
+      } else {
         rlang::inform('Loading project ...')
         prj <- rgcam::loadProject(prj_name)
 
         QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
       }
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
     rlang::inform('Computing ...')
 
-    price <- if_complex(is.null(rdata_name),
-                        rgcam::getQuery(prj,"Ag Commodity Prices"),
-                        prj_rd$`Ag Commodity Prices` %>%
-                          dplyr::filter(scenario %in% scen_name)) %>%
+    price <- rgcam::getQuery(prj,"Ag Commodity Prices") %>%
+      check_byu() %>%
       dplyr::rename(unit = Units) %>%
       dplyr::mutate(variable = "price_ag",
                     sector = gsub(" ", "_", sector),
@@ -319,7 +304,7 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     }
 
-    calc_price_gcam.output <<- price
+    calc_price_gcam.output <- price
     return(invisible(price))
   }
 
@@ -337,7 +322,6 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -345,12 +329,13 @@ calc_price_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                        saveOutput = T, map = F, anim = T, recompute = F){
+calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                        scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                        saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('calc_rev_gcam.output')) {
     return(calc_rev_gcam.output)
@@ -363,8 +348,6 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -386,10 +369,13 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
 
     # Get prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get price
-    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    price<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(prod$year)))))]
 
     #------------------------------------------------------------------------------------
 
@@ -439,7 +425,7 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     }
 
-    calc_rev_gcam.output <<- rev
+    calc_rev_gcam.output <- rev
     return(invisible(rev))
   }
 
@@ -456,7 +442,6 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -464,12 +449,13 @@ calc_rev_gcam<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F){
+m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
 
   if (!recompute & exists('m4_get_ryl_aot40.output')) {
@@ -483,8 +469,6 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -506,7 +490,11 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    aot40<-m2_get_conc_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
+                             final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(aot40$year)))))]
 
     rlang::inform('Computing relative yield losses with AOT40 method ...')
 
@@ -550,7 +538,7 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_ryl_aot40.output <<- dplyr::bind_rows(m4_get_ryl_aot40.output.list)
+    m4_get_ryl_aot40.output <- dplyr::bind_rows(m4_get_ryl_aot40.output.list)
 
 
     #----------------------------------------------------------------------
@@ -619,7 +607,6 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -627,12 +614,13 @@ m4_get_ryl_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                        rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                        saveOutput = T, map = F, anim = T, recompute = F){
+m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                        scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                        saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_ryl_mi.output')) {
     return(m4_get_ryl_mi.output)
@@ -645,8 +633,6 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -668,7 +654,11 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
       dplyr::rename(subRegion = fasst_region) %>%
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
-    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    mi<-m2_get_conc_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries,
+                       final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
+
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(mi$year)))))]
 
     rlang::inform('Computing relative yield losses with Mi method ...')
 
@@ -717,7 +707,7 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_ryl_mi.output <<- dplyr::bind_rows(m4_get_ryl_mi.output.list)
+    m4_get_ryl_mi.output <- dplyr::bind_rows(m4_get_ryl_mi.output.list)
 
 
     #----------------------------------------------------------------------
@@ -783,7 +773,6 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -791,12 +780,13 @@ m4_get_ryl_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                           rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                           saveOutput = T, map = F, anim = T, recompute = F){
+m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                           scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                           saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_prod_loss.output')) {
     return(m4_get_prod_loss.output)
@@ -809,8 +799,6 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -833,14 +821,22 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Prod
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
+
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(load_prj(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries),
+                                                                'Ag Commodity Prices'),
+                                                gcam_eur)
+    Regions <- ct_gcamversion_regions[2][[1]]
+    d.weight.gcam <- ct_gcamversion_regions[4][[1]]
     rlang::inform('Computing agricultural production losses ...')
 
 
@@ -918,7 +914,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop"), relationship = "many-to-many") %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop, -weight) %>%
@@ -974,7 +970,7 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_prod_loss.output <<- dplyr::bind_rows(m4_get_prod_loss.output.list)
+    m4_get_prod_loss.output <- dplyr::bind_rows(m4_get_prod_loss.output.list)
 
 
     #----------------------------------------------------------------------
@@ -1041,7 +1037,6 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -1049,12 +1044,13 @@ m4_get_prod_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 #' @param map Produce the maps. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                          rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                          saveOutput = T, map = F, anim = T, recompute = F){
+m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                          scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                          saveOutput = T, map = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m4_get_rev_loss.output')) {
     return(m4_get_rev_loss.output)
@@ -1067,8 +1063,6 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
 
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
-
-    all_years<-all_years[all_years <= final_db_year]
 
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
@@ -1091,17 +1085,25 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       dplyr::mutate(subRegionAlt = as.factor(subRegionAlt))
 
     # Get AOT40 RYLs
-    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.aot.40.fin<-m4_get_ryl_aot40(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Mi RYLs
-    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    ryl.mi.fin<-m4_get_ryl_mi(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Revenue: re-calculate to consider C4 categories
-    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name = rdata_name, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute)
+    prod<-calc_prod_gcam(db_path, query_path, db_name, prj_name, prj, scen_name = scen_name, queries, final_db_year = final_db_year, saveOutput = F, recompute = recompute, gcam_eur = gcam_eur)
 
     # Get Price
-    price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, rdata_name, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
+    price_base<-calc_price_gcam(db_path, query_path, db_name, prj_name, prj, scen_name, queries, final_db_year = final_db_year, saveOutput = F)
 
+    all_years<-all_years[all_years <= min(final_db_year,
+                                          max(as.numeric(as.character(unique(ryl.aot.40.fin$year)))))]
+
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(load_prj(db_path, query_path, db_name, prj_name, prj = prj, scen_name = scen_name, queries),
+                                                                'Ag Commodity Prices'),
+                                                gcam_eur)
+    Regions <- ct_gcamversion_regions[2][[1]]
+    d.weight.gcam <- ct_gcamversion_regions[4][[1]]
     rlang::inform('Computing agricultural revenue losses ...')
 
     m4_get_rev_loss.output.list <- list()
@@ -1200,7 +1202,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                          ryl_mi = sum(adj_country_ryl_mi)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(GCAM_region_name = `GCAM region`) %>%
-        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop")) %>%
+        dplyr::left_join(d.weight.gcam, by = c("GCAM_region_name", "crop"), relationship = "many-to-many") %>%
         dplyr::mutate(ryl_aot40 = ryl_aot40 * weight,
                       ryl_mi = ryl_mi * weight) %>%
         dplyr::select(-crop,-weight) %>%
@@ -1235,7 +1237,7 @@ m4_get_rev_loss<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     #----------------------------------------------------------------------
     # Bind the results
 
-    m4_get_rev_loss.output <<- dplyr::bind_rows(m4_get_rev_loss.output.list)
+    m4_get_rev_loss.output <- dplyr::bind_rows(m4_get_rev_loss.output.list)
 
 
     #----------------------------------------------------------------------

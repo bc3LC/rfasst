@@ -9,7 +9,6 @@
 #' @param db_name Name of the GCAM database
 #' @param prj_name Name of the rgcam project. This can be an existing project, or, if not, this will be the name
 #' @param prj rgcam loaded project
-#' @param rdata_name Name of the RData file. It must contain the queries in a list
 #' @param scen_name Vector names of the GCAM scenarios to be processed
 #' @param queries Name of the GCAM query file. The file by default includes the queries required to run rfasst
 #' @param final_db_year Final year in the GCAM database (this allows to process databases with user-defined "stop periods")
@@ -18,12 +17,13 @@
 #' @param mapIndivPol If set to T, it produces the maps for individual pollutants. By default=F
 #' @param anim If set to T, produces multi-year animations. By default=T
 #' @param recompute If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F
+#' @param gcam_eur If set to T, considers the GCAM-Europe regions. By default=F
 #' @importFrom magrittr %>%
 #' @export
 
-m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name = NULL, prj = NULL,
-                               rdata_name = NULL, scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
-                               saveOutput = T, map = F, mapIndivPol = F, anim = T, recompute = F){
+m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db_name = NULL, prj_name, prj = NULL,
+                               scen_name, queries = "queries_rfasst.xml", final_db_year = 2100,
+                               saveOutput = T, map = F, mapIndivPol = F, anim = T, recompute = F, gcam_eur = F){
 
   if (!recompute & exists('m1_emissions_rescale.output')) {
     return(m1_emissions_rescale.output)
@@ -39,8 +39,6 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
     #----------------------------------------------------------------------
     #----------------------------------------------------------------------
 
-    all_years<-all_years[all_years <= final_db_year]
-
     # Create the directories if they do not exist:
     if (!dir.exists("output")) dir.create("output")
     if (!dir.exists("output/m1")) dir.create("output/m1")
@@ -50,6 +48,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Ancillary Functions
     `%!in%` = Negate(`%in%`)
+    EUR = dplyr::if_else(gcam_eur, '_EUR', '')
 
     # Shape subset for maps
     fasstSubset <- rmap::mapCountries
@@ -92,30 +91,27 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
         rgcam::saveProject(prj, file = file.path('output',prj_name))
 
         QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else if (is.null(rdata_name)){
+      } else {
         rlang::inform('Loading project ...')
         prj <- rgcam::loadProject(prj_name)
 
         QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
-      } else {
-        rlang::inform('Loading RData ...')
-        if (!exists('prj_rd')) {
-          prj_rd = get(load(rdata_name))
-          QUERY_LIST <- names(prj_rd)
-        }
       }
     } else {
       QUERY_LIST <- c(rgcam::listQueries(prj, c(scen_name)))
     }
+    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+                                                          max(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)')$year))]
+    ct_gcamversion_regions <- check_gcamversion(rgcam::getQuery(prj,'nonCO2 emissions by sector (excluding resource production)'),
+                                                gcam_eur)
+    Percen <- ct_gcamversion_regions[3][[1]]
     rlang::inform('Computing emissions ...')
 
 
     # Generate the adjusted emission database +air and ship emissions
     # Emission data (scen)
-    scen_sct <- if_complex(is.null(rdata_name),
-                           rgcam::getQuery(prj,"nonCO2 emissions by sector (excluding resource production)"),
-                           prj_rd$`nonCO2 emissions by sector (excluding resource production)` %>%
-                             dplyr::filter(scenario %in% scen_name)) %>%
+    scen_sct <- rgcam::getQuery(prj,"nonCO2 emissions by sector (excluding resource production)") %>%
+      check_byu() %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
       gcamdata::left_join_error_no_match(rfasst::my_pol %>%
@@ -128,10 +124,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::summarise(value = sum(value)) %>%
       dplyr::ungroup()
 
-    scen_rsc <- if_complex(is.null(rdata_name),
-                           rgcam::getQuery(prj,"nonCO2 emissions by resource production"),
-                           prj_rd$`nonCO2 emissions by resource production` %>%
-                             dplyr::filter(scenario %in% scen_name)) %>%
+    scen_rsc <- rgcam::getQuery(prj,"nonCO2 emissions by resource production") %>%
+      check_byu() %>%
       dplyr::filter(ghg %in% unique(levels(as.factor(rfasst::selected_pollutants)))) %>%
       tibble::as_tibble() %>%
       gcamdata::left_join_error_no_match(rfasst::my_pol %>%
@@ -190,10 +184,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                    `GCAM Region` = as.factor(`GCAM Region`))
 
     # Aviation:
-    air <- if_complex(is.null(rdata_name),
-                      rgcam::getQuery(prj,"International Aviation emissions"),
-                      prj_rd$`International Aviation emissions` %>%
-                        dplyr::filter(scenario %in% scen_name)) %>%
+    air <- rgcam::getQuery(prj,"International Aviation emissions") %>%
+      check_byu() %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg), "SO2", as.character(ghg))) %>%
@@ -228,10 +220,8 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
       dplyr::select(scenario, year,BC,CH4,CO2,CO,N2O,NH3,NOx,POM,SO2,NMVOC)
 
     # Shipping:
-    ship <- if_complex(is.null(rdata_name),
-                       rgcam::getQuery(prj,"International Shipping emissions"),
-                       prj_rd$`International Shipping emissions` %>%
-                         dplyr::filter(scenario %in% scen_name)) %>%
+    ship <- rgcam::getQuery(prj,"International Shipping emissions") %>%
+      check_byu() %>%
       dplyr::filter(scenario %in% scen_name,
                     year <= final_db_year) %>%
       dplyr::mutate(ghg = dplyr::if_else(grepl("SO2",ghg),"SO2", as.character(ghg))) %>%
@@ -428,7 +418,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
 
     # Apply the function to all of the years.
     # This can be modified and write the data just for the desired years
-    m1_emissions_rescale.output <<- write_data() %>%
+    m1_emissions_rescale.output <- write_data() %>%
       dplyr::rename(year = Year)
     return(invisible(m1_emissions_rescale.output))
   }

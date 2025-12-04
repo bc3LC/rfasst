@@ -11,9 +11,8 @@ m3_get_mort_pm25(
   db_path = NULL,
   query_path = "./inst/extdata",
   db_name = NULL,
-  prj_name = NULL,
+  prj_name,
   prj = NULL,
-  rdata_name = NULL,
   scen_name,
   queries = "queries_rfasst.xml",
   final_db_year = 2100,
@@ -22,7 +21,14 @@ m3_get_mort_pm25(
   saveOutput = T,
   map = F,
   anim = T,
-  recompute = F
+  by_sex = F,
+  recompute = F,
+  gcam_eur = F,
+  normalize = F,
+  downscale = F,
+  saveRaster_grid = F,
+  agg_grid = F,
+  save_AggGrid = F
 )
 }
 \arguments{
@@ -35,8 +41,6 @@ m3_get_mort_pm25(
 \item{prj_name}{Name of the rgcam project. This can be an existing project, or, if not, this will be the name}
 
 \item{prj}{rgcam loaded project}
-
-\item{rdata_name}{Name of the RData file. It must contain the queries in a list}
 
 \item{scen_name}{Vector names of the GCAM scenarios to be processed}
 
@@ -54,7 +58,21 @@ m3_get_mort_pm25(
 
 \item{anim}{If set to T, produces multi-year animations. By default=T}
 
+\item{by_sex}{If set to T, the output is stored separately by sex ("Female", "Male", and "Both"). If set to F, (default), only the "Both" category is saved.}
+
 \item{recompute}{If set to T, recomputes the function output. Otherwise, if the output was already computed once, it uses that value and avoids repeating computations. By default=F}
+
+\item{gcam_eur}{If set to T, considers the GCAM-Europe regions. By default=F}
+
+\item{normalize}{Adjust the output to represent the number of deaths per 100K people. By default = F}
+
+\item{downscale}{If set to T, produces gridded PM2.5 outputs and plots By default=F}
+
+\item{saveRaster_grid}{If set to T, writes the raster file with weighted PM25 By default=F}
+
+\item{agg_grid}{Re-aggregate (downscaled) gridded data to any provided geometries (shape file). For the moment, only "NUTS3" and "CTRY" are available}
+
+\item{save_AggGrid}{If set to T, writes the raster file with the reaggregated PM25 By default=F}
 }
 \value{
 Premature mortality attributable to PM2.5 exposure for each TM5-FASST regions for all years (# mortalities).

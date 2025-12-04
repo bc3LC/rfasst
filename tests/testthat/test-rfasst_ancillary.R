@@ -14,9 +14,9 @@ test_that("calc_pop function works", {
 })
 
 
-test_that("calc_gdp function works", {
+test_that("calc_gdp_reg function works", {
 
-  gdp<-calc_gdp_pc()
+  gdp<-calc_gdp_pc_reg()
 
   gdp_reg<-length(unique(gdp$region))
 
@@ -106,5 +106,57 @@ test_that("GCAM revenue function works", {
   expectedResult = as.numeric(length(unique(as.factor(rfasst::GCAM_reg$`GCAM Region`))))
 
   testthat::expect_equal(gcam_rev_reg,expectedResult)
+
+})
+
+
+test_that("check_byu works", {
+
+  prj <- rgcam::loadProject(paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam8.dat"))
+
+  tmp <- check_byu(rgcam::getQuery(prj, "Ag Commodity Prices"))
+
+  testthat::expect_contains(unique(tmp$year),rfasst::all_years)
+
+})
+
+
+test_that("check_gcamversion works - GCAM 7.0", {
+
+  prj <- rgcam::loadProject(paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam7.dat"))
+
+  tmp <- check_gcamversion(rgcam::getQuery(prj, "Ag Commodity Prices"), gcam_eur = F)
+
+  testthat::expect_equal(sort(unique(tmp[1][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vlt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[2][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vlt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[3][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vlt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[4][[1]]$`GCAM_region_name`)),sort(unique(rfasst::GCAM_reg_vlt8.2$`GCAM Region`)))
+
+})
+
+
+test_that("check_gcamversion works - GCAM 8.2", {
+
+  prj <- rgcam::loadProject(paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcam8.dat"))
+
+  tmp <- check_gcamversion(rgcam::getQuery(prj, "Ag Commodity Prices"), gcam_eur = F)
+
+  testthat::expect_equal(sort(unique(tmp[1][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vgt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[2][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vgt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[3][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_vgt8.2$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[4][[1]]$`GCAM_region_name`)),sort(unique(rfasst::GCAM_reg_vgt8.2$`GCAM Region`)))
+
+})
+
+
+test_that("check_gcamversion works - GCAM-Europe", {
+
+  prj <- rgcam::loadProject(paste0(rprojroot::find_root(rprojroot::is_testthat), "/test_gcameur.dat"))
+
+  tmp <- check_gcamversion(rgcam::getQuery(prj, "Ag Commodity Prices"), gcam_eur = T)
+
+  testthat::expect_equal(sort(unique(tmp[1][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_EUR$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[2][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_EUR$`GCAM Region`)))
+  testthat::expect_equal(sort(unique(tmp[3][[1]]$`GCAM Region`)),sort(unique(rfasst::GCAM_reg_EUR$`GCAM Region`)))
 
 })
