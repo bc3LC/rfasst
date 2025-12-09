@@ -3,7 +3,7 @@
 [![docs](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/docs.yaml)
 [![codecov](https://codecov.io/gh/bc3LC/rfasst/graph/badge.svg?token=k6DoPorqn9)](https://codecov.io/gh/bc3LC/rfasst)
 [![test_coverage](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml/badge.svg)](https://github.com/bc3LC/rfasst/actions/workflows/test_coverage.yml)
-[![DOI](https://zenodo.org/badge/344924589.svg)](https://zenodo.org/badge/latestdoi/344924589)
+[![DOI](https://zenodo.org/badge/684484470.svg)](https://zenodo.org/badge/latestdoi/684484470)
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.03820/status.svg)](https://doi.org/10.21105/joss.03820)
 
 
