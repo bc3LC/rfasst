@@ -815,15 +815,15 @@ usethis::use_data(raw.urb_incr, overwrite = T)
 #NO3
 
 # src.no3_nox
-src.no3_nox = read.csv(paste0(rawDataFolder_m2,"dno3_dnox.csv"),sep="\t")
+src.no3_nox = read.csv(paste0(rawDataFolder_m2,"dno3_dnox.csv"))
 usethis::use_data(src.no3_nox, overwrite = T)
 
 # src.no3_so2
-src.no3_so2 = read.csv(paste0(rawDataFolder_m2,"dno3_dso2.csv"),sep="\t")
+src.no3_so2 = read.csv(paste0(rawDataFolder_m2,"dno3_dso2.csv"))
 usethis::use_data(src.no3_so2, overwrite = T)
 
 # src.no3_nh3
-src.no3_nh3 = read.csv(paste0(rawDataFolder_m2,"dno3_nh3.csv"),sep="\t")
+src.no3_nh3 = read.csv(paste0(rawDataFolder_m2,"dno3_dnh3.csv"))
 usethis::use_data(src.no3_nh3, overwrite = T)
 #------------------------------------------------------------
 # SO4
@@ -836,20 +836,20 @@ src.so4_so2 = read.csv(paste0(rawDataFolder_m2,"dso4_dso2.csv"),sep="\t")
 usethis::use_data(src.so4_so2, overwrite = T)
 
 # src.so4_nh3
-src.so4_nh3 = read.csv(paste0(rawDataFolder_m2,"dso4_dnh3.csv"),sep="\t")
+src.so4_nh3 = read.csv(paste0(rawDataFolder_m2,"dso4_dnh3.csv"))
 usethis::use_data(src.so4_nh3, overwrite = T)
 #------------------------------------------------------------
 # NH4
 # src.nh4_nox
-src.nh4_nox = read.csv(paste0(rawDataFolder_m2,"dnh4_dnox.csv"),sep="\t")
+src.nh4_nox = read.csv(paste0(rawDataFolder_m2,"dnh4_dnox.csv"))
 usethis::use_data(src.nh4_nox, overwrite = T)
 
 # src.nh4_so2
-src.nh4_so2 = read.csv(paste0(rawDataFolder_m2,"dnh4_dso2.csv"),sep="\t")
+src.nh4_so2 = read.csv(paste0(rawDataFolder_m2,"dnh4_dso2.csv"))
 usethis::use_data(src.nh4_so2, overwrite = T)
 
 # src.nh4_nh3
-src.nh4_nh3 = read.csv(paste0(rawDataFolder_m2,"dnh4_dnh3.csv"),sep="\t")
+src.nh4_nh3 = read.csv(paste0(rawDataFolder_m2,"dnh4_dnh3.csv"))
 usethis::use_data(src.nh4_nh3, overwrite = T)
 #------------------------------------------------------------
 # O3
