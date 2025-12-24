@@ -225,7 +225,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
       #------------------------------------------------------------------------------------
       #------------------------------------------------------------------------------------
-      pm<- tibble::as_tibble(pm.pre %>%
+      pm <- tibble::as_tibble(pm.pre %>%
                                dplyr::filter(scenario == sc)) %>%
         gcamdata::repeat_add_columns(tibble::tibble(disease = c('ihd','stroke'))) %>%
         gcamdata::repeat_add_columns(tibble::tibble(age = unique(rfasst::raw.rr.gbd.param$age))) %>%
@@ -242,7 +242,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
           dplyr::rowwise() %>%
           dplyr::left_join(GBD, by = c('disease', 'age')) %>%
           dplyr::filter(complete.cases(alpha)) %>%
-          dplyr::mutate(GBD_rr = 1 + alpha * (1 - exp(-beta * max(0, value - zcf) ^ delta))) %>%
+          dplyr::mutate(GBD_rr = 1 + alpha * (1 - exp(-beta * pmax(0, value - zcf) ^ delta))) %>%
           dplyr::select(-alpha, -beta, -zcf, -delta) %>%
           gcamdata::left_join_error_no_match(GEMM, by = c('disease', 'age')) %>%
           dplyr::rename(nu = un) %>%
@@ -253,7 +253,7 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                         cf_pm = as.numeric(cf_pm)
           ) %>%
           dplyr::mutate(GEMM_rr = dplyr::if_else(value - cf_pm <= 0, 0,
-                                                 exp(theta * log(max(0, value - cf_pm)/ (alpha + 1)) / (1 + exp(-(max(0, value - cf_pm) - mu) / nu))))) %>%
+                                                 exp(theta * log(pmax(0, value - cf_pm)/ (alpha + 1)) / (1 + exp(-(pmax(0, value - cf_pm) - mu) / nu))))) %>%
           dplyr::select(-theta, -alpha, - mu, -nu, -cf_pm) %>%
           dplyr::rename(pm_conc = value)
 
@@ -280,14 +280,16 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #------------------------------------------------------------------------------------
       # First, adjust population
       pop_fin_str <- pop.all.str %>%
-        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
+        # For IHD and STROKE, calculate by age group, only pop > 25y considered
+        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>%
         dplyr::mutate(pop_1K = value * 1E3,
                       unit = "1K",
                       year = as.numeric(year)) %>%
         dplyr::select(-scenario, -unit, -value)
 
       pop_fin_allages <- pop.all.str %>%
-        dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
+        # According to the latest TM5-FASST release, for COPD, LRI, DM2 and LC all population is considered
+        # dplyr::filter(!age %in% c("0-4","5-9","10-14","15-19","20-24")) %>% # only pop > 25y considered
         dplyr::group_by(region, year, sex) %>%
         dplyr::summarise(value = sum(value)) %>%
         dplyr::ungroup() %>%
@@ -316,7 +318,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::left_join(pop_fin_str, by = c('region', 'year', 'age', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
                       mort = round(mort, 0),
-                      mort = dplyr::if_else(is.na(mort), 0, mort)) %>%
+                      mort = dplyr::if_else(is.na(mort), 0, mort),
+                      mort = dplyr::if_else(mort < 0, 0, mort)) %>%
         dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
         dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
@@ -336,7 +339,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::left_join_error_no_match(mort.rates, by = c('region', 'year', 'disease', 'age', 'sex')) %>%
         dplyr::left_join(pop_fin_allages, by = c('region', 'year', 'sex')) %>% # rm regions whose population is not estimated by the SSPs
         dplyr::mutate(mort = (1 - 1/ value) * rate * pop_1K / 100,
-                      mort = round(mort, 0)) %>%
+                      mort = round(mort, 0),
+                      mort = dplyr::if_else(mort < 0, 0, mort)) %>%
         dplyr::mutate(mort_norm_100k = mort / pop_1K * 100) %>%
         dplyr::select(region, year, age, sex, disease, pm_mort = mort, pm_mort_norm_100k = mort_norm_100k, rr) %>%
         dplyr::mutate(rr = gsub("_rr", "", rr)) %>%
