@@ -70,10 +70,10 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       dplyr::rename(subRegion=fasst_region) %>%
       dplyr::mutate(subRegionAlt=as.factor(subRegionAlt))
 
-    em.list<-m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
+    em.list <- m1_emissions_rescale(db_path, query_path, db_name, prj_name, prj, scen_name, queries, saveOutput = F,
                                   final_db_year, recompute = recompute, gcam_eur = gcam_eur)
 
-    all_years<-rfasst::all_years[rfasst::all_years <= min(final_db_year,
+    all_years <- rfasst::all_years[rfasst::all_years <= min(final_db_year,
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     #----------------------------------------------------------------------
@@ -97,6 +97,26 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
     base_conc <- dplyr::bind_rows(base_conc, base_conc_nat)
 
+    # Adjust urban increment in base conc:
+    urb_incr_base<-raw.urb_incr %>%
+      dplyr::rename(region = CNTRY) %>%
+      tidyr::pivot_longer(cols = c("BC", "POM"),
+                          names_to = "pollutant",
+                          values_to = "urb_adj")
+
+    base_conc <- base_conc %>%
+      dplyr::left_join(urb_incr_base, by = c("region", "pollutant")) %>%
+      dplyr::mutate(value = suppressWarnings(as.numeric(value))) %>%
+      dplyr::mutate(
+        value = dplyr::if_else(
+          pollutant %in% c("BC", "POM") & !is.na(urb_adj),
+          value * urb_adj,
+          value
+        ) ) %>%
+      dplyr::select(-urb_adj)
+
+
+    # Adjust base emissions
     base_em<-raw.base_em %>%
       tidyr::gather(pollutant,value,-COUNTRY) %>%
       dplyr::mutate(units="kt",
@@ -143,6 +163,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
                       region = COUNTRY) %>%
         dplyr::filter(region != "*TOTAL*") %>%
         dplyr::mutate(year = as.factor(as.character(year))) %>%
+        dplyr::filter(year %in% all_years) %>%
         gcamdata::left_join_error_no_match(em.list %>%
                                              dplyr::filter(scenario == sc) %>%
                                              dplyr::mutate(year = as.factor(year)),
@@ -162,11 +183,8 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::mutate(delta_em = dplyr::if_else(pollutant == "PM25", 0, delta_em)) %>%
         dplyr::arrange(region) %>%
         dplyr::mutate(delta_em = replace(delta_em, is.nan(delta_em), 0),
-                      delta_em = replace(delta_em, !is.finite(delta_em), 0)) %>%
-        dplyr::mutate(region = gsub("AIR","Air",region),
-                      region = gsub("SHIP","Ship",region))  %>%
-        #not consider air and ship as in delta_Em_SR in the excel
-        dplyr::mutate(delta_em = dplyr::if_else(region %in% c("Air","Ship"),0,delta_em))
+                      delta_em = replace(delta_em, !is.finite(delta_em), 0))
+
 
       #----------------------------------------------------------------------
       #----------------------------------------------------------------------
@@ -188,6 +206,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year))) %>%
         dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         gcamdata::left_join_error_no_match(delta_em %>%
                                              dplyr::filter(pollutant %in% c("NOX","SO2","NH3")),
                                            by=c("pollutant","year","region")) %>%
@@ -196,8 +215,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::summarise(delta_no3=sum(delta_no3)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(region=receptor) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
         dplyr::rename(value=delta_no3) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         dplyr::mutate(pollutant="NO3")
       #----------------------------------------------------------------------
       # SO4
@@ -215,6 +235,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year))) %>%
         dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         gcamdata::left_join_error_no_match(delta_em %>%
                                              dplyr::filter(pollutant %in% c("NOX","SO2","NH3")),
                                            by=c("pollutant","year","region")) %>%
@@ -223,8 +244,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::summarise(delta_so4=sum(delta_so4)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(region=receptor) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
         dplyr::rename(value=delta_so4) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         dplyr::mutate(pollutant="SO4")
       #----------------------------------------------------------------------
       # NH4
@@ -242,6 +264,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year))) %>%
         dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         gcamdata::left_join_error_no_match(delta_em %>%
                                              dplyr::filter(pollutant %in% c("NOX","SO2","NH3")),
                                            by=c("pollutant","year","region")) %>%
@@ -252,6 +275,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::rename(region=receptor) %>%
         dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
         dplyr::rename(value=delta_nh4) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         dplyr::mutate(pollutant="NH4")
       #----------------------------------------------------------------------
       # BC
@@ -263,6 +287,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year))) %>%
         dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         gcamdata::left_join_error_no_match(delta_em %>%
                                              dplyr::filter(pollutant %in% c("BC")),
                                            by=c("pollutant","year","region")) %>%
@@ -271,12 +296,13 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::summarise(delta_bc=sum(delta_bc)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(region=receptor) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
-        gcamdata::left_join_error_no_match(tibble::as_tibble(urb_incr) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::left_join(tibble::as_tibble(urb_incr) %>%
                                              dplyr::select(region,BC),by="region") %>%
-        dplyr::mutate(delta_bc=delta_bc*BC) %>%
+        dplyr::mutate(delta_bc = dplyr::if_else(!is.na(BC), delta_bc * BC, delta_bc)) %>%
         dplyr::select(-BC) %>%
         dplyr::rename(value=delta_bc) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         dplyr::mutate(pollutant="BC")
       #----------------------------------------------------------------------
       # POM
@@ -288,6 +314,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year))) %>%
         dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         gcamdata::left_join_error_no_match(delta_em %>%
                                              dplyr::filter(pollutant %in% c("OM")),
                                            by=c("pollutant","year","region")) %>%
@@ -296,13 +323,14 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::summarise(delta_pom=sum(delta_pom)) %>%
         dplyr::ungroup() %>%
         dplyr::rename(region=receptor) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
-        gcamdata::left_join_error_no_match(tibble::as_tibble(urb_incr) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
+        dplyr::left_join(tibble::as_tibble(urb_incr) %>%
                                              dplyr::select(region,POM),
                                            by="region") %>%
-        dplyr::mutate(delta_pom=delta_pom*POM) %>%
+        dplyr::mutate(delta_pom = dplyr::if_else(!is.na(POM), delta_pom * POM, delta_pom)) %>%
         dplyr::select(-POM) %>%
         dplyr::rename(value=delta_pom) %>%
+        dplyr::mutate(region = toupper(region)) %>%
         dplyr::mutate(pollutant="POM")
       #----------------------------------------------------------------------
       # delta_PM25 from natural sources
@@ -311,7 +339,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::filter(pollutant %in% c("DUST")) %>%
         dplyr::select(region,pollutant,value) %>%
         dplyr::mutate(value=0) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years)) %>%
         dplyr::mutate(year=as.factor(as.character(year)))
       #----------------------------------------------------------------------
@@ -320,7 +348,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::filter(pollutant %in% c("SS")) %>%
         dplyr::select(region,pollutant,value) %>%
         dplyr::mutate(value=0) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years))%>%
         dplyr::mutate(year=as.factor(as.character(year)))
       #----------------------------------------------------------------------
@@ -329,7 +357,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::filter(pollutant %in% c("H2O")) %>%
         dplyr::select(region,pollutant,value) %>%
         dplyr::mutate(value=0) %>%
-        dplyr::filter(region %!in% c("Air","Ship","Ocean","EUR")) %>%
+        dplyr::filter(region %!in% c("Ocean","EUR")) %>%
         gcamdata::repeat_add_columns(tibble::tibble(year=all_years))%>%
         dplyr::mutate(year=as.factor(as.character(year)))
       #----------------------------------------------------------------------
@@ -342,6 +370,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       #----------------------------------------------------------------------
       # PM2.5 disaggregated by particulate type
       pm25<-tibble::as_tibble(delta_pm25) %>%
+        dplyr::filter(region %!in% c("AIR", "SHIP")) %>%
         gcamdata::left_join_error_no_match(base_conc %>%
                                              dplyr::select(-AREA_M2,-POP,-year),
                                            by=c("region","pollutant")) %>%
