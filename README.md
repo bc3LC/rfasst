@@ -82,7 +82,14 @@ To clone the repository to the local machine: Git bash in the working directory 
 git clone https://github.com/bc3LC/rfasst.git
 ```
 
-Then, open the Rproject (rfasst.Rproj): In the Rstudio menu, click "Build -> Install and restart" (Ctrl+Shift+B)
+Then, enter to the newly created directory and activating Git LFS by typing
+
+```r
+cd rfasst
+git lfs pull
+```
+
+Once done, open the Rproject (rfasst.Rproj): In the Rstudio menu, click "Build -> Install and restart" (Ctrl+Shift+B)
   
 
 <!-- ------------------------>
