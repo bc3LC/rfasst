@@ -711,7 +711,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
         dplyr::mutate(yll_GBD = GBD * YLL_ratio,
                       yll_GEMM = GEMM * YLL_ratio,
                       yll_FUSION = FUSION * YLL_ratio) %>%
-        dplyr::select(region, year, disease, yll_GBD, yll_GEMM, yll_FUSION)
+        dplyr::select(region, year, disease, sex, yll_GBD, yll_GEMM, yll_FUSION)
 
       #------------------------------------------------------------------------------------
       # Write the output
@@ -748,7 +748,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
       lapply(split(m3_get_yll_pm25.output, pm.mort$year),pm.yll.write)
 
       pm.yll.tot <- m3_get_yll_pm25.output %>%
-        dplyr::group_by(region, year, scenario) %>%
+        dplyr::group_by(region, year, sex, scenario) %>%
         dplyr::summarise(yll_GBD = sum(yll_GBD),
                          yll_GEMM = sum(yll_GBD),
                          yll_FUSION = sum(yll_FUSION)) %>%
@@ -765,6 +765,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     if(map == T){
 
       pm.yll.tot <- m3_get_yll_pm25.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(yll_GBD = sum(yll_GBD),
                          yll_GEMM = sum(yll_GBD),
@@ -902,7 +903,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
         dplyr::mutate(daly_GBD = GBD * DALY_ratio,
                       daly_GEMM = GEMM * DALY_ratio,
                       daly_FUSION = FUSION * DALY_ratio) %>%
-        dplyr::select(region, year, disease, age, daly_GBD, daly_GEMM, daly_FUSION)
+        dplyr::select(region, year, disease, age, sex, daly_GBD, daly_GEMM, daly_FUSION)
 
 
       #------------------------------------------------------------------------------------
@@ -940,7 +941,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       lapply(split(m3_get_daly_pm25.output, pm.daly$year),pm.daly.write)
 
       pm.daly.tot <- m3_get_daly_pm25.output %>%
-        dplyr::group_by(region, year, scenario) %>%
+        dplyr::group_by(region, year, sex, scenario) %>%
         dplyr::summarise(daly_GBD = sum(daly_GBD),
                          daly_GEMM = sum(daly_GEMM),
                          daly_FUSION = sum(daly_FUSION)) %>%
@@ -957,6 +958,7 @@ m3_get_daly_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     if(map == T){
 
       pm.daly.tot <- m3_get_daly_pm25.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(daly_GBD = sum(daly_GBD),
                          daly_GEMM = sum(daly_GEMM),
@@ -1101,7 +1103,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
                       adj_gdb2016_med = 1 - exp(-(m6m - cf_o3) * rr_resp_o3_GBD2016_med / 100000),
                       adj_gdb2016_med = dplyr::if_else(adj_gdb2016_med < 0, 0, adj_gdb2016_med),
                       mort_o3_gbd2016_med = round(pop_af * mr_resp * adj_gdb2016_med, 0)) %>%
-        dplyr::select(region, year, disease, Jerret2009 = mort_o3_jer_med,  GBD2016 =  mort_o3_gbd2016_med)
+        dplyr::select(region, year, disease, sex, Jerret2009 = mort_o3_jer_med,  GBD2016 =  mort_o3_gbd2016_med)
 
       #------------------------------------------------------------------------------------
       # Write the output
@@ -1139,6 +1141,7 @@ m3_get_mort_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     if(map == T){
       o3.mort.map<-m3_get_mort_o3.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
         dplyr::select(subRegion, year, all_of(mort_param), scenario) %>%
@@ -1278,7 +1281,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
         gcamdata::left_join_error_no_match(o3.yll, by = c("region", "disease", "year")) %>%
         dplyr::mutate(yll_Jerret2009 = Jerret2009 * YLL_ratio) %>%
         dplyr::mutate(yll_GBD2016 = GBD2016 * YLL_ratio) %>%
-        dplyr::select(region, year, disease, yll_Jerret2009, yll_GBD2016)
+        dplyr::select(region, year, disease, sex, yll_Jerret2009, yll_GBD2016)
 
 
       #------------------------------------------------------------------------------------
@@ -1317,6 +1320,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
     if(map == T){
       o3.yll.map <- m3_get_yll_o3.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::rename(subRegion = region)%>%
         dplyr::filter(subRegion != "RUE") %>%
         dplyr::select(subRegion, year, all_of(paste0('yll_',mort_param)), scenario) %>%
@@ -1445,7 +1449,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
         gcamdata::left_join_error_no_match(daly.calc.o3.adj, by = c("region","disease","year")) %>%
         dplyr::mutate(daly_Jerret2009 = round(Jerret2009 * DALY_ratio, 0),
                       daly_GBD2016 = round(GBD2016 * DALY_ratio, 0)) %>%
-        dplyr::select(region, year, disease, daly_Jerret2009, daly_GBD2016 )
+        dplyr::select(region, year, disease, sex, daly_Jerret2009, daly_GBD2016 )
 
 
       #------------------------------------------------------------------------------------
@@ -1483,7 +1487,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
       o3.daly.list<-split(m3_get_daly_o3.output,m3_get_daly_o3.output$year)
 
       o3.daly.tot<-m3_get_daly_o3.output %>%
-        dplyr::group_by(region, year, scenario) %>%
+        dplyr::group_by(region, year, sex, scenario) %>%
         dplyr::summarise(daly_Jerret2009 = sum(daly_Jerret2009),
                          daly_GBD2016 = sum(daly_GBD2016)) %>%
         dplyr::ungroup() %>%
@@ -1501,6 +1505,7 @@ m3_get_daly_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
     if(map == T){
 
       o3.daly.tot<-m3_get_daly_o3.output %>%
+        dplyr::filter(sex == 'Both') %>%
         dplyr::group_by(region, year, scenario) %>%
         dplyr::summarise(daly_Jerret2009 = sum(daly_Jerret2009),
                          daly_GBD2016 = sum(daly_GBD2016)) %>%

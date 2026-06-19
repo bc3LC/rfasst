@@ -771,8 +771,9 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
       m2_get_conc_pm25.output <- NULL
       cat("m2 return empty dataset. All gridded outputs are stored in the `output/m2/` folder.")
     }
-    return(invisible(m2_get_conc_pm25.output))
     }
+
+    return(invisible(m2_get_conc_pm25.output))
   }
 }
 

@@ -263,6 +263,7 @@ m1_emissions_rescale<-function(db_path = NULL, query_path = "./inst/extdata", db
                                     by=c('GCAM Region','Pollutant','year')) %>%
       dplyr::mutate(NewValue = Percentage * value) %>%
       dplyr::left_join(FASST_reg, by = 'ISO 3') %>%
+      dplyr::filter(!is.na(scenario)) %>%
       dplyr::group_by(scenario, `FASST Region`, year, Pollutant) %>%
       dplyr::summarise(NewValue = sum(NewValue)) %>%
       dplyr::ungroup() %>%
