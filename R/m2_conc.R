@@ -81,14 +81,14 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     rlang::inform('Computing PM2.5 concentration ...')
 
     # First we load the base concentration and emissions, which are required for the calculations
-    base_conc<-raw.base_conc %>%
+    base_conc<-rfasst::raw.base_conc %>%
       tidyr::gather(pollutant,value,-COUNTRY,-AREA_M2,-POP) %>%
       dplyr::mutate(units=dplyr::if_else(pollutant %in% c("O3","M6M","M3M"),"ppbv","ug/m3"),
                     year="base") %>%
       dplyr::rename(region=COUNTRY) %>%
       dplyr::filter(pollutant %!in% c("SS", "DUST"))
 
-    base_conc_nat <- raw.base_conc.nat %>%
+    base_conc_nat <- rfasst::raw.base_conc.nat %>%
       tidyr::gather(pollutant,value,-region,-AREA_M2,-POP) %>%
       dplyr::mutate(pollutant = toupper(pollutant)) %>%
       dplyr::mutate(year = "base",
@@ -98,7 +98,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     base_conc <- dplyr::bind_rows(base_conc, base_conc_nat)
 
     # Adjust urban increment in base conc:
-    urb_incr_base<-raw.urb_incr %>%
+    urb_incr_base<-rfasst::raw.urb_incr %>%
       dplyr::rename(region = CNTRY) %>%
       tidyr::pivot_longer(cols = c("BC", "POM"),
                           names_to = "pollutant",
@@ -117,7 +117,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
     # Adjust base emissions
-    base_em<-raw.base_em %>%
+    base_em<-rfasst::raw.base_em %>%
       tidyr::gather(pollutant,value,-COUNTRY) %>%
       dplyr::mutate(units="kt",
                     year="base")
@@ -129,7 +129,7 @@ m2_get_conc_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
     bc<-src.bc
     pom<-src.pom
 
-    urb_incr<-raw.urb_incr %>%
+    urb_incr<-rfasst::raw.urb_incr %>%
       dplyr::rename(region=CNTRY)
 
     # NO3
@@ -848,13 +848,13 @@ m2_get_conc_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
 
     # First we load the base concentration and emissions, which are required for the calculations
-    base_conc<-raw.base_conc %>%
+    base_conc<-rfasst::raw.base_conc %>%
       tidyr::gather(pollutant, value, -COUNTRY, -AREA_M2, -POP) %>%
       dplyr::mutate(units = dplyr::if_else(pollutant %in% c("O3","M6M","M3M"),"ppbv","ug/m3"),
                     year = "base") %>%
       dplyr::rename(region = COUNTRY)
 
-    base_em<-raw.base_em %>%
+    base_em<-rfasst::raw.base_em %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(units = "kt",
                     year = "base")
@@ -1110,13 +1110,13 @@ m2_get_conc_m6m<-function(db_path = NULL, query_path = "./inst/extdata", db_name
                                           max(as.numeric(as.character(unique(em.list$year)))))]
 
     # First we load the base concentration and emissions, which are required for the calculations
-    base_conc<-raw.base_conc %>%
+    base_conc<-rfasst::raw.base_conc %>%
       tidyr::gather(pollutant, value, -COUNTRY, -AREA_M2, -POP) %>%
       dplyr::mutate(units=dplyr::if_else(pollutant %in% c("O3","M6M","M3M"),"ppbv","ug/m3"),
                     year = "base") %>%
       dplyr::rename(region = COUNTRY)
 
-    base_em<-raw.base_em %>%
+    base_em<-rfasst::raw.base_em %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(units = "kt",
                     year = "base")
@@ -1406,12 +1406,12 @@ m2_get_conc_aot40<-function(db_path = NULL, query_path = "./inst/extdata", db_na
 
     # First we load the base concentration and emissions, which are required for the calculations
 
-    base_aot<-raw.base_aot %>%
+    base_aot<-rfasst::raw.base_aot %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(year = "base") %>%
       dplyr::rename(region = COUNTRY)
 
-    base_em<-raw.base_em %>%
+    base_em<-rfasst::raw.base_em %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(units = "kt",
                     year = "base")
@@ -1860,13 +1860,13 @@ m2_get_conc_mi<-function(db_path = NULL, query_path = "./inst/extdata", db_name 
 
     # First we load the base concentration and emissions, which are required for the calculations
 
-    base_mi<-raw.base_mi %>%
+    base_mi<-rfasst::raw.base_mi %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(year = "base") %>%
       dplyr::rename(region = COUNTRY)
 
 
-    base_em<-raw.base_em %>%
+    base_em<-rfasst::raw.base_em %>%
       tidyr::gather(pollutant, value, -COUNTRY) %>%
       dplyr::mutate(units = "kt",
                     year = "base")

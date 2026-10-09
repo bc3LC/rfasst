@@ -2,10 +2,30 @@
 % Please edit documentation in R/rfasst.R
 \docType{package}
 \name{rfasst}
+\alias{rfasst-package}
 \alias{rfasst}
 \title{rfasst}
 \description{
 \itemize{
 \item Github: https://github.com/JGCRI/rfasst
 \item Webpage: https://bc3lc.github.io/rfasst/}
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/bc3LC/rfasst}
+  \item Report bugs at \url{https://github.com/bc3LC/rfasst/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Jon Sampedro \email{jon.sampedro@bc3research.org} (\href{https://orcid.org/0000-0002-2277-1530}{ORCID})
+
+Authors:
+\itemize{
+  \item Zarrar Khan \email{zarrar.khan@pnnl.gov} (\href{https://orcid.org/0000-0002-8147-8553}{ORCID})
+  \item Chris Vernon \email{chris.vernon@pnnl.gov} (\href{https://orcid.org/0000-0002-3406-6214}{ORCID})
+  \item Clàudia Rodés-Bachs \email{claudia.rodes@bc3research.org} (\href{https://orcid.org/0000-0001-6696-7685}{ORCID})
+}
+
 }

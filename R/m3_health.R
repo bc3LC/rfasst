@@ -14,7 +14,15 @@ calc_mort_rates<-function(downscale = F, agg_grid = F){
     } else if (downscale & agg_grid == 'CTRY') {
       mort.rates <- rfasst::raw.mort.rates.ctry_ctry
     } else {
-      mort.rates <- rfasst::raw.mort.rates.plus
+      mort.rates <- rfasst::raw.mort.rates.plus %>%
+        # adjust for ESP - MIVAU prj - ct mort rates from 2030 onwards
+        dplyr::filter(year < 2030) %>%
+        rbind(rfasst::raw.mort.rates.plus %>%
+                dplyr::filter(year == 2030) %>%
+                tidyr::complete(tidyr::nesting(region,disease,age,sex), year = seq(2030,2100,5)) %>%
+                dplyr::group_by(region, disease, age, sex) %>%
+                dplyr::mutate(rate = rate[year == 2030]) %>%
+                dplyr::ungroup())
     }
   mort.rates <- mort.rates %>%
     dplyr::mutate(rate = dplyr::if_else(rate <= 0, 0, rate)) %>%
@@ -37,7 +45,7 @@ calc_mort_rates<-function(downscale = F, agg_grid = F){
 
 calc_daly_pm25<-function(){
 
-  daly_calc_pm<-tibble::as_tibble(raw.daly) %>%
+  daly_calc_pm<-tibble::as_tibble(rfasst::raw.daly) %>%
     dplyr::filter(rei == "Ambient particulate matter pollution") %>%
     dplyr::select(location_name = location, year,measure_name = measure, cause_name = cause, age,val) %>%
     dplyr::mutate(cause_name=dplyr::if_else(grepl("stroke", cause_name), "stroke", cause_name),
@@ -81,7 +89,7 @@ calc_daly_pm25<-function(){
 
 calc_daly_o3<-function(){
 
-  daly_calc_o3<-tibble::as_tibble(raw.daly) %>%
+  daly_calc_o3<-tibble::as_tibble(rfasst::raw.daly) %>%
     dplyr::filter(rei == "Ambient ozone pollution",
                   age == "All ages") %>%
     dplyr::select(-age) %>%
@@ -213,8 +221,8 @@ m3_get_mort_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_nam
 
 
     # Get relative risk parameters
-    GBD <- raw.rr.gbd.param
-    GEMM <- raw.rr.gemm.param %>%
+    GBD <- rfasst::raw.rr.gbd.param
+    GEMM <- rfasst::raw.rr.gemm.param %>%
       rbind(c(">25", 0, 0, 0, 2.4, 0, "dm"))
 
     # Mortality units
@@ -662,7 +670,7 @@ m3_get_yll_pm25<-function(db_path = NULL, query_path = "./inst/extdata", db_name
     for (sc in scen_name) {
 
       # Get years of life lost
-      yll.pm.mort<-tibble::as_tibble(raw.yll.pm25) %>%
+      yll.pm.mort<-tibble::as_tibble(rfasst::raw.yll.pm25) %>%
         dplyr::filter(year == max(as.numeric(year))) %>%
         dplyr::select(-year) %>%
         dplyr::select(location_name = location, measure_name = measure, cause_name = cause, age, val) %>%
@@ -1240,7 +1248,7 @@ m3_get_yll_o3<-function(db_path = NULL, query_path = "./inst/extdata", db_name =
 
       #------------------------------------------------------------------------------------
       #------------------------------------------------------------------------------------
-      o3.yll <- tibble::as_tibble(raw.yll.o3) %>%
+      o3.yll <- tibble::as_tibble(rfasst::raw.yll.o3) %>%
         dplyr::filter(year == max(as.numeric(year))) %>%
         dplyr::select(-year) %>%
         dplyr::filter(age == "All ages") %>%
